@@ -58,8 +58,11 @@ def save(row):
         scopes=scope,
     )
     client = gspread.authorize(creds)
-    sh = client.open("감수성_인권감수성_설문_응답")
-    sheet = sh.sheet1
+    
+   SPREADSHEET_KEY = "12l-MzIhszbWb5kV3muWyGoqyfBaKD4CARjqKktndiAg"
+
+sh = client.open_by_key(SPREADSHEET_KEY)
+sheet = sh.worksheet("sheet1")
     sheet.append_row(list(row.values()))
     st.success("Google Sheets 저장 시도 완료")
 
@@ -102,5 +105,6 @@ if submit:
     save(row)
     st.write("저장 위치:", CSV_PATH)
     st.success("응답이 저장되었습니다.")
+
 
 
