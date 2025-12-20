@@ -51,6 +51,8 @@ def interpret(total):
 DATA_DIR = "data"
 CSV_PATH = os.path.join(DATA_DIR, "responses.csv")
 
+SPREADSHEET_KEY = "12l-MzIhszbWb5kV3muWyGoqyfBaKD4CARjqKktndiAg"
+
 def save(row):
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds = Credentials.from_service_account_info(
@@ -59,10 +61,9 @@ def save(row):
     )
     client = gspread.authorize(creds)
     
-   SPREADSHEET_KEY = "12l-MzIhszbWb5kV3muWyGoqyfBaKD4CARjqKktndiAg"
-
-sh = client.open_by_key(SPREADSHEET_KEY)
-sheet = sh.worksheet("sheet1")
+ 
+    sh = client.open_by_key(SPREADSHEET_KEY)
+    sheet = sh.worksheet("sheet1")
     sheet.append_row(list(row.values()))
     st.success("Google Sheets 저장 시도 완료")
 
@@ -105,6 +106,7 @@ if submit:
     save(row)
     st.write("저장 위치:", CSV_PATH)
     st.success("응답이 저장되었습니다.")
+
 
 
 
