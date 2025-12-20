@@ -106,6 +106,11 @@ if submit:
     save(row)
     st.write("저장 위치:", CSV_PATH)
     st.success("응답이 저장되었습니다.")
+    st.caption(
+    "※ 본 설문은 연구 목적의 자가점검 도구이며, "
+    "개인에 대한 진단이나 인사평가를 의미하지 않습니다."
+    )
+
 
 
 
