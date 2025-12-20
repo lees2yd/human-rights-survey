@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import os
+import gspread
+from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="인권감수성 설문", layout="wide")
 st.warning("VERSION CHECK 2025-01-TEST")
@@ -50,11 +52,16 @@ DATA_DIR = "data"
 CSV_PATH = os.path.join(DATA_DIR, "responses.csv")
 
 def save(row):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    df = pd.DataFrame([row])
-    if os.path.exists(CSV_PATH):
-        df = pd.concat([pd.read_csv(CSV_PATH), df])
-    df.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=scope,
+    )
+    client = gspread.authorize(creds)
+    sh = client.open("감수성_인권감수성_설문_응답")
+    sheet = sh.sheet1
+    sheet.append_row(list(row.values()))
+    st.success("Google Sheets 저장 시도 완료")
 
 st.title("인권감수성 설문 (27문항)")
 st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
@@ -93,5 +100,7 @@ if submit:
         row[f"q{i}"] = a
 
     save(row)
+    st.write("저장 위치:", CSV_PATH)
     st.success("응답이 저장되었습니다.")
+
 
