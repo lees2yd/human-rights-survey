@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 
 st.set_page_config(page_title="인권감수성 설문", layout="wide")
+st.warning("VERSION CHECK 2025-01-TEST")
 
 QUESTIONS = [
     "수용자가 소란을 피울 때, 그 안에 두려움이나 불안이 있을 수 있다고 생각한다.",
@@ -93,3 +94,4 @@ if submit:
 
     save(row)
     st.success("응답이 저장되었습니다.")
+
