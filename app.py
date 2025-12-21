@@ -273,52 +273,52 @@ if st.session_state.page == "result":
 
     import plotly.graph_objects as go
 
-st.subheader("🕸 감·수·성 인권감수성 프로파일 (Radar Chart)")
+    st.subheader("🕸 감·수·성 인권감수성 프로파일 (Radar Chart)")
 
-categories = ["감", "수", "성"]
+    categories = ["감", "수", "성"]
 
-# 기본 점수
-values_total = [r['감'], r['수'], r['성']]
+    # 기본 점수
+    values_total = [r['감'], r['수'], r['성']]
 
-# 정신질환 상황 점수 — 감·수·성별 3문항씩 자동 분리
-mh_gam = sum([r['answers'][6], r['answers'][7], r['answers'][8]])
-mh_su = sum([r['answers'][15], r['answers'][16], r['answers'][17]])
-mh_seong = sum([r['answers'][24], r['answers'][25], r['answers'][26]])
+    # 정신질환 상황 점수 — 감·수·성별 3문항씩 자동 분리
+    mh_gam = sum([r['answers'][6], r['answers'][7], r['answers'][8]])
+    mh_su = sum([r['answers'][15], r['answers'][16], r['answers'][17]])
+    mh_seong = sum([r['answers'][24], r['answers'][25], r['answers'][26]])
 
-values_mh = [mh_gam, mh_su, mh_seong]
+    values_mh = [mh_gam, mh_su, mh_seong]
 
-fig = go.Figure()
+    fig = go.Figure()
 
-# 전체 점수 레이어
-fig.add_trace(go.Scatterpolar(
-    r=values_total,
-    theta=categories,
-    fill='toself',
-    name='전체 점수',
-    line=dict(color='blue')
+    # 전체 점수 레이어
+    fig.add_trace(go.Scatterpolar(
+        r=values_total,
+        theta=categories,
+        fill='toself',
+        name='전체 점수',
+        line=dict(color='blue')
 ))
 
-# 정신질환 관련 점수 레이어
-fig.add_trace(go.Scatterpolar(
-    r=values_mh,
-    theta=categories,
-    fill='toself',
-    name='정신질환 상황 점수',
-    line=dict(color='red')
+    # 정신질환 관련 점수 레이어
+    fig.add_trace(go.Scatterpolar(
+        r=values_mh,
+        theta=categories,
+        fill='toself',
+        name='정신질환 상황 점수',
+        line=dict(color='red')
 ))
 
-fig.update_layout(
-    polar=dict(
-        radialaxis=dict(
-            visible=True,
-            range=[0, 36]   # 감/수/성(9문항 * 4점) → 최대 36점
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 36]   # 감/수/성(9문항 * 4점) → 최대 36점
         )
     ),
-    showlegend=True,
-    title="감·수·성 인권감수성 프로파일"
+        showlegend=True,
+        title="감·수·성 인권감수성 프로파일"
 )
 
-st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
     # ----------------------
     # 자동 피드백 출력
@@ -358,6 +358,7 @@ st.plotly_chart(fig, use_container_width=True)
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
