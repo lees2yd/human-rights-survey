@@ -257,46 +257,46 @@ if st.session_state.page == "survey":
 # -------------------------------
 # 📌 진행률 표시 추가 (여기가 핵심)
 # -------------------------------
-answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
-progress = answered / 27
+   answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
+   progress = answered / 27
 
-st.progress(progress)
-st.write(f"진행률: **{answered} / 27 문항**")
+   st.progress(progress)
+   st.write(f"진행률: **{answered} / 27 문항**")
 
 # -------------------------------
 # 📌 설문 폼 시작
 # -------------------------------
 
-with st.form("survey"):
-    answers = []
+   with st.form("survey"):
+       answers = []
 
-    for i, q in enumerate(QUESTIONS, 1):
+       for i, q in enumerate(QUESTIONS, 1):
 
         # 앞 문항 응답 여부로 비활성화
-        if i == 1:
-            disabled = False
-        else:
-            disabled = (st.session_state.get(f"q_{i-1}") is None)
-
+           if i == 1:
+               disabled = False
+           else:
+               disabled = (st.session_state.get(f"q_{i-1}") is None)
+  
         # 문항 텍스트
-        st.markdown(
-            f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
-            unsafe_allow_html=True
+           st.markdown(
+               f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
+               unsafe_allow_html=True
         )
 
         # 라디오 버튼
-        ans = st.radio(
-            "",
-            [1, 2, 3, 4],
-            horizontal=True,
-            index=None,
-            key=f"q_{i}",
-            disabled=disabled
+           ans = st.radio(
+               "",
+               [1, 2, 3, 4],
+               horizontal=True,
+               index=None,
+               key=f"q_{i}",
+               disabled=disabled
         )
-        answers.append(ans)
+           answers.append(ans)
 
         # 응답 바로 아래 구분선 추가
-        st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+           st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
     submit = st.form_submit_button("제출")
 if submit:
@@ -432,6 +432,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
