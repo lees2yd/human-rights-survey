@@ -4,6 +4,16 @@ from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 
+import matplotlib.font_manager as fm
+import streamlit as st
+
+font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+
+st.write("🔍 서버에서 발견된 폰트 목록:")
+for f in font_list:
+    st.write(f)
+
+
 # ---- 그래프 한글 깨짐 방지 설정 ----
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
@@ -385,6 +395,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
