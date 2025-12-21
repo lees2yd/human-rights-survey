@@ -159,7 +159,7 @@ if st.session_state.page == "cover":
 
     if st.button("설문 시작하기"):
         st.session_state.page = "consent"
-        st.experimental_rerun()
+        st.rerun()
 
     st.stop()
 
@@ -184,7 +184,7 @@ if st.session_state.page == "consent":
 
     if st.button("설문으로 이동"):
         st.session_state.page = "survey"
-        st.experimental_rerun()
+        st.rerun()
 
     st.stop()
 
@@ -277,6 +277,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
