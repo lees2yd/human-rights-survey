@@ -12,7 +12,7 @@ st.markdown("""
 <style>
 .progress-fixed{
     position: fixed;
-    top: 3.25rem;           /* Streamlit 헤더 아래 */
+    top: 3.25rem;
     left: 0;
     right: 0;
     z-index: 100000;
@@ -23,7 +23,7 @@ st.markdown("""
 
 .progress-wrap{
     width: 100%;
-    height: 12px;           /* 막대 두께 */
+    height: 12px;
     background: #e5e7eb;
     border-radius: 999px;
     overflow: hidden;
@@ -31,12 +31,8 @@ st.markdown("""
 
 .progress-bar{
     height: 100%;
-    background: linear-gradient(
-        90deg,
-        #3b82f6,
-        #2563eb
-    );
-    transition: width 0.3s ease;   /* ⭐ 시각적 핵심 */
+    background: linear-gradient(90deg,#3b82f6,#2563eb);
+    transition: width 0.3s ease;
 }
 
 .progress-text{
@@ -46,8 +42,22 @@ st.markdown("""
     color: #374151;
 }
 
+/* ✅ 추가: 진행률바 아래에 뜨는 고정 메시지 */
+.progress-milestone{
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    font-size: 0.95rem;
+    color: #111827;
+}
+
+/* ✅ 추가: 메시지 숨김 */
+.hidden{ display:none; }
+
 .body-pad-top{
-    padding-top: calc(80px + 3.25rem);
+    padding-top: calc(110px + 3.25rem); /* 메시지 공간까지 고려해 조금 늘림 */
 }
 </style>
 """, unsafe_allow_html=True)
@@ -305,17 +315,66 @@ if st.session_state.page == "survey":
     progress = answered / 27
     pct = int(progress * 100)
 
-    # ✅ 상단 고정 진행률 (HTML)
+    # ✅ (1) 상단 고정 진행률 (milestoneBox 포함 버전으로 수정)
     st.markdown(f"""
     <div class="progress-fixed">
       <div class="progress-wrap">
         <div class="progress-bar" style="width:{pct}%"></div>
       </div>
       <div class="progress-text">진행률: <b>{answered} / 27 문항</b> ({pct}%)</div>
+
+      <!-- ✅ 메시지 자리 -->
+      <div id="milestoneBox" class="progress-milestone hidden"></div>
     </div>
     """, unsafe_allow_html=True)
 
+    # ✅ (2) 여기!! 바로 아래에 “마일스톤 메시지 코드” 붙여넣기
+    import time
+    if "milestone_shown" not in st.session_state:
+        st.session_state.milestone_shown = set()
+
+    def show_milestone_if_needed(pct: int):
+        msgs = {
+            50: "이제 반 남았어요 🙂",
+            75: "거의 목적지가 보이네요 👀",
+            100: "고생하셨어요 👏"
+        }
+
+        hit = None
+        if pct >= 100:
+            hit = 100
+        elif pct >= 75:
+            hit = 75
+        elif pct >= 50:
+            hit = 50
+
+        if hit is None:
+            return
+        if hit in st.session_state.milestone_shown:
+            return
+
+        msg = msgs[hit].replace("'", "\\'")
+        st.components.v1.html(f"""
+        <script>
+          const box = window.parent.document.getElementById('milestoneBox');
+          if (box) {{
+            box.textContent = '{msg}';
+            box.classList.remove('hidden');
+            setTimeout(() => {{
+              box.classList.add('hidden');
+              box.textContent = '';
+            }}, 1600);
+          }}
+        </script>
+        """, height=0)
+
+        st.session_state.milestone_shown.add(hit)
+
+    show_milestone_if_needed(pct)
+
+    # ✅ (3) 그리고 그 다음 줄에 기존 body-pad-top 그대로
     st.markdown('<div class="body-pad-top"></div>', unsafe_allow_html=True)
+
    
     answers = []
 
@@ -484,6 +543,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
