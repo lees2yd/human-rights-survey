@@ -196,8 +196,8 @@ if st.session_state.page == "survey":
     # -------------------------
 # 설문 본문 (업데이트: 기본값 없음 + 순차 응답 강제)
 # -------------------------
-st.title("인권감수성 설문 (27문항)")
-st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
+   st.title("인권감수성 설문 (27문항)")
+   st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
 
 with st.form("survey"):
     answers = []
@@ -303,6 +303,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
