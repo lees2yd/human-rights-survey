@@ -193,17 +193,43 @@ if st.session_state.page == "consent":
 # =========================================================
 if st.session_state.page == "survey":
 
-    st.title("인권감수성 설문 (27문항)")
-    st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
+    # -------------------------
+# 설문 본문 (업데이트: 기본값 없음 + 순차 응답 강제)
+# -------------------------
+st.title("인권감수성 설문 (27문항)")
+st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
 
-    with st.form("survey"):
-        answers = []
-        for i, q in enumerate(QUESTIONS, 1):
-            st.write(f"{i}. {q}")
-            answers.append(st.radio("", [1,2,3,4], horizontal=True, key=f"q_{i}"))
-        submit = st.form_submit_button("제출")
+with st.form("survey"):
+    answers = []
 
-    if not submit:
+    for i, q in enumerate(QUESTIONS, 1):
+
+        # 이전 문항 응답 여부에 따라 다음 문항 활성/비활성
+        if i == 1:
+            disabled = False
+        else:
+            disabled = (answers[i-2] is None)
+
+        st.write(f"{i}. {q}")
+
+        # index=None → 기본값 없음
+        ans = st.radio(
+            "",
+            [1, 2, 3, 4],
+            horizontal=True,
+            index=None,
+            key=f"q_{i}",
+            disabled=disabled
+        )
+
+        answers.append(ans)
+
+    submit = st.form_submit_button("제출")
+
+# 응답 누락 방지
+if submit:
+    if None in answers:
+        st.error("모든 문항에 응답해야 제출할 수 있습니다.")
         st.stop()
 
     # 점수 계산
@@ -277,6 +303,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
