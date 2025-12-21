@@ -265,7 +265,7 @@ with st.form("survey"):
         else:
             disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-        # 문항 박스 (CSS와 연결되는 부분)
+        # 문항 텍스트
         st.markdown(
             f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
             unsafe_allow_html=True
@@ -282,10 +282,10 @@ with st.form("survey"):
         )
         answers.append(ans)
 
-        st.markdown("</div>", unsafe_allow_html=True)  # 문항 구역 닫기
+        # 응답 바로 아래 구분선 추가
+        st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
     submit = st.form_submit_button("제출")
-
 if submit:
     if None in answers:
         st.error("모든 문항을 순서대로 응답해야 제출할 수 있습니다.")
@@ -419,6 +419,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
