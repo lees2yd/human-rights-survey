@@ -303,7 +303,7 @@ if st.session_state.page == "survey":
 
     # ✅ 상단 고정 진행률 (HTML)
     st.markdown(f"""
-    <div class="progress-sticky">
+    <div class="progress-fixed">
       <div class="progress-wrap">
         <div class="progress-bar" style="width:{pct}%"></div>
       </div>
@@ -480,6 +480,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
