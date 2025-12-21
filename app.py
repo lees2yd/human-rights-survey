@@ -254,59 +254,56 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
 
-    answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
+    answered = sum(
+        1 for x in range(1, 28)
+        if st.session_state.get(f"q_{x}") is not None
+    )
     progress = answered / 27
-
     st.progress(progress)
     st.write(f"진행률: **{answered} / 27 문항**\n")
 
-    with st.form("survey"):
-        answers = []
+    answers = []
 
-        for i, q in enumerate(QUESTIONS, 1):
+    for i, q in enumerate(QUESTIONS, 1):
 
-            if i == 1:
-                disabled = False
-            else:
-                disabled = (st.session_state.get(f"q_{i-1}") is None)
+        if i == 1:
+            disabled = False
+        else:
+            disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-            st.markdown(
-                f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
-                unsafe_allow_html=True
-            )
+        st.markdown(
+            f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
+            unsafe_allow_html=True
+        )
 
-            ans = st.radio(
-                "",
-                [1, 2, 3, 4],
-                horizontal=True,
-                index=None,
-                key=f"q_{i}",
-                disabled=disabled
-            )
-            answers.append(ans)
-            
-            # 🔥 반드시 이 위치에 4칸 들여쓰기 맞춰 넣기
-            if ans is not None:
-                st.session_state.answers[i] = ans
+        ans = st.radio(
+            "",
+            [1, 2, 3, 4],
+            horizontal=True,
+            index=None,
+            key=f"q_{i}",
+            disabled=disabled
+        )
 
-            st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+        answers.append(ans)
 
-        submit = st.form_submit_button("제출")
+        if ans is not None:
+            st.session_state.answers[i] = ans
 
+        st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
-    # -------------------------------
-    # 📌 제출 후 처리
-    # -------------------------------
+    # ✅ 모든 문항 응답 완료 시에만 제출 버튼 활성화
+    can_submit = all(st.session_state.get(f"q_{i}") is not None for i in range(1, 28))
+    submit = st.button("제출", disabled=not can_submit)
+
     if submit:
-
-        if None in answers:
-            st.error("모든 문항을 순서대로 응답해야 제출할 수 있습니다.")
-            st.stop()
+        answers = [st.session_state.get(f"q_{i}") for i in range(1, 28)]
 
         total = sum(answers)
         감 = sum(answers[0:9])
         수 = sum(answers[9:18])
         성 = sum(answers[18:27])
+
         mh_items = [7, 8, 9, 16, 17, 18, 25, 26, 27]
         mh_score = sum(answers[i - 1] for i in mh_items)
 
@@ -321,7 +318,6 @@ if st.session_state.page == "survey":
 
         st.session_state.page = "result"
         st.rerun()
-
 # =========================================================
 #                  ★ 3. 결과 화면 ★
 # =========================================================
@@ -430,6 +426,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
