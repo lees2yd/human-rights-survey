@@ -224,7 +224,7 @@ if st.session_state.page == "survey":
         "answers": answers
     }
     st.session_state.page = "result"
-    st.experimental_rerun()
+    st.rerun()
 
 # =========================================================
 #                  ★ 3. 결과 화면 ★
@@ -277,6 +277,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
