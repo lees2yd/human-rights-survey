@@ -202,34 +202,32 @@ if st.session_state.page == "survey":
 with st.form("survey"):
     answers = []
 
-    for i, q in enumerate(QUESTIONS, 1):
+for i, q in enumerate(QUESTIONS, 1):
 
-        # 이전 문항 응답 여부에 따라 다음 문항 활성/비활성
-        if i == 1:
-            disabled = False
-        else:
-            disabled = (answers[i-2] is None)
+    # 앞 문항 응답 여부로 활성/비활성 결정
+    if i == 1:
+        disabled = False
+    else:
+        disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-        st.write(f"{i}. {q}")
+    st.write(f"{i}. {q}")
 
-        # index=None → 기본값 없음
-        ans = st.radio(
-            "",
-            [1, 2, 3, 4],
-            horizontal=True,
-            index=None,
-            key=f"q_{i}",
-            disabled=disabled
-        )
+    ans = st.radio(
+        "",
+        [1,2,3,4],
+        horizontal=True,
+        index=None,
+        key=f"q_{i}",
+        disabled=disabled
+    )
 
-        answers.append(ans)
+    answers.append(ans)
 
-    submit = st.form_submit_button("제출")
+submit = st.button("제출")
 
-# 응답 누락 방지
 if submit:
     if None in answers:
-        st.error("모든 문항에 응답해야 제출할 수 있습니다.")
+        st.error("모든 문항을 순서대로 응답해야 제출할 수 있습니다.")
         st.stop()
 
     # 점수 계산
@@ -303,6 +301,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
