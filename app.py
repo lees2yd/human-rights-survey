@@ -270,24 +270,52 @@ if st.session_state.page == "result":
 
     st.subheader("🕸 감·수·성 인권감수성 프로파일 (Radar Chart)")
 
-    categories = ['감', '수', '성', '정신건강']
-    values = [감, 수, 성, 정신]
+    # 1) 3개 축 (감·수·성)
+    categories = ['감', '수', '성']
+    N = len(categories)
 
-    # 원을 닫기 위해 첫 값을 다시 맨 뒤에 추가
-    values += values[:1]
+    # 2) 전체 점수 (각 9문항)
+    values_total = [감, 수, 성]
 
-    angles = np.linspace(0, 2 * np.pi, len(values))
+    # 3) 정신질환 관련 점수 (각 3문항씩)
+    # 정신질환 점수 계산식 예:
+    # 감: 7,8,9 → answers[6], answers[7], answers[8]
+    # 수: 16,17,18 → answers[15], answers[16], answers[17]
+    # 성: 25,26,27 → answers[24], answers[25], answers[26]
 
-    fig = plt.figure(figsize=(6, 6))
-    ax = plt.subplot(111, polar=True)
+    mh_gam = sum([answers[6], answers[7], answers[8]])
+    mh_su = sum([answers[15], answers[16], answers[17]])
+    mh_seong = sum([answers[24], answers[25], answers[26]])
 
-    ax.plot(angles, values, linewidth=2)
-    ax.fill(angles, values, alpha=0.25)
+    values_mh = [mh_gam, mh_su, mh_seong]
 
+    # 4) 원을 닫기 위해 첫 값 다시 추가
+    values_total += values_total[:1]
+    values_mh += values_mh[:1]
+
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    angles += angles[:1]
+
+    # 5) 그림 생성
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+
+    # === 전체 점수(파란색) ===
+    ax.plot(angles, values_total, linewidth=2, label="전체 점수", color="blue")
+    ax.fill(angles, values_total, alpha=0.25, color="blue")
+
+    # === 정신질환 점수(빨간색) ===
+    ax.plot(angles, values_mh, linewidth=2, linestyle="--", label="정신질환 상황", color="red")
+    ax.fill(angles, values_mh, alpha=0.25, color="red")
+
+    # 6) 축 표시
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(categories, fontsize=12)
 
+    # 7) 최대 점수(36) 기준 자동 스케일링
+    ax.set_ylim(0, 36)
+
     ax.set_title("감·수·성 인권감수성 프로파일", size=16, pad=20)
+    ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.1))
 
     st.pyplot(fig)
 
@@ -338,6 +366,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
