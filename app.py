@@ -290,18 +290,17 @@ if st.session_state.page == "survey":
         if st.session_state.get(f"q_{x}") is not None
     )
     progress = answered / 27
+    pct = int(progress * 100)
 
-# ✅ 상단 고정 진행률
-   pct = int(progress * 100)
-
-   st.markdown(f"""
-   <div class="progress-sticky">
-     <div class="progress-wrap">
-       <div class="progress-bar" style="width:{pct}%"></div>
-     </div>
-     <div class="progress-text">진행률: <b>{answered} / 27 문항</b> ({pct}%)</div>
-   </div>
-   """, unsafe_allow_html=True)
+    # ✅ 상단 고정 진행률 (HTML)
+    st.markdown(f"""
+    <div class="progress-sticky">
+      <div class="progress-wrap">
+        <div class="progress-bar" style="width:{pct}%"></div>
+      </div>
+      <div class="progress-text">진행률: <b>{answered} / 27 문항</b> ({pct}%)</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     answers = []
 
@@ -333,8 +332,11 @@ if st.session_state.page == "survey":
 
         st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
-    # ✅ 모든 문항 응답 완료 시에만 제출 버튼 활성화
-    can_submit = all(st.session_state.get(f"q_{i}") is not None for i in range(1, 28))
+    can_submit = all(
+        st.session_state.get(f"q_{i}") is not None
+        for i in range(1, 28)
+    )
+
     submit = st.button("제출", disabled=not can_submit)
 
     if submit:
@@ -467,6 +469,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
