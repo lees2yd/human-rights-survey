@@ -10,6 +10,56 @@ from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="감·수·성 인권감수성 설문", layout="centered")
 st.warning("VERSION CHECK 2025-FEEDBACK + COVER ENABLED")
 
+# =======================================
+# PC + Mobile 자동 최적화 CSS
+# =======================================
+st.markdown("""
+<style>
+
+    /* -------- 문항 외곽 스타일 -------- */
+    .question-block {
+        margin-bottom: 32px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    /* -------- 문항 텍스트 -------- */
+    .question-text {
+        font-size: 1.05rem;
+        line-height: 1.5;
+        font-weight: 500;
+        margin-bottom: -2px;
+    }
+
+    /* -------- 라디오 버튼 간격 조정 -------- */
+    .stRadio > div {
+        margin-top: -8px !important;
+        display: flex !important;
+        gap: 14px !important;
+    }
+
+    /* -------- 모바일 최적화 -------- */
+    @media (max-width: 480px) {
+        .question-text {
+            font-size: 0.95rem !important;
+            line-height: 1.35 !important;
+        }
+        .question-block {
+            margin-bottom: 28px !important;
+            padding-bottom: 10px !important;
+        }
+        .stRadio > div {
+            gap: 8px !important;
+            margin-top: -12px !important;
+        }
+        label > div {
+            font-size: 0.9rem !important;
+        }
+    }
+
+</style>
+""", unsafe_allow_html=True)
+
 # =========================
 # 세션 상태 초기화
 # =========================
@@ -358,6 +408,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
