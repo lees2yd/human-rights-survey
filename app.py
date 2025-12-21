@@ -4,6 +4,21 @@ from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 
+st.markdown("""
+<style>
+/* ... 기존 CSS ... */
+
+.progress-sticky{
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: white;
+    padding: 10px 0 8px 0;
+    border-bottom: 1px solid #e6e6e6;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # =========================
 # 기본 설정
 # =========================
@@ -430,6 +445,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
