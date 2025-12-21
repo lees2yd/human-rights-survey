@@ -16,44 +16,49 @@ st.warning("VERSION CHECK 2025-FEEDBACK + COVER ENABLED")
 st.markdown("""
 <style>
 
-    /* -------- 문항 외곽 스타일 -------- */
+    /* ---- 문항 전체 블록 ---- */
     .question-block {
-        margin-bottom: 32px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid #ddd;
+        margin-bottom: 26px;   /* 문항 간 전체 간격 */
     }
 
-    /* -------- 문항 텍스트 -------- */
+    /* ---- 문항 텍스트 ---- */
     .question-text {
         font-size: 1.05rem;
-        line-height: 1.5;
         font-weight: 500;
-        margin-bottom: -2px;
+        margin-bottom: 4px;    /* 문항과 응답 사이를 좁게 */
     }
 
-    /* -------- 라디오 버튼 간격 조정 -------- */
+    /* ---- 라디오 버튼 사이 간격 ---- */
     .stRadio > div {
-        margin-top: -8px !important;
+        margin-top: -2px !important;   /* 위쪽 간격 줄임 */
+        margin-bottom: 6px !important; /* 아래쪽은 기본 유지 */
         display: flex !important;
-        gap: 14px !important;
+        gap: 12px !important;
     }
 
-    /* -------- 모바일 최적화 -------- */
+    /* ---- 응답 아래 구분선 ---- */
+    .answer-divider {
+        border-bottom: 1px solid #dddddd;
+        margin-top: 6px;
+        margin-bottom: 12px;
+    }
+
+    /* ---- 모바일 최적화 ---- */
     @media (max-width: 480px) {
+
         .question-text {
             font-size: 0.95rem !important;
-            line-height: 1.35 !important;
+            margin-bottom: 2px !important;
         }
-        .question-block {
-            margin-bottom: 28px !important;
-            padding-bottom: 10px !important;
-        }
+
         .stRadio > div {
             gap: 8px !important;
-            margin-top: -12px !important;
+            margin-top: -6px !important;
         }
-        label > div {
-            font-size: 0.9rem !important;
+
+        .answer-divider {
+            margin-top: 4px !important;
+            margin-bottom: 10px !important;
         }
     }
 
@@ -414,6 +419,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
