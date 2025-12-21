@@ -207,7 +207,7 @@ if st.session_state.page == "cover":
 - 이름·소속 등 어떤 개인정보도 수집하지 않음  
 - 결과는 즉시 화면에서만 제공됨  
 
-### ⏱ 소요시간: 약 5분
+### ⏱ 소요시간: 약 10분
 
 아래 버튼을 눌러 설문을 시작하십시오.
 """)
@@ -246,9 +246,6 @@ if st.session_state.page == "consent":
 # =========================================================
 #                  ★ 2. 설문 화면 ★
 # =========================================================
-# =========================================================
-#                  ★ 2. 설문 화면 ★
-# =========================================================
 if st.session_state.page == "survey":
 
     st.title("인권감수성 설문 (27문항)")
@@ -269,33 +266,25 @@ if st.session_state.page == "survey":
     with st.form("survey"):
         answers = []
 
-        for i, q in enumerate(QUESTIONS, 1):
+       for i, q in enumerate(QUESTIONS, 1):
 
-            # 앞 문항 응답 여부로 비활성화
-            if i == 1:
-                disabled = False
-            else:
-                disabled = (st.session_state.get(f"q_{i-1}") is None)
+        disabled = (i != 1 and st.session_state.answers.get(i-1) is None)
 
-            # 문항 텍스트 + 스타일
-            st.markdown(
-                f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
-                unsafe_allow_html=True
-            )
+        st.markdown("....")
 
-            # 라디오 버튼
-            ans = st.radio(
-                "",
-                [1, 2, 3, 4],
-                horizontal=True,
-                index=None,
-                key=f"q_{i}",
-                disabled=disabled
-            )
-            answers.append(ans)
+        ans = st.radio(   ← 여기 찾기
+            "",
+            [1, 2, 3, 4],
+            index=None,
+            key=f"q_{i}",
+            disabled=disabled
+        )
 
-            # 응답 구분선
-            st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+        # 👇👇 **여기에 2줄 추가!**
+        if ans is not None:
+            st.session_state.answers[i] = ans
+
+        st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
         submit = st.form_submit_button("제출")
 
@@ -435,6 +424,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
