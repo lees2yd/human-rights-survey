@@ -438,7 +438,21 @@ if st.session_state.page == "survey":
 # =========================================================
 #                  ★ 3. 결과 화면 ★
 # =========================================================
+import streamlit.components.v1 as components
+
 if st.session_state.page == "result":
+     # ✅ 결과 페이지 진입 시 화면을 맨 위로 올림
+    components.html(
+        """
+        <script>
+          // Streamlit iframe 상위 문서 기준으로 스크롤
+          setTimeout(() => {
+            window.parent.scrollTo(0, 0);
+          }, 50);
+        </script>
+        """,
+        height=0
+    )
 
     r = st.session_state.result
     total = r["total"]
@@ -543,6 +557,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
