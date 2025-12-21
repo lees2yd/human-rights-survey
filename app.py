@@ -4,19 +4,6 @@ from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 
-# ---- 그래프 한글 깨짐 방지 설정 ----
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import os
-
-# ---- 한글 폰트 로드 ----
-font_path = os.path.join("fonts", "NanumGothicCoding.ttf")  # GitHub에 올린 폰트
-font_prop = fm.FontProperties(fname=font_path)
-
-plt.rcParams['font.family'] = font_prop.get_name()
-plt.rcParams['axes.unicode_minus'] = False
-# ------------------------
-
 # =========================
 # 기본 설정
 # =========================
@@ -276,63 +263,6 @@ if st.session_state.page == "result":
     정신 = r["정신"]
 
     # ============================================================
-    # ① 레이더 차트 (결과 화면 최상단)
-    # ============================================================
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    st.subheader("🕸 감·수·성 인권감수성 프로파일 (Radar Chart)")
-
-    # 1) 3개 축 (감·수·성)
-    categories = ['감', '수', '성']
-    N = len(categories)
-
-    # 2) 전체 점수 (각 9문항)
-    values_total = [감, 수, 성]
-
-    # 3) 정신질환 관련 점수 (각 3문항씩)
-    # 정신질환 점수 계산식 예:
-    # 감: 7,8,9 → answers[6], answers[7], answers[8]
-    # 수: 16,17,18 → answers[15], answers[16], answers[17]
-    # 성: 25,26,27 → answers[24], answers[25], answers[26]
-
-    mh_gam = sum([answers[6], answers[7], answers[8]])
-    mh_su = sum([answers[15], answers[16], answers[17]])
-    mh_seong = sum([answers[24], answers[25], answers[26]])
-
-    values_mh = [mh_gam, mh_su, mh_seong]
-
-    # 4) 원을 닫기 위해 첫 값 다시 추가
-    values_total += values_total[:1]
-    values_mh += values_mh[:1]
-
-    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
-    angles += angles[:1]
-
-    # 5) 그림 생성
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-
-    # === 전체 점수(파란색) ===
-    ax.plot(angles, values_total, linewidth=2, label="전체 점수", color="blue")
-    ax.fill(angles, values_total, alpha=0.25, color="blue")
-
-    # === 정신질환 점수(빨간색) ===
-    ax.plot(angles, values_mh, linewidth=2, linestyle="--", label="정신질환 상황", color="red")
-    ax.fill(angles, values_mh, alpha=0.25, color="red")
-
-    # 6) 축 표시
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(categories, fontsize=12)
-
-    # 7) 최대 점수(36) 기준 자동 스케일링
-    ax.set_ylim(0, 36)
-
-    ax.set_title("감·수·성 인권감수성 프로파일", size=16, pad=20)
-    ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.1))
-
-    st.pyplot(fig)
-
-    # ============================================================
     # ② 기존 점수 요약 출력
     # ============================================================
     st.title("📊 인권감수성 결과 요약")
@@ -340,6 +270,55 @@ if st.session_state.page == "result":
     st.write(f"총점: **{total}점**")
     st.write(f"감: **{감}점** / 수: **{수}점** / 성: **{성}점**")
     st.write(f"정신질환 관련 점수: **{정신}점**")
+
+    import plotly.graph_objects as go
+
+st.subheader("🕸 감·수·성 인권감수성 프로파일 (Radar Chart)")
+
+categories = ["감", "수", "성"]
+
+# 기본 점수
+values_total = [r['감'], r['수'], r['성']]
+
+# 정신질환 상황 점수 — 감·수·성별 3문항씩 자동 분리
+mh_gam = sum([r['answers'][6], r['answers'][7], r['answers'][8]])
+mh_su = sum([r['answers'][15], r['answers'][16], r['answers'][17]])
+mh_seong = sum([r['answers'][24], r['answers'][25], r['answers'][26]])
+
+values_mh = [mh_gam, mh_su, mh_seong]
+
+fig = go.Figure()
+
+# 전체 점수 레이어
+fig.add_trace(go.Scatterpolar(
+    r=values_total,
+    theta=categories,
+    fill='toself',
+    name='전체 점수',
+    line=dict(color='blue')
+))
+
+# 정신질환 관련 점수 레이어
+fig.add_trace(go.Scatterpolar(
+    r=values_mh,
+    theta=categories,
+    fill='toself',
+    name='정신질환 상황 점수',
+    line=dict(color='red')
+))
+
+fig.update_layout(
+    polar=dict(
+        radialaxis=dict(
+            visible=True,
+            range=[0, 36]   # 감/수/성(9문항 * 4점) → 최대 36점
+        )
+    ),
+    showlegend=True,
+    title="감·수·성 인권감수성 프로파일"
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
     # ----------------------
     # 자동 피드백 출력
@@ -379,6 +358,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
