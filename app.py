@@ -440,172 +440,159 @@ if st.session_state.page == "survey":
 # =========================================================
 #                  ★ 3. 결과 화면 ★
 # =========================================================
-import time
 import streamlit.components.v1 as components
+import plotly.graph_objects as go
 
-# ... 결과 화면 내용(제목/차트/피드백/저장/캡션) 모두 출력 후 맨 마지막!
+if st.session_state.page == "result":
 
-if st.session_state.page == "result" and st.session_state.get("scroll_to_top", False):
+    # 1) (선택) 스크롤 맨 위: 결과 화면에서 1회만 실행
+    if st.session_state.get("scroll_to_top", False):
+        token = str(time.time())  # 캐시 방지용
+        components.html(
+            f"""
+            <!-- scroll-token: {token} -->
+            <script>
+            (function() {{
+              function scrollTopAll() {{
+                try {{
+                  window.scrollTo(0, 0);
+                  document.documentElement.scrollTop = 0;
+                  document.body.scrollTop = 0;
 
-    token = str(time.time())  # ✅ 매번 바뀌는 토큰(캐시 방지용)
+                  if (window.parent) {{
+                    window.parent.scrollTo(0, 0);
+                    window.parent.document.documentElement.scrollTop = 0;
+                    window.parent.document.body.scrollTop = 0;
 
-    components.html(
-        f"""
-        <!-- scroll-token: {token} -->
-        <script>
-        (function() {{
-          function scrollTopAll() {{
-            try {{
-              window.scrollTo(0, 0);
-              document.documentElement.scrollTop = 0;
-              document.body.scrollTop = 0;
-
-              if (window.parent) {{
-                window.parent.scrollTo(0, 0);
-                window.parent.document.documentElement.scrollTop = 0;
-                window.parent.document.body.scrollTop = 0;
-
-                const selectors = [
-                  '[data-testid="stAppViewContainer"]',
-                  '[data-testid="stApp"]',
-                  'section.main',
-                  '.main',
-                  'div.block-container'
-                ];
-                selectors.forEach(sel => {{
-                  const el = window.parent.document.querySelector(sel);
-                  if (el) el.scrollTop = 0;
-                }});
+                    const selectors = [
+                      '[data-testid="stAppViewContainer"]',
+                      '[data-testid="stApp"]',
+                      'section.main',
+                      '.main',
+                      'div.block-container'
+                    ];
+                    selectors.forEach(sel => {{
+                      const el = window.parent.document.querySelector(sel);
+                      if (el) el.scrollTop = 0;
+                    }});
+                  }}
+                }} catch (e) {{}}
               }}
-            }} catch (e) {{}}
-          }}
 
-          // ✅ 렌더/차트 로딩 타이밍 대응: 1초 정도 반복
-          let n = 0;
-          function loop() {{
-            scrollTopAll();
-            n++;
-            if (n < 60) requestAnimationFrame(loop);
-          }}
-          requestAnimationFrame(loop);
+              let n = 0;
+              function loop() {{
+                scrollTopAll();
+                n++;
+                if (n < 60) requestAnimationFrame(loop);
+              }}
+              requestAnimationFrame(loop);
 
-          setTimeout(scrollTopAll, 100);
-          setTimeout(scrollTopAll, 300);
-          setTimeout(scrollTopAll, 700);
-          setTimeout(scrollTopAll, 1200);
-          setTimeout(scrollTopAll, 2000);
-        }})();
-        </script>
-        """,
-        height=0
-    )
+              setTimeout(scrollTopAll, 100);
+              setTimeout(scrollTopAll, 300);
+              setTimeout(scrollTopAll, 700);
+              setTimeout(scrollTopAll, 1200);
+              setTimeout(scrollTopAll, 2000);
+            }})();
+            </script>
+            """,
+            height=0,
+        )
+        st.session_state.scroll_to_top = False
 
-    # ✅ 한 번만 실행되게 플래그 끄기
-    st.session_state.scroll_to_top = False
-    
-    r = st.session_state.result
+    # 2) 결과 데이터 가져오기
+    r = st.session_state.get("result", None)
+    if r is None:
+        st.warning("결과 데이터가 없습니다. 설문을 다시 진행해주세요.")
+        st.stop()
+
     total = r["total"]
-    감 = r["감"]
-    수 = r["수"]
-    성 = r["성"]
-    정신 = r["정신"]
+    gam = r["감"]
+    su = r["수"]
+    seong = r["성"]
+    mental = r["정신"]
 
-    # ============================================================
-    # ② 기존 점수 요약 출력
-    # ============================================================
+    # 3) 점수 요약
     st.title("📊 인권감수성 결과 요약")
-
     st.write(f"총점: **{total}점**")
-    st.write(f"감: **{감}점** / 수: **{수}점** / 성: **{성}점**")
-    st.write(f"정신질환 관련 점수: **{정신}점**")
+    st.write(f"감: **{gam}점** / 수: **{su}점** / 성: **{seong}점**")
+    st.write(f"정신질환 관련 점수: **{mental}점**")
 
-    import plotly.graph_objects as go
-
+    # 4) 레이더 차트 (✅ 제출 후 결과 화면에서 항상 렌더)
     st.subheader("🕸 감·수·성 인권감수성 프로파일 (Radar Chart)")
 
     categories = ["감", "수", "성"]
-
-    # 기본 점수
-    values_total = [r['감'], r['수'], r['성']]
+    values_total = [gam, su, seong]
 
     # 정신질환 상황 점수 — 감·수·성별 3문항씩 자동 분리
-    mh_gam = sum([r['answers'][6], r['answers'][7], r['answers'][8]])
-    mh_su = sum([r['answers'][15], r['answers'][16], r['answers'][17]])
-    mh_seong = sum([r['answers'][24], r['answers'][25], r['answers'][26]])
-
+    mh_gam = sum([r['answers'][6], r['answers'][7], r['answers'][8]])     # 7~9번
+    mh_su = sum([r['answers'][15], r['answers'][16], r['answers'][17]])   # 16~18번
+    mh_seong = sum([r['answers'][24], r['answers'][25], r['answers'][26]])# 25~27번
     values_mh = [mh_gam, mh_su, mh_seong]
 
     fig = go.Figure()
 
-    # 전체 점수 레이어
     fig.add_trace(go.Scatterpolar(
         r=values_total,
         theta=categories,
         fill='toself',
         name='전체 점수',
         line=dict(color='blue')
-))
+    ))
 
-    # 정신질환 관련 점수 레이어
     fig.add_trace(go.Scatterpolar(
         r=values_mh,
         theta=categories,
         fill='toself',
         name='정신질환 상황 점수',
         line=dict(color='red')
-))
+    ))
 
     fig.update_layout(
         polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, 36]   # 감/수/성(9문항 * 4점) → 최대 36점
-        )
-    ),
+            radialaxis=dict(visible=True, range=[0, 36])
+        ),
         showlegend=True,
         title="감·수·성 인권감수성 프로파일"
-)
+    )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # ----------------------
-    # 자동 피드백 출력
-    # ----------------------
+    # 5) 피드백
     st.subheader("📝 개인 맞춤형 피드백")
 
     st.markdown("### 🔹 1) 전체 감·수·성 지수 해석")
-    st.write(overall_feedback(r["total"]))
+    st.write(overall_feedback(total))
 
     st.markdown("### 🔹 2) 요소별 해석")
     st.write("#### 감(感)")
-    st.write(gam_feedback(r["감"]))
+    st.write(gam_feedback(gam))
     st.write("#### 수(受)")
-    st.write(su_feedback(r["수"]))
+    st.write(su_feedback(su))
     st.write("#### 성(性)")
-    st.write(seong_feedback(r["성"]))
+    st.write(seong_feedback(seong))
 
     st.markdown("### 🔹 3) 정신질환 수용자 관련 상황 해석")
-    st.write(mental_health_feedback(r["정신"]))
+    st.write(mental_health_feedback(mental))
 
     st.markdown("### 🔹 4) 종합 연결 평가")
     st.write(integrated_feedback())
 
-    # 저장
+    # 6) 저장
     row = {
         "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "total": r["total"],
-        "감": r["감"],
-        "수": r["수"],
-        "성": r["성"],
-        "정신": r["정신"],
+        "total": total,
+        "감": gam,
+        "수": su,
+        "성": seong,
+        "정신": mental,
     }
     for i, a in enumerate(r["answers"], 1):
         row[f"q{i}"] = a
 
     save(row)
     st.success("응답이 저장되었습니다.")
-
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
