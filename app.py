@@ -251,42 +251,44 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
 
-    # -------------------------------
-    # 📌 진행률 표시
-    # -------------------------------
     answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
     progress = answered / 27
 
     st.progress(progress)
     st.write(f"진행률: **{answered} / 27 문항**\n")
 
-    # -------------------------------
-    # 📌 설문 폼 시작
-    # -------------------------------
     with st.form("survey"):
         answers = []
 
-       for i, q in enumerate(QUESTIONS, 1):
+        for i, q in enumerate(QUESTIONS, 1):
 
-        disabled = (i != 1 and st.session_state.answers.get(i-1) is None)
+            if i == 1:
+                disabled = False
+            else:
+                disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-        st.markdown("....")
+            st.markdown(
+                f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
+                unsafe_allow_html=True
+            )
 
-        ans = st.radio(   ← 여기 찾기
-            "",
-            [1, 2, 3, 4],
-            index=None,
-            key=f"q_{i}",
-            disabled=disabled
-        )
+            ans = st.radio(
+                "",
+                [1, 2, 3, 4],
+                horizontal=True,
+                index=None,
+                key=f"q_{i}",
+                disabled=disabled
+            )
 
-        # 👇👇 **여기에 2줄 추가!**
-        if ans is not None:
-            st.session_state.answers[i] = ans
+            # 🔥 반드시 이 위치에 4칸 들여쓰기 맞춰 넣기
+            if ans is not None:
+                st.session_state.answers[i] = ans
 
-        st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+            st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
         submit = st.form_submit_button("제출")
+
 
     # -------------------------------
     # 📌 제출 후 처리
@@ -424,6 +426,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
