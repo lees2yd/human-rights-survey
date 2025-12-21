@@ -10,17 +10,41 @@ st.set_page_config(page_title="감·수·성 인권감수성 설문", layout="ce
 # ✅ 그 다음 CSS
 st.markdown("""
 <style>
-.progress-sticky{
-    position: sticky;
+/* =========================
+   상단 고정 진행률 바
+========================= */
+.progress-fixed{
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 9999;
     background: white;
-    padding: 10px 0 8px 0;
+    padding: 10px 16px 8px 16px;
     border-bottom: 1px solid #e6e6e6;
 }
-.progress-wrap{width:100%;height:10px;background:#eee;border-radius:999px;overflow:hidden;}
-.progress-bar{height:10px;background:#3b82f6;}
-.progress-text{margin-top:6px;font-size:0.95rem;}
+
+/* 프로그레스 바 */
+.progress-wrap{
+    width: 100%;
+    height: 10px;
+    background: #eeeeee;
+    border-radius: 999px;
+    overflow: hidden;
+}
+.progress-bar{
+    height: 10px;
+    background: #3b82f6;
+}
+.progress-text{
+    margin-top: 6px;
+    font-size: 0.95rem;
+}
+
+/* 상단 고정 바에 가려지지 않도록 본문 패딩 */
+.body-pad-top{
+    padding-top: 78px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -454,6 +478,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
