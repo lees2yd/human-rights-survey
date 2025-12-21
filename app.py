@@ -443,21 +443,24 @@ if st.session_state.page == "survey":
 import time
 import streamlit.components.v1 as components
 
+# ... 결과 화면 내용(제목/차트/피드백/저장/캡션) 모두 출력 후 맨 마지막!
+
 if st.session_state.page == "result" and st.session_state.get("scroll_to_top", False):
 
-    unique_key = f"scrolltop-{time.time()}"
+    token = str(time.time())  # ✅ 매번 바뀌는 토큰(캐시 방지용)
 
     components.html(
-        """
+        f"""
+        <!-- scroll-token: {token} -->
         <script>
-        (function() {
-          function scrollTopAll() {
-            try {
+        (function() {{
+          function scrollTopAll() {{
+            try {{
               window.scrollTo(0, 0);
               document.documentElement.scrollTop = 0;
               document.body.scrollTop = 0;
 
-              if (window.parent) {
+              if (window.parent) {{
                 window.parent.scrollTo(0, 0);
                 window.parent.document.documentElement.scrollTop = 0;
                 window.parent.document.body.scrollTop = 0;
@@ -469,21 +472,21 @@ if st.session_state.page == "result" and st.session_state.get("scroll_to_top", F
                   '.main',
                   'div.block-container'
                 ];
-                selectors.forEach(sel => {
+                selectors.forEach(sel => {{
                   const el = window.parent.document.querySelector(sel);
                   if (el) el.scrollTop = 0;
-                });
-              }
-            } catch (e) {}
-          }
+                }});
+              }}
+            }} catch (e) {{}}
+          }}
 
-          // 🔥 렌더 완료까지 1초간 추적
+          // ✅ 렌더/차트 로딩 타이밍 대응: 1초 정도 반복
           let n = 0;
-          function loop() {
+          function loop() {{
             scrollTopAll();
             n++;
             if (n < 60) requestAnimationFrame(loop);
-          }
+          }}
           requestAnimationFrame(loop);
 
           setTimeout(scrollTopAll, 100);
@@ -491,14 +494,13 @@ if st.session_state.page == "result" and st.session_state.get("scroll_to_top", F
           setTimeout(scrollTopAll, 700);
           setTimeout(scrollTopAll, 1200);
           setTimeout(scrollTopAll, 2000);
-        })();
+        }})();
         </script>
         """,
-        height=0,
-        key=unique_key
+        height=0
     )
 
-    # ✅ 한 번만 실행
+    # ✅ 한 번만 실행되게 플래그 끄기
     st.session_state.scroll_to_top = False
     
     r = st.session_state.result
@@ -604,6 +606,7 @@ if st.session_state.page == "result" and st.session_state.get("scroll_to_top", F
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
