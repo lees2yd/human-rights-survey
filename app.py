@@ -246,83 +246,86 @@ if st.session_state.page == "consent":
 # =========================================================
 #                  ★ 2. 설문 화면 ★
 # =========================================================
+# =========================================================
+#                  ★ 2. 설문 화면 ★
+# =========================================================
 if st.session_state.page == "survey":
 
-    # -------------------------
-# 설문 본문 (업데이트: 기본값 없음 + 순차 응답 강제)
-# -------------------------
-   st.title("인권감수성 설문 (27문항)")
-   st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
+    st.title("인권감수성 설문 (27문항)")
+    st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
 
-# -------------------------------
-# 📌 진행률 표시 추가 (여기가 핵심)
-# -------------------------------
-   answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
-   progress = answered / 27
+    # -------------------------------
+    # 📌 진행률 표시
+    # -------------------------------
+    answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
+    progress = answered / 27
 
-   st.progress(progress)
-   st.write(f"진행률: **{answered} / 27 문항**")
+    st.progress(progress)
+    st.write(f"진행률: **{answered} / 27 문항**\n")
 
-# -------------------------------
-# 📌 설문 폼 시작
-# -------------------------------
+    # -------------------------------
+    # 📌 설문 폼 시작
+    # -------------------------------
+    with st.form("survey"):
+        answers = []
 
-   with st.form("survey"):
-       answers = []
+        for i, q in enumerate(QUESTIONS, 1):
 
-       for i, q in enumerate(QUESTIONS, 1):
+            # 앞 문항 응답 여부로 비활성화
+            if i == 1:
+                disabled = False
+            else:
+                disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-        # 앞 문항 응답 여부로 비활성화
-           if i == 1:
-               disabled = False
-           else:
-               disabled = (st.session_state.get(f"q_{i-1}") is None)
-  
-        # 문항 텍스트
-           st.markdown(
-               f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
-               unsafe_allow_html=True
-        )
+            # 문항 텍스트 + 스타일
+            st.markdown(
+                f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
+                unsafe_allow_html=True
+            )
 
-        # 라디오 버튼
-           ans = st.radio(
-               "",
-               [1, 2, 3, 4],
-               horizontal=True,
-               index=None,
-               key=f"q_{i}",
-               disabled=disabled
-        )
-           answers.append(ans)
+            # 라디오 버튼
+            ans = st.radio(
+                "",
+                [1, 2, 3, 4],
+                horizontal=True,
+                index=None,
+                key=f"q_{i}",
+                disabled=disabled
+            )
+            answers.append(ans)
 
-        # 응답 바로 아래 구분선 추가
-           st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+            # 응답 구분선
+            st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
-    submit = st.form_submit_button("제출")
-if submit:
-    if None in answers:
-        st.error("모든 문항을 순서대로 응답해야 제출할 수 있습니다.")
-        st.stop()
+        submit = st.form_submit_button("제출")
 
-    # 점수 계산
-    total = sum(answers)
-    감 = sum(answers[0:9])
-    수 = sum(answers[9:18])
-    성 = sum(answers[18:27])
-    mh_items = [7,8,9,16,17,18,25,26,27]
-    mh_score = sum(answers[i-1] for i in mh_items)
+    # -------------------------------
+    # 📌 제출 후 처리
+    # -------------------------------
+    if submit:
 
-    # 결과 저장 후 이동
-    st.session_state.result = {
-        "total": total,
-        "감": 감,
-        "수": 수,
-        "성": 성,
-        "정신": mh_score,
-        "answers": answers
-    }
-    st.session_state.page = "result"
-    st.rerun()
+        if None in answers:
+            st.error("모든 문항을 순서대로 응답해야 제출할 수 있습니다.")
+            st.stop()
+
+        total = sum(answers)
+        감 = sum(answers[0:9])
+        수 = sum(answers[9:18])
+        성 = sum(answers[18:27])
+        mh_items = [7, 8, 9, 16, 17, 18, 25, 26, 27]
+        mh_score = sum(answers[i - 1] for i in mh_items)
+
+        st.session_state.result = {
+            "total": total,
+            "감": 감,
+            "수": 수,
+            "성": 성,
+            "정신": mh_score,
+            "answers": answers
+        }
+
+        st.session_state.page = "result"
+        st.rerun()
 
 # =========================================================
 #                  ★ 3. 결과 화면 ★
@@ -432,6 +435,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
