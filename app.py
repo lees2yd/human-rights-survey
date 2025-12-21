@@ -434,13 +434,18 @@ if st.session_state.page == "survey":
         }
 
         st.session_state.page = "result"
+        st.session_state.scroll_to_top = True
         st.rerun()
+        
 # =========================================================
 #                  ★ 3. 결과 화면 ★
 # =========================================================
+import time
 import streamlit.components.v1 as components
 
-if st.session_state.page == "result":
+if st.session_state.page == "result" and st.session_state.get("scroll_to_top", False):
+
+    unique_key = f"scrolltop-{time.time()}"
 
     components.html(
         """
@@ -448,16 +453,15 @@ if st.session_state.page == "result":
         (function() {
           function scrollTopAll() {
             try {
-              // 1) 현재 프레임 기준
               window.scrollTo(0, 0);
               document.documentElement.scrollTop = 0;
               document.body.scrollTop = 0;
 
-              // 2) 상위 문서 기준
               if (window.parent) {
                 window.parent.scrollTo(0, 0);
+                window.parent.document.documentElement.scrollTop = 0;
+                window.parent.document.body.scrollTop = 0;
 
-                // 3) Streamlit이 실제로 스크롤을 잡고 있는 컨테이너들
                 const selectors = [
                   '[data-testid="stAppViewContainer"]',
                   '[data-testid="stApp"]',
@@ -465,32 +469,38 @@ if st.session_state.page == "result":
                   '.main',
                   'div.block-container'
                 ];
-
                 selectors.forEach(sel => {
                   const el = window.parent.document.querySelector(sel);
                   if (el) el.scrollTop = 0;
                 });
-
-                // 4) 부모 문서의 html/body도 같이
-                window.parent.document.documentElement.scrollTop = 0;
-                window.parent.document.body.scrollTop = 0;
               }
             } catch (e) {}
           }
 
-          // 렌더 타이밍 + plotly 로딩 타이밍 대비: 여러 번 강제
-          scrollTopAll();
-          setTimeout(scrollTopAll, 50);
-          setTimeout(scrollTopAll, 200);
-          setTimeout(scrollTopAll, 500);
-          setTimeout(scrollTopAll, 900);
-          setTimeout(scrollTopAll, 1500);
+          // 🔥 렌더 완료까지 1초간 추적
+          let n = 0;
+          function loop() {
+            scrollTopAll();
+            n++;
+            if (n < 60) requestAnimationFrame(loop);
+          }
+          requestAnimationFrame(loop);
+
+          setTimeout(scrollTopAll, 100);
+          setTimeout(scrollTopAll, 300);
+          setTimeout(scrollTopAll, 700);
+          setTimeout(scrollTopAll, 1200);
+          setTimeout(scrollTopAll, 2000);
         })();
         </script>
         """,
-        height=0
+        height=0,
+        key=unique_key
     )
 
+    # ✅ 한 번만 실행
+    st.session_state.scroll_to_top = False
+    
     r = st.session_state.result
     total = r["total"]
     감 = r["감"]
@@ -594,6 +604,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
