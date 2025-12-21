@@ -4,4 +4,3 @@ gspread
 google-auth
 matplotlib
 numpy
-nanumfont
