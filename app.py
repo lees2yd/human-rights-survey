@@ -4,34 +4,18 @@ from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 
-import matplotlib.font_manager as fm
-import streamlit as st
-
-font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
-
-st.write("🔍 서버에서 발견된 폰트 목록:")
-for f in font_list:
-    st.write(f)
-
-
 # ---- 그래프 한글 깨짐 방지 설정 ----
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+import os
 
-font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
-target_font = None
-for f in font_list:
-    if any(keyword in f for keyword in ["Noto", "Nanum", "UnDotum", "AppleGothic"]):
-        target_font = f
-        break
+# ---- 한글 폰트 로드 ----
+font_path = os.path.join("fonts", "NanumGothic.ttf")  # GitHub에 올린 폰트
+font_prop = fm.FontProperties(fname=font_path)
 
-if target_font:
-    plt.rcParams['font.family'] = fm.FontProperties(fname=target_font).get_name()
-else:
-    plt.rcParams['font.family'] = 'DejaVu Sans'
-
+plt.rcParams['font.family'] = font_prop.get_name()
 plt.rcParams['axes.unicode_minus'] = False
-# ---- 설정 끝 ----
+# ------------------------
 
 # =========================
 # 기본 설정
@@ -395,6 +379,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
