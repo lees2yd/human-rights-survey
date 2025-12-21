@@ -259,8 +259,12 @@ if st.session_state.page == "survey":
         if st.session_state.get(f"q_{x}") is not None
     )
     progress = answered / 27
+
+# ✅ 상단 고정 진행률
+    st.markdown("<div class='progress-sticky'>", unsafe_allow_html=True)
     st.progress(progress)
-    st.write(f"진행률: **{answered} / 27 문항**\n")
+    st.write(f"진행률: **{answered} / 27 문항**")
+    st.markdown("</div>", unsafe_allow_html=True)
 
     answers = []
 
@@ -426,6 +430,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
