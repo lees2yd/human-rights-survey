@@ -4,6 +4,10 @@ from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 
+# ✅ 반드시 가장 먼저
+st.set_page_config(page_title="감·수·성 인권감수성 설문", layout="centered")
+
+# ✅ 그 다음 CSS
 st.markdown("""
 <style>
 .progress-sticky{
@@ -14,31 +18,12 @@ st.markdown("""
     padding: 10px 0 8px 0;
     border-bottom: 1px solid #e6e6e6;
 }
-
-/* 프로그레스 바(커스텀) */
-.progress-wrap{
-    width: 100%;
-    height: 10px;
-    background: #eeeeee;
-    border-radius: 999px;
-    overflow: hidden;
-}
-.progress-bar{
-    height: 10px;
-    width: 0%;
-    background: #3b82f6;   /* 파란색 */
-}
-.progress-text{
-    margin-top: 6px;
-    font-size: 0.95rem;
-}
+.progress-wrap{width:100%;height:10px;background:#eee;border-radius:999px;overflow:hidden;}
+.progress-bar{height:10px;background:#3b82f6;}
+.progress-text{margin-top:6px;font-size:0.95rem;}
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
-# 기본 설정
-# =========================
-st.set_page_config(page_title="감·수·성 인권감수성 설문", layout="centered")
 st.warning("VERSION CHECK 2025-FEEDBACK + COVER ENABLED")
 
 # =======================================
@@ -469,6 +454,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
