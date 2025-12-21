@@ -283,7 +283,8 @@ if st.session_state.page == "survey":
                 key=f"q_{i}",
                 disabled=disabled
             )
-
+            answers.append(ans)
+            
             # 🔥 반드시 이 위치에 4칸 들여쓰기 맞춰 넣기
             if ans is not None:
                 st.session_state.answers[i] = ans
@@ -429,6 +430,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
