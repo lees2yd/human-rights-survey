@@ -441,14 +441,51 @@ if st.session_state.page == "survey":
 import streamlit.components.v1 as components
 
 if st.session_state.page == "result":
-     # ✅ 결과 페이지 진입 시 화면을 맨 위로 올림
+
     components.html(
         """
         <script>
-          // Streamlit iframe 상위 문서 기준으로 스크롤
-          setTimeout(() => {
-            window.parent.scrollTo(0, 0);
-          }, 50);
+        (function() {
+          function scrollTopAll() {
+            try {
+              // 1) 현재 프레임 기준
+              window.scrollTo(0, 0);
+              document.documentElement.scrollTop = 0;
+              document.body.scrollTop = 0;
+
+              // 2) 상위 문서 기준
+              if (window.parent) {
+                window.parent.scrollTo(0, 0);
+
+                // 3) Streamlit이 실제로 스크롤을 잡고 있는 컨테이너들
+                const selectors = [
+                  '[data-testid="stAppViewContainer"]',
+                  '[data-testid="stApp"]',
+                  'section.main',
+                  '.main',
+                  'div.block-container'
+                ];
+
+                selectors.forEach(sel => {
+                  const el = window.parent.document.querySelector(sel);
+                  if (el) el.scrollTop = 0;
+                });
+
+                // 4) 부모 문서의 html/body도 같이
+                window.parent.document.documentElement.scrollTop = 0;
+                window.parent.document.body.scrollTop = 0;
+              }
+            } catch (e) {}
+          }
+
+          // 렌더 타이밍 + plotly 로딩 타이밍 대비: 여러 번 강제
+          scrollTopAll();
+          setTimeout(scrollTopAll, 50);
+          setTimeout(scrollTopAll, 200);
+          setTimeout(scrollTopAll, 500);
+          setTimeout(scrollTopAll, 900);
+          setTimeout(scrollTopAll, 1500);
+        })();
         </script>
         """,
         height=0
@@ -557,6 +594,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
