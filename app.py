@@ -10,7 +10,7 @@ import matplotlib.font_manager as fm
 import os
 
 # ---- 한글 폰트 로드 ----
-font_path = os.path.join("fonts", "NanumGothic.ttf")  # GitHub에 올린 폰트
+font_path = os.path.join("fonts", "NanumGothicCoding.ttf")  # GitHub에 올린 폰트
 font_prop = fm.FontProperties(fname=font_path)
 
 plt.rcParams['font.family'] = font_prop.get_name()
@@ -379,6 +379,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
