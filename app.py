@@ -6,15 +6,31 @@ from google.oauth2.service_account import Credentials
 
 st.markdown("""
 <style>
-/* ... 기존 CSS ... */
-
 .progress-sticky{
     position: sticky;
     top: 0;
-    z-index: 999;
+    z-index: 9999;
     background: white;
     padding: 10px 0 8px 0;
     border-bottom: 1px solid #e6e6e6;
+}
+
+/* 프로그레스 바(커스텀) */
+.progress-wrap{
+    width: 100%;
+    height: 10px;
+    background: #eeeeee;
+    border-radius: 999px;
+    overflow: hidden;
+}
+.progress-bar{
+    height: 10px;
+    width: 0%;
+    background: #3b82f6;   /* 파란색 */
+}
+.progress-text{
+    margin-top: 6px;
+    font-size: 0.95rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -276,10 +292,16 @@ if st.session_state.page == "survey":
     progress = answered / 27
 
 # ✅ 상단 고정 진행률
-    st.markdown("<div class='progress-sticky'>", unsafe_allow_html=True)
-    st.progress(progress)
-    st.write(f"진행률: **{answered} / 27 문항**")
-    st.markdown("</div>", unsafe_allow_html=True)
+   pct = int(progress * 100)
+
+   st.markdown(f"""
+   <div class="progress-sticky">
+     <div class="progress-wrap">
+       <div class="progress-bar" style="width:{pct}%"></div>
+     </div>
+     <div class="progress-text">진행률: <b>{answered} / 27 문항</b> ({pct}%)</div>
+   </div>
+   """, unsafe_allow_html=True)
 
     answers = []
 
@@ -445,6 +467,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
