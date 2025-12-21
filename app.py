@@ -252,28 +252,34 @@ if st.session_state.page == "survey":
 with st.form("survey"):
     answers = []
 
-for i, q in enumerate(QUESTIONS, 1):
+    for i, q in enumerate(QUESTIONS, 1):
 
-    # 앞 문항 응답 여부로 활성/비활성 결정
-    if i == 1:
-        disabled = False
-    else:
-        disabled = (st.session_state.get(f"q_{i-1}") is None)
+        # 앞 문항 응답 여부로 비활성화
+        if i == 1:
+            disabled = False
+        else:
+            disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-    st.write(f"{i}. {q}")
+        # 문항 박스 (CSS와 연결되는 부분)
+        st.markdown(
+            f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
+            unsafe_allow_html=True
+        )
 
-    ans = st.radio(
-        "",
-        [1,2,3,4],
-        horizontal=True,
-        index=None,
-        key=f"q_{i}",
-        disabled=disabled
-    )
+        # 라디오 버튼
+        ans = st.radio(
+            "",
+            [1, 2, 3, 4],
+            horizontal=True,
+            index=None,
+            key=f"q_{i}",
+            disabled=disabled
+        )
+        answers.append(ans)
 
-    answers.append(ans)
+        st.markdown("</div>", unsafe_allow_html=True)  # 문항 구역 닫기
 
-submit = st.button("제출")
+    submit = st.form_submit_button("제출")
 
 if submit:
     if None in answers:
@@ -408,6 +414,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
