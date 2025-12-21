@@ -71,6 +71,9 @@ st.markdown("""
 if "page" not in st.session_state:
     st.session_state.page = "cover"
 
+if "answers" not in st.session_state:
+    st.session_state.answers = {}
+    
 # =========================
 # 문항
 # =========================
@@ -426,6 +429,7 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
 
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
