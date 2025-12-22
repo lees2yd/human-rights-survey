@@ -330,48 +330,37 @@ if st.session_state.page == "survey":
     """, unsafe_allow_html=True)
 
     # ✅ (2) 여기!! 바로 아래에 “마일스톤 메시지 코드” 붙여넣기
-    import time
-    if "milestone_shown" not in st.session_state:
-        st.session_state.milestone_shown = set()
+    # =========================
+# 설문 진행 마일스톤 메시지 (Streamlit-native)
+# =========================
+if "milestone_shown" not in st.session_state:
+    st.session_state.milestone_shown = set()
 
-    def show_milestone_if_needed(pct: int):
-        msgs = {
-            50: "이제 반 남았어요 🙂",
-            75: "거의 목적지가 보이네요 👀",
-            100: "고생하셨어요 👏"
-        }
+def show_milestone_if_needed(pct: int):
+    milestones = {
+        50: "이제 반 남았어요 🙂",
+        75: "거의 목적지가 보이네요 👀",
+        100: "고생하셨어요 👏"
+    }
 
-        hit = None
-        if pct >= 100:
-            hit = 100
-        elif pct >= 75:
-            hit = 75
-        elif pct >= 50:
-            hit = 50
+    hit = None
+    if pct >= 100:
+        hit = 100
+    elif pct >= 75:
+        hit = 75
+    elif pct >= 50:
+        hit = 50
 
-        if hit is None:
-            return
-        if hit in st.session_state.milestone_shown:
-            return
+    if hit is None:
+        return
 
-        msg = msgs[hit].replace("'", "\\'")
-        components.html(f"""
-        <script>
-          const box = document.getElementById('milestoneBox');
-          if (box) {{
-            box.textContent = '{msg}';
-            box.classList.remove('hidden');
-            setTimeout(() => {{
-              box.classList.add('hidden');
-              box.textContent = '';
-            }}, 5000);
-          }}
-        </script>
-        """, height=0)
+    if hit in st.session_state.milestone_shown:
+        return
 
-        st.session_state.milestone_shown.add(hit)
+    st.info(milestones[hit])
+    st.session_state.milestone_shown.add(hit)
 
-    show_milestone_if_needed(pct)
+show_milestone_if_needed(pct)
 
     # ✅ (3) 그리고 그 다음 줄에 기존 body-pad-top 그대로
     st.markdown('<div class="body-pad-top"></div>', unsafe_allow_html=True)
@@ -594,6 +583,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
