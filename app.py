@@ -355,9 +355,9 @@ if st.session_state.page == "survey":
             return
 
         msg = msgs[hit].replace("'", "\\'")
-        st.components.v1.html(f"""
+        components.html(f"""
         <script>
-          const box = window.parent.document.getElementById('milestoneBox');
+          const box = document.getElementById('milestoneBox');
           if (box) {{
             box.textContent = '{msg}';
             box.classList.remove('hidden');
@@ -594,6 +594,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
