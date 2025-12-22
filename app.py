@@ -591,9 +591,10 @@ if st.session_state.page == "result":
     for i, a in enumerate(r["answers"], 1):
         row[f"q{i}"] = a
 
-    #save(row) #
+    save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
