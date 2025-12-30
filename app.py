@@ -538,6 +538,17 @@ if st.session_state.page == "demographic":
     </style>
     """, unsafe_allow_html=True)
 
+    # 👉 페이지 진입 시 스크롤 맨 위로 이동
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+            window.parent.document.querySelector('html, body').scrollTo(0, 0);
+        </script>
+        """,
+        height=0,
+    )
+
     # ===== 제목 =====
     st.header("📌 인구학적 정보")
     st.caption("※ 선택 응답, 익명 처리 / 연구 목적 외 사용되지 않습니다.")
@@ -781,6 +792,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
