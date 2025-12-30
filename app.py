@@ -515,8 +515,9 @@ if st.session_state.page == "demographic":
     st.caption("※ 선택 응답, 익명 처리 / 연구 목적 외 사용되지 않습니다.")
 
     # 1) 연령대
+    st.markdown("**1. 연령대**")
     age = st.radio(
-        "1. 연령대",
+        "",
         ["20대","30대","40대","50대","60대 이상","응답하지 않음"],
         key="age",
         index=None
@@ -524,8 +525,9 @@ if st.session_state.page == "demographic":
 
     # 2) 성별
     gender_disabled = (st.session_state.get("age") is None)
+    st.markdown("**2. 성별**")
     gender = st.radio(
-        "2. 성별",
+        "",
         ["남성","여성","응답하지 않음"],
         horizontal=True,
         key="gender",
@@ -535,8 +537,9 @@ if st.session_state.page == "demographic":
 
     # 3) 교정 경력
     career_disabled = (st.session_state.get("gender") is None)
+    st.markdown("**3. 교정 경력**")
     career = st.radio(
-        "3. 교정 경력",
+        "",
         ["5년 미만","5~10년 미만","10~20년 미만","20년 이상"],
         key="career",
         index=None,
@@ -545,8 +548,9 @@ if st.session_state.page == "demographic":
 
     # 4) 근무 유형
     jobtype_disabled = (st.session_state.get("career") is None)
+    st.markdown("**4. 근무 유형**")
     jobtype = st.radio(
-        "4. 근무 유형",
+        "",
         ["보안과","사회복귀과","의료과","총무과","기타"],
         key="jobtype",
         index=None,
@@ -555,8 +559,9 @@ if st.session_state.page == "demographic":
 
     # 5) 근무 기관
     facil_disabled = (st.session_state.get("jobtype") is None)
+    st.markdown("**5. 근무 기관**")
     facil = st.radio(
-        "5. 근무 기관",
+        "",
         ["교도소","구치소","소년시설","치료감호/의료","기타"],
         key="facil",
         index=None,
@@ -565,8 +570,9 @@ if st.session_state.page == "demographic":
 
     # 6) 교대 형태
     shift_disabled = (st.session_state.get("facil") is None)
+    st.markdown("**6. 교대 형태**")
     shift = st.radio(
-        "6. 교대 형태",
+        "",
         ["주간 중심","교대(야간 포함)","혼합/불규칙"],
         key="shift",
         index=None,
@@ -575,8 +581,9 @@ if st.session_state.page == "demographic":
 
     # 7) 인권 관련 교육 경험(최근 3년)
     hr_edu_disabled = (st.session_state.get("shift") is None)
+    st.markdown("**7. 인권 관련 교육 경험(최근 3년)**")
     hr_edu = st.radio(
-        "7. 인권 관련 교육 경험(최근 3년)",
+        "",
         ["전혀 없음","1회","2~3회","4회 이상"],
         key="edu_hr",
         index=None,
@@ -585,8 +592,9 @@ if st.session_state.page == "demographic":
 
     # 8) 정신질환 관련 교육 경험
     edu_disabled = (st.session_state.get("edu_hr") is None)
+    st.markdown("**8. 정신질환 관련 교육 경험**")
     edu = st.radio(
-        "8. 정신질환 관련 교육 경험",
+        "",
         ["없다","1회","2회 이상"],
         key="edu_mental",
         index=None,
@@ -595,8 +603,9 @@ if st.session_state.page == "demographic":
 
     # 9) 정신질환 수용자 대면 빈도
     exposure_disabled = (st.session_state.get("edu_mental") is None)
+    st.markdown("**9. 정신질환 수용자 대면 빈도**")
     exposure = st.radio(
-        "9. 정신질환 수용자 대면 빈도",
+        "",
         ["거의 없음","가끔","자주","매우 자주"],
         key="exposure",
         index=None,
@@ -605,8 +614,9 @@ if st.session_state.page == "demographic":
 
     # 10) 최종 학력
     degree_disabled = (st.session_state.get("exposure") is None)
+    st.markdown("**10. 최종 학력**")
     degree = st.radio(
-        "10. 최종 학력",
+        "",
         ["고졸","전문대","학사","석사 이상","응답하지 않음"],
         key="degree",
         index=None,
@@ -629,18 +639,17 @@ if st.session_state.page == "demographic":
         )
         st.caption("※ 휴대폰 번호는 쿠폰 발송을 위해서만 사용되며, 별도 시트에 분리 저장됩니다.")
 
-    # 🔑 버튼 활성화 조건 계산 (⬅️ 여기서 can_next 정의!)
+    # 🔑 버튼 활성화 조건 계산
     demo_keys = [
         "age","gender","career","jobtype","facil",
         "shift","edu_hr","edu_mental","exposure","degree"
     ]
     base_filled = all(st.session_state.get(k) is not None for k in demo_keys)
-
     phone_filled = bool(st.session_state.get("phone_input", "").strip())
     can_next = base_filled and (not want_coupon or phone_filled)
 
     st.markdown("---")
-    st.caption("※ 모든 문항에 응답하면 버튼이 활성화됩니다. (쿠폰을 선택한 경우, 휴대폰 번호도 필요합니다.)")
+    st.caption("※ 모든 문항에 응답하면 버튼이 활성화됩니다. (쿠폰 선택 시, 휴대폰 번호도 필요합니다.)")
 
     # ▶ 다음으로 이동
     if st.button("다음 (결과 보기)", disabled=not can_next):
@@ -658,7 +667,6 @@ if st.session_state.page == "demographic":
             "학력": degree
         }
 
-        # ☕ 전화번호 저장 (선택)
         st.session_state["phone"] = (
             st.session_state.get("phone_input", "").strip()
             if want_coupon else None
@@ -836,6 +844,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
