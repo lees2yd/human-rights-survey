@@ -452,7 +452,7 @@ if st.session_state.page == "survey":
 
         st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
-    can_submit = all(
+     can_submit = all(
         st.session_state.get(f"q_{i}") is not None
         for i in range(1, 28)
     )
@@ -773,6 +773,7 @@ def save_phone(phone):
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         phone
     ])
+
 
 
 
