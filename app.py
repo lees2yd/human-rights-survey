@@ -130,7 +130,7 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-st.warning("VERSION CHECK 2025-FEEDBACK + COVER ENABLED")
+st.caption("감.수.성 판단설계연구소  |  감정·기준·성찰 기반 판단구조 연구")
 
 # =======================================
 # PC + Mobile 자동 최적화 CSS
@@ -639,6 +639,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
