@@ -538,16 +538,64 @@ if st.session_state.page == "demographic":
     </style>
     """, unsafe_allow_html=True)
 
-    # 👉 페이지 진입 시 스크롤 맨 위로 이동
+    # 👉 페이지 진입 시 한 번만 스크롤을 맨 위로 강제로 올리기
+    import time
     import streamlit.components.v1 as components
-    components.html(
-        """
-        <script>
-            window.parent.document.querySelector('html, body').scrollTo(0, 0);
-        </script>
-        """,
-        height=0,
-    )
+
+    if st.session_state.get("scroll_to_top_demo", False):
+        token = str(time.time())
+        components.html(
+            f"""
+            <!-- scroll-token: {token} -->
+            <script>
+            (function() {{
+              function scrollTopAll() {{
+                try {{
+                  // 현재 프레임
+                  window.scrollTo(0, 0);
+                  document.documentElement.scrollTop = 0;
+                  document.body.scrollTop = 0;
+
+                  // 부모 프레임(Streamlit 앱 컨테이너)
+                  if (window.parent) {{
+                    window.parent.scrollTo(0, 0);
+                    window.parent.document.documentElement.scrollTop = 0;
+                    window.parent.document.body.scrollTop = 0;
+
+                    const selectors = [
+                      '[data-testid="stAppViewContainer"]',
+                      '[data-testid="stApp"]',
+                      'section.main',
+                      '.main',
+                      'div.block-container'
+                    ];
+                    selectors.forEach(sel => {{
+                      const el = window.parent.document.querySelector(sel);
+                      if (el) el.scrollTop = 0;
+                    }});
+                  }}
+                }} catch (e) {{}}
+              }}
+
+              let n = 0;
+              function loop() {{
+                scrollTopAll();
+                n++;
+                if (n < 60) requestAnimationFrame(loop);
+              }}
+              requestAnimationFrame(loop);
+
+              setTimeout(scrollTopAll, 100);
+              setTimeout(scrollTopAll, 300);
+              setTimeout(scrollTopAll, 700);
+              setTimeout(scrollTopAll, 1200);
+              setTimeout(scrollTopAll, 2000);
+            }})();
+            </script>
+            """,
+            height=0,
+        )
+        st.session_state.scroll_to_top_demo = False
 
     # ===== 제목 =====
     st.header("📌 인구학적 정보")
@@ -792,6 +840,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
