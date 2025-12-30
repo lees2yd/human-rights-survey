@@ -479,8 +479,36 @@ if st.session_state.page == "survey":
             "answers": answers
         }
 
-        st.session_state.page = "result"
+        st.session_state.page = "demographic" 
         st.session_state.scroll_to_top = True
+        st.rerun()
+
+# =========================================================
+#          ★ 3. 인구학적 정보 (선택 항목) 추가 페이지 ★
+# =========================================================
+if st.session_state.page == "demographic":
+    st.header("기본 정보 (선택 사항)")
+    st.caption("※ 익명이며 연구 목적 외 사용되지 않습니다.")
+
+    age = st.radio("연령대", ["20대","30대","40대","50대","60대 이상","응답하지 않음"], key="age")
+    gender = st.radio("성별", ["남성","여성","응답하지 않음"], horizontal=True, key="gender")
+    career = st.radio("교정 경력", ["5년 미만","5~10년 미만","10~20년 미만","20년 이상"], key="career")
+    jobtype = st.radio("근무 유형", ["수용자 직접 관리","교정·교화/상담·심리","의료·보건","행정·관리","기타"], key="jobtype")
+    facil = st.radio("근무 기관", ["교도소","구치소","소년시설","치료감호/의료","기타"], key="facil")
+    shift = st.radio("교대 형태", ["주간 중심","교대(야간 포함)","혼합/불규칙"], key="shift")
+
+    hr_edu = st.radio("인권 관련 교육 경험(최근 3년)", ["전혀 없음","1회","2~3회","4회 이상"], key="edu_hr")
+    edu = st.radio("정신질환 관련 교육 경험", ["없다","1회","2회 이상"], key="edu_mental")
+    exposure = st.radio("정신질환 수용자 대면 빈도", ["거의 없음","가끔","자주","매우 자주"], key="exposure")
+    degree = st.radio("최종 학력", ["고졸","전문대","학사","석사 이상","응답하지 않음"], key="degree")
+
+    if st.button("결과 보기"):
+        st.session_state.demographic = {
+            "연령대": age, "성별": gender, "경력": career, "직무": jobtype,
+            "기관": facil, "교대": shift, "인권교육": hr_edu, "정신교육": edu,
+            "대면빈도": exposure, "학력": degree
+        }
+        st.session_state.page = "result"
         st.rerun()
         
 # =========================================================
@@ -636,9 +664,14 @@ if st.session_state.page == "result":
     for i, a in enumerate(r["answers"], 1):
         row[f"q{i}"] = a
 
+    demo = st.session_state.get("demographic", {})
+    for k, v in demo.items():
+        row[k] = v  # row에 추가
+    
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
