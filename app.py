@@ -507,14 +507,14 @@ if st.session_state.page == "survey":
         st.rerun()
 
 # =========================================================
-#          ★ 3. 인구학적 정보 (선택 항목) 추가 페이지 ★
+#          ★ 3. 인구학적 정보 (선택 항목) 페이지 ★
 # =========================================================
 if st.session_state.page == "demographic":
-    # 📌 제목 추가
+
     st.header("📌 인구학적 정보")
     st.caption("※ 선택 응답, 익명 처리 / 연구 목적 외 사용되지 않습니다.")
 
-    # 1번 문항: 연령대 (처음부터 활성화 / 미선택 상태)
+    # 1) 연령대
     age = st.radio(
         "1. 연령대",
         ["20대","30대","40대","50대","60대 이상","응답하지 않음"],
@@ -522,7 +522,7 @@ if st.session_state.page == "demographic":
         index=None
     )
 
-    # 2번 문항: 성별 (1번에 응답해야 활성화)
+    # 2) 성별
     gender_disabled = (st.session_state.get("age") is None)
     gender = st.radio(
         "2. 성별",
@@ -533,7 +533,7 @@ if st.session_state.page == "demographic":
         disabled=gender_disabled
     )
 
-    # 3번 문항: 교정 경력 (2번에 응답해야 활성화)
+    # 3) 교정 경력
     career_disabled = (st.session_state.get("gender") is None)
     career = st.radio(
         "3. 교정 경력",
@@ -543,7 +543,7 @@ if st.session_state.page == "demographic":
         disabled=career_disabled
     )
 
-    # 4번 문항: 근무 유형
+    # 4) 근무 유형
     jobtype_disabled = (st.session_state.get("career") is None)
     jobtype = st.radio(
         "4. 근무 유형",
@@ -553,7 +553,7 @@ if st.session_state.page == "demographic":
         disabled=jobtype_disabled
     )
 
-    # 5번 문항: 근무 기관
+    # 5) 근무 기관
     facil_disabled = (st.session_state.get("jobtype") is None)
     facil = st.radio(
         "5. 근무 기관",
@@ -563,7 +563,7 @@ if st.session_state.page == "demographic":
         disabled=facil_disabled
     )
 
-    # 6번 문항: 교대 형태
+    # 6) 교대 형태
     shift_disabled = (st.session_state.get("facil") is None)
     shift = st.radio(
         "6. 교대 형태",
@@ -573,7 +573,7 @@ if st.session_state.page == "demographic":
         disabled=shift_disabled
     )
 
-    # 7번 문항: 인권 관련 교육 경험(최근 3년)
+    # 7) 인권 관련 교육 경험(최근 3년)
     hr_edu_disabled = (st.session_state.get("shift") is None)
     hr_edu = st.radio(
         "7. 인권 관련 교육 경험(최근 3년)",
@@ -583,7 +583,7 @@ if st.session_state.page == "demographic":
         disabled=hr_edu_disabled
     )
 
-    # 8번 문항: 정신질환 관련 교육 경험
+    # 8) 정신질환 관련 교육 경험
     edu_disabled = (st.session_state.get("edu_hr") is None)
     edu = st.radio(
         "8. 정신질환 관련 교육 경험",
@@ -593,7 +593,7 @@ if st.session_state.page == "demographic":
         disabled=edu_disabled
     )
 
-    # 9번 문항: 정신질환 수용자 대면 빈도
+    # 9) 정신질환 수용자 대면 빈도
     exposure_disabled = (st.session_state.get("edu_mental") is None)
     exposure = st.radio(
         "9. 정신질환 수용자 대면 빈도",
@@ -603,7 +603,7 @@ if st.session_state.page == "demographic":
         disabled=exposure_disabled
     )
 
-    # 10번 문항: 최종 학력
+    # 10) 최종 학력
     degree_disabled = (st.session_state.get("exposure") is None)
     degree = st.radio(
         "10. 최종 학력",
@@ -613,7 +613,7 @@ if st.session_state.page == "demographic":
         disabled=degree_disabled
     )
 
-    # ☕ 쿠폰 수령 및 휴대폰 번호 (선택)
+    # ☕ 쿠폰 문항
     st.markdown("---")
     st.markdown("### ☕ 커피 쿠폰 수령 (선택)")
 
@@ -624,52 +624,48 @@ if st.session_state.page == "demographic":
 
     if want_coupon:
         st.text_input(
-            "휴대폰 번호를 입력해 주세요 (예: 01012345678, '-' 없이 숫자만)",
+            "휴대폰 번호 입력 (예: 01012345678, '-' 없이 숫자만)",
             key="phone_input"
         )
-        st.caption("※ 휴대폰 번호는 쿠폰 발송을 위해서만 사용되며 별도 시트에 저장됩니다.")
+        st.caption("※ 휴대폰 번호는 쿠폰 발송을 위해서만 사용되며, 별도 시트에 분리 저장됩니다.")
 
-    # ☑ 기본 정보 문항 모두 응답 여부 체크
-    demo_keys = ["age","gender","career","jobtype","facil","shift",
-                 "edu_hr","edu_mental","exposure","degree"]
-
+    # 🔑 버튼 활성화 조건 계산 (⬅️ 여기서 can_next 정의!)
+    demo_keys = [
+        "age","gender","career","jobtype","facil",
+        "shift","edu_hr","edu_mental","exposure","degree"
+    ]
     base_filled = all(st.session_state.get(k) is not None for k in demo_keys)
 
-    # ☕ 쿠폰 여부 + 번호 입력 조건
-    want_coupon = st.session_state.get("want_coupon", False)
     phone_filled = bool(st.session_state.get("phone_input", "").strip())
-
-    # 🔑 제출 버튼 활성화 조건 논리
-    # 1) 기본 정보 모두 응답 + 2) (쿠폰 X) or (쿠폰 O & 번호 입력)
     can_next = base_filled and (not want_coupon or phone_filled)
 
     st.markdown("---")
-    st.caption("※ 아래 버튼은 기본 정보 문항에 모두 응답한 경우에만 활성화됩니다.")
+    st.caption("※ 모든 문항에 응답하면 버튼이 활성화됩니다. (쿠폰을 선택한 경우, 휴대폰 번호도 필요합니다.)")
 
-   # ▶ 다음으로 이동
-if st.button("다음 (결과 보기)", disabled=not can_next):
+    # ▶ 다음으로 이동
+    if st.button("다음 (결과 보기)", disabled=not can_next):
 
-    st.session_state.demographic = {
-        "연령대": st.session_state.get("age"),
-        "성별": st.session_state.get("gender"),
-        "경력": st.session_state.get("career"),
-        "직무": st.session_state.get("jobtype"),
-        "기관": st.session_state.get("facil"),
-        "교대": st.session_state.get("shift"),
-        "인권교육": st.session_state.get("edu_hr"),
-        "정신교육": st.session_state.get("edu_mental"),
-        "대면빈도": st.session_state.get("exposure"),
-        "학력": st.session_state.get("degree"),
-    }
+        st.session_state.demographic = {
+            "연령대": age,
+            "성별": gender,
+            "경력": career,
+            "직무": jobtype,
+            "기관": facil,
+            "교대": shift,
+            "인권교육": hr_edu,
+            "정신교육": edu,
+            "대면빈도": exposure,
+            "학력": degree
+        }
 
-    # ☕ 전화번호 저장
-    st.session_state["phone"] = (
-        st.session_state.get("phone_input", "").strip()
-        if st.session_state.get("want_coupon") else None
-    )
+        # ☕ 전화번호 저장 (선택)
+        st.session_state["phone"] = (
+            st.session_state.get("phone_input", "").strip()
+            if want_coupon else None
+        )
 
-    st.session_state.page = "result"
-    st.rerun()
+        st.session_state.page = "result"
+        st.rerun()
         
 # =========================================================
 #                  ★ 3. 결과 화면 ★
@@ -840,6 +836,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
