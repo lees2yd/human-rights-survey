@@ -480,7 +480,7 @@ if st.session_state.page == "survey":
     # 제출 버튼
     # ---------------------------------------------------------
    
-    submit = st.button("제출", disabled=not can_submit)
+    submit = st.button("다음", disabled=not can_submit)
 
     if submit:
         answers = [st.session_state.get(f"q_{i}") for i in range(1, 28)]
@@ -509,46 +509,129 @@ if st.session_state.page == "survey":
 # =========================================================
 #          ★ 3. 인구학적 정보 (선택 항목) 추가 페이지 ★
 # =========================================================
-
 if st.session_state.page == "demographic":
     st.header("기본 정보 (선택 사항)")
     st.caption("※ 익명이며 연구 목적 외 사용되지 않습니다.")
 
-    age = st.radio("연령대", ["20대","30대","40대","50대","60대 이상","응답하지 않음"], key="age")
-    gender = st.radio("성별", ["남성","여성","응답하지 않음"], horizontal=True, key="gender")
-    career = st.radio("교정 경력", ["5년 미만","5~10년 미만","10~20년 미만","20년 이상"], key="career")
-    jobtype = st.radio("근무 유형", ["수용자 직접 관리","교정·교화/상담·심리","의료·보건","행정·관리","기타"], key="jobtype")
-    facil = st.radio("근무 기관", ["교도소","구치소","소년시설","치료감호/의료","기타"], key="facil")
-    shift = st.radio("교대 형태", ["주간 중심","교대(야간 포함)","혼합/불규칙"], key="shift")
-
-    hr_edu = st.radio("인권 관련 교육 경험(최근 3년)", ["전혀 없음","1회","2~3회","4회 이상"], key="edu_hr")
-    edu = st.radio("정신질환 관련 교육 경험", ["없다","1회","2회 이상"], key="edu_mental")
-    exposure = st.radio("정신질환 수용자 대면 빈도", ["거의 없음","가끔","자주","매우 자주"], key="exposure")
-    degree = st.radio("최종 학력", ["고졸","전문대","학사","석사 이상","응답하지 않음"], key="degree")
-
-    st.markdown("---")
-    st.subheader("☕ 설문 참여 감사 커피 쿠폰 (선택 사항)")
-    st.caption("원하시는 경우에만 휴대폰 번호를 남겨 주시면, 추첨을 통해 커피 쿠폰을 발송드립니다.")
-
-    want_coupon = st.checkbox(
-        "커피 쿠폰 추첨을 위해 연락처(휴대폰 번호)를 남기겠습니다. (선택)",
-        key="want_coupon"
+    # 1번 문항: 연령대 (처음부터 활성화 / 미선택 상태)
+    age = st.radio(
+        "1. 연령대",
+        ["20대","30대","40대","50대","60대 이상","응답하지 않음"],
+        key="age",
+        index=None
     )
 
-    if want_coupon:
-        st.text_input(
-            "휴대폰 번호를 입력해 주세요. ('-' 포함 또는 미포함 모두 가능)",
-            key="phone_input",
-            placeholder="예: 01012345678 또는 010-1234-5678"
-        )
-    else:
-        st.session_state["phone_input"] = ""
+    # 2번 문항: 성별 (1번에 응답해야 활성화)
+    gender_disabled = (st.session_state.get("age") is None)
+    gender = st.radio(
+        "2. 성별",
+        ["남성","여성","응답하지 않음"],
+        horizontal=True,
+        key="gender",
+        index=None,
+        disabled=gender_disabled
+    )
 
-    if st.button("결과 보기"):
+    # 3번 문항: 교정 경력 (2번에 응답해야 활성화)
+    career_disabled = (st.session_state.get("gender") is None)
+    career = st.radio(
+        "3. 교정 경력",
+        ["5년 미만","5~10년 미만","10~20년 미만","20년 이상"],
+        key="career",
+        index=None,
+        disabled=career_disabled
+    )
+
+    # 4번 문항: 근무 유형
+    jobtype_disabled = (st.session_state.get("career") is None)
+    jobtype = st.radio(
+        "4. 근무 유형",
+        ["보안과","사회복귀과","의료과","총무과","기타"],
+        key="jobtype",
+        index=None,
+        disabled=jobtype_disabled
+    )
+
+    # 5번 문항: 근무 기관
+    facil_disabled = (st.session_state.get("jobtype") is None)
+    facil = st.radio(
+        "5. 근무 기관",
+        ["교도소","구치소","소년시설","치료감호/의료","기타"],
+        key="facil",
+        index=None,
+        disabled=facil_disabled
+    )
+
+    # 6번 문항: 교대 형태
+    shift_disabled = (st.session_state.get("facil") is None)
+    shift = st.radio(
+        "6. 교대 형태",
+        ["주간 중심","교대(야간 포함)","혼합/불규칙"],
+        key="shift",
+        index=None,
+        disabled=shift_disabled
+    )
+
+    # 7번 문항: 인권 관련 교육 경험(최근 3년)
+    hr_edu_disabled = (st.session_state.get("shift") is None)
+    hr_edu = st.radio(
+        "7. 인권 관련 교육 경험(최근 3년)",
+        ["전혀 없음","1회","2~3회","4회 이상"],
+        key="edu_hr",
+        index=None,
+        disabled=hr_edu_disabled
+    )
+
+    # 8번 문항: 정신질환 관련 교육 경험
+    edu_disabled = (st.session_state.get("edu_hr") is None)
+    edu = st.radio(
+        "8. 정신질환 관련 교육 경험",
+        ["없다","1회","2회 이상"],
+        key="edu_mental",
+        index=None,
+        disabled=edu_disabled
+    )
+
+    # 9번 문항: 정신질환 수용자 대면 빈도
+    exposure_disabled = (st.session_state.get("edu_mental") is None)
+    exposure = st.radio(
+        "9. 정신질환 수용자 대면 빈도",
+        ["거의 없음","가끔","자주","매우 자주"],
+        key="exposure",
+        index=None,
+        disabled=exposure_disabled
+    )
+
+    # 10번 문항: 최종 학력
+    degree_disabled = (st.session_state.get("exposure") is None)
+    degree = st.radio(
+        "10. 최종 학력",
+        ["고졸","전문대","학사","석사 이상","응답하지 않음"],
+        key="degree",
+        index=None,
+        disabled=degree_disabled
+    )
+
+    # ☑ 전 문항 응답 여부 체크
+    demo_keys = ["age","gender","career","jobtype","facil","shift",
+                 "edu_hr","edu_mental","exposure","degree"]
+    can_next = all(st.session_state.get(k) is not None for k in demo_keys)
+
+    st.markdown("---")
+    st.caption("※ 아래 버튼은 기본 정보 문항에 모두 응답한 경우에만 활성화됩니다.")
+
+    if st.button("다음 (결과 보기)", disabled=not can_next):
         st.session_state.demographic = {
-            "연령대": age, "성별": gender, "경력": career, "직무": jobtype,
-            "기관": facil, "교대": shift, "인권교육": hr_edu, "정신교육": edu,
-            "대면빈도": exposure, "학력": degree
+            "연령대": age,
+            "성별": gender,
+            "경력": career,
+            "직무": jobtype,
+            "기관": facil,
+            "교대": shift,
+            "인권교육": hr_edu,
+            "정신교육": edu,
+            "대면빈도": exposure,
+            "학력": degree
         }
 
         # ☕ 여기에서 전화번호를 세션에 저장
@@ -729,6 +812,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
