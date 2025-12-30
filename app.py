@@ -661,7 +661,10 @@ if st.session_state.page == "demographic":
     }
 
     # ☕ 전화번호 저장
-    st.session_state["phone"] = st.session_state.get("phone_input", "").strip() if want_coupon else None
+    st.session_state["phone"] = (
+        st.session_state.get("phone_input", "").strip()
+        if want_coupon else None
+    )
     
     st.session_state.page = "result"
     st.rerun()
@@ -835,6 +838,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
