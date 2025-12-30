@@ -503,7 +503,6 @@ if st.session_state.page == "survey":
         }
 
         st.session_state.page = "demographic" 
-        st.session_state.scroll_to_top_demo = True
         st.rerun()
 
 # =========================================================
@@ -538,69 +537,15 @@ if st.session_state.page == "demographic":
     </style>
     """, unsafe_allow_html=True)
 
-    # 👉 페이지 진입 시 한 번만 스크롤을 맨 위로 강제로 올리기
-    import time
-    import streamlit.components.v1 as components
-
-    if st.session_state.get("scroll_to_top_demo", False):
-        token = str(time.time())
-        components.html(
-            f"""
-            <!-- scroll-token: {token} -->
-            <script>
-            (function() {{
-              function scrollTopAll() {{
-                try {{
-                  // 현재 프레임
-                  window.scrollTo(0, 0);
-                  document.documentElement.scrollTop = 0;
-                  document.body.scrollTop = 0;
-
-                  // 부모 프레임(Streamlit 앱 컨테이너)
-                  if (window.parent) {{
-                    window.parent.scrollTo(0, 0);
-                    window.parent.document.documentElement.scrollTop = 0;
-                    window.parent.document.body.scrollTop = 0;
-
-                    const selectors = [
-                      '[data-testid="stAppViewContainer"]',
-                      '[data-testid="stApp"]',
-                      'section.main',
-                      '.main',
-                      'div.block-container'
-                    ];
-                    selectors.forEach(sel => {{
-                      const el = window.parent.document.querySelector(sel);
-                      if (el) el.scrollTop = 0;
-                    }});
-                  }}
-                }} catch (e) {{}}
-              }}
-
-              let n = 0;
-              function loop() {{
-                scrollTopAll();
-                n++;
-                if (n < 60) requestAnimationFrame(loop);
-              }}
-              requestAnimationFrame(loop);
-
-              setTimeout(scrollTopAll, 100);
-              setTimeout(scrollTopAll, 300);
-              setTimeout(scrollTopAll, 700);
-              setTimeout(scrollTopAll, 1200);
-              setTimeout(scrollTopAll, 2000);
-            }})();
-            </script>
-            """,
-            height=0,
-        )
-        st.session_state.scroll_to_top_demo = False
+    # 👉 페이지 진입할 때마다 화면 맨 위로 이동 (간단 버전)
+    components.html(
+        "<script>window.scrollTo(0, 0);</script>",
+        height=0,
+    )
 
     # ===== 제목 =====
     st.header("📌 인구학적 정보")
     st.caption("※ 선택 응답, 익명 처리 / 연구 목적 외 사용되지 않습니다.")
-
 
     # ===== 문항 =====
     st.markdown('<span class="question-label">1. 연령대</span>', unsafe_allow_html=True)
@@ -642,7 +587,6 @@ if st.session_state.page == "demographic":
     degree = st.radio("", ["고졸","전문대","학사","석사 이상","응답하지 않음"], key="degree", index=None,
                       disabled=(exposure is None))
 
-
     # ===== 쿠폰 =====
     st.markdown("---")
     st.markdown("### ☕ 커피 쿠폰 수령 (선택)")
@@ -652,13 +596,11 @@ if st.session_state.page == "demographic":
         st.text_input("휴대폰 번호 입력 (예: 01012345678)", key="phone_input")
         st.caption("※ '-' 없이 숫자만 입력 / 쿠폰 발송 전용 저장")
 
-
     # ===== 제출 조건 =====
     demo_keys = ["age","gender","career","jobtype","facil","shift","edu_hr","edu_mental","exposure","degree"]
     base_filled = all(st.session_state.get(k) is not None for k in demo_keys)
     phone_filled = bool(st.session_state.get("phone_input", "").strip())
     can_next = base_filled and (not want_coupon or phone_filled)
-
 
     # ===== 다음 버튼 =====
     if st.button("다음 (결과 보기)", disabled=not can_next):
@@ -680,59 +622,12 @@ import plotly.graph_objects as go
 
 if st.session_state.page == "result":
 
-    # 1) (선택) 스크롤 맨 위: 결과 화면에서 1회만 실행
-    if st.session_state.get("scroll_to_top", False):
-        token = str(time.time())  # 캐시 방지용
-        components.html(
-            f"""
-            <!-- scroll-token: {token} -->
-            <script>
-            (function() {{
-              function scrollTopAll() {{
-                try {{
-                  window.scrollTo(0, 0);
-                  document.documentElement.scrollTop = 0;
-                  document.body.scrollTop = 0;
+    # 👉 결과 페이지 진입 시 항상 맨 위로 스크롤
+    components.html(
+        "<script>window.scrollTo(0, 0);</script>",
+        height=0,
+    )
 
-                  if (window.parent) {{
-                    window.parent.scrollTo(0, 0);
-                    window.parent.document.documentElement.scrollTop = 0;
-                    window.parent.document.body.scrollTop = 0;
-
-                    const selectors = [
-                      '[data-testid="stAppViewContainer"]',
-                      '[data-testid="stApp"]',
-                      'section.main',
-                      '.main',
-                      'div.block-container'
-                    ];
-                    selectors.forEach(sel => {{
-                      const el = window.parent.document.querySelector(sel);
-                      if (el) el.scrollTop = 0;
-                    }});
-                  }}
-                }} catch (e) {{}}
-              }}
-
-              let n = 0;
-              function loop() {{
-                scrollTopAll();
-                n++;
-                if (n < 60) requestAnimationFrame(loop);
-              }}
-              requestAnimationFrame(loop);
-
-              setTimeout(scrollTopAll, 100);
-              setTimeout(scrollTopAll, 300);
-              setTimeout(scrollTopAll, 700);
-              setTimeout(scrollTopAll, 1200);
-              setTimeout(scrollTopAll, 2000);
-            }})();
-            </script>
-            """,
-            height=0,
-        )
-        st.session_state.scroll_to_top = False
 
     # 2) 결과 데이터 가져오기
     r = st.session_state.get("result", None)
@@ -840,6 +735,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
