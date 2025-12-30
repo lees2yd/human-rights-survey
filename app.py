@@ -452,15 +452,19 @@ if st.session_state.page == "survey":
 
         st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
-     can_submit = all(
+# =========================
+    # 제출 가능 여부 체크
+    # =========================
+    can_submit = all(
         st.session_state.get(f"q_{i}") is not None
         for i in range(1, 28)
     )
 
-    # ⭐ 여기부터 추가: 커피 쿠폰 안내 및 휴대폰 번호 입력 (선택사항)
+    # ---------------------------------------------------------
+    # ☕ 커피 쿠폰 안내 및 휴대폰 번호 입력 (선택사항)
+    # ---------------------------------------------------------
     st.markdown("---")
     st.subheader("☕ 설문 참여 감사 커피 쿠폰 (선택 사항)")
-
     st.caption("원하시는 경우에만 휴대폰 번호를 남겨 주시면, 추첨을 통해 커피 쿠폰을 발송드립니다.")
 
     want_coupon = st.checkbox(
@@ -475,11 +479,12 @@ if st.session_state.page == "survey":
             placeholder="예: 01012345678 또는 010-1234-5678"
         )
     else:
-        # 체크를 해제하면 저장된 번호는 쓰지 않도록 초기화
+        # 체크 해제 시 저장 방지
         st.session_state["phone_input"] = ""
 
-    # ⭐ 여기까지 추가
-
+    # ---------------------------------------------------------
+    # 제출 버튼
+    # ---------------------------------------------------------
     submit = st.button("제출", disabled=not can_submit)
 
     if submit:
@@ -768,6 +773,7 @@ def save_phone(phone):
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         phone
     ])
+
 
 
 
