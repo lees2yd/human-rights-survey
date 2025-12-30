@@ -612,10 +612,29 @@ if st.session_state.page == "demographic":
         disabled=degree_disabled
     )
 
+    # ☕ 쿠폰 수령 및 휴대폰 번호 (선택)
+    st.markdown("---")
+    st.markdown("### ☕ 커피 쿠폰 수령 (선택)")
+
+    want_coupon = st.checkbox(
+        "커피 쿠폰을 받기 위해 휴대폰 번호를 입력하겠습니다.",
+        key="want_coupon"
+    )
+
+    if want_coupon:
+        st.text_input(
+            "휴대폰 번호를 입력해 주세요 (예: 01012345678, '-' 없이 숫자만)",
+            key="phone_input"
+        )
+        st.caption("※ 휴대폰 번호는 쿠폰 발송을 위해서만 사용되며 별도 시트에 저장됩니다.")
+
     # ☑ 전 문항 응답 여부 체크
     demo_keys = ["age","gender","career","jobtype","facil","shift",
                  "edu_hr","edu_mental","exposure","degree"]
     can_next = all(st.session_state.get(k) is not None for k in demo_keys)
+    # ☕ 쿠폰 희망 시, 휴대폰 번호 필수 입력
+    if st.session_state.get("want_coupon") and not st.session_state.get("phone_input"):
+        can_next = False
 
     st.markdown("---")
     st.caption("※ 아래 버튼은 기본 정보 문항에 모두 응답한 경우에만 활성화됩니다.")
@@ -812,6 +831,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
