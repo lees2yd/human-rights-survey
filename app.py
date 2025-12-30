@@ -511,167 +511,104 @@ if st.session_state.page == "survey":
 # =========================================================
 if st.session_state.page == "demographic":
 
+    # ===== 스타일 보정 CSS =====
+    st.markdown("""
+    <style>
+    .question-label {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+        margin-top: 18px !important;
+        margin-bottom: 6px !important;
+        display: block;
+        line-height: 1.45;
+    }
+    .stRadio > div > label, .stRadio label {
+        font-size: 1.05rem !important;
+        color: #111 !important;
+    }
+    @media (max-width: 480px) {
+        .question-label {
+            font-size: 1.05rem !important;
+        }
+        .stRadio label {
+            font-size: 1rem !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ===== 제목 =====
     st.header("📌 인구학적 정보")
     st.caption("※ 선택 응답, 익명 처리 / 연구 목적 외 사용되지 않습니다.")
 
-    # 1) 연령대
-    st.markdown("**1. 연령대**")
-    age = st.radio(
-        "",
-        ["20대","30대","40대","50대","60대 이상","응답하지 않음"],
-        key="age",
-        index=None
-    )
 
-    # 2) 성별
-    gender_disabled = (st.session_state.get("age") is None)
-    st.markdown("**2. 성별**")
-    gender = st.radio(
-        "",
-        ["남성","여성","응답하지 않음"],
-        horizontal=True,
-        key="gender",
-        index=None,
-        disabled=gender_disabled
-    )
+    # ===== 문항 =====
+    st.markdown('<span class="question-label">1. 연령대</span>', unsafe_allow_html=True)
+    age = st.radio("", ["20대","30대","40대","50대","60대 이상","응답하지 않음"], key="age", index=None)
 
-    # 3) 교정 경력
-    career_disabled = (st.session_state.get("gender") is None)
-    st.markdown("**3. 교정 경력**")
-    career = st.radio(
-        "",
-        ["5년 미만","5~10년 미만","10~20년 미만","20년 이상"],
-        key="career",
-        index=None,
-        disabled=career_disabled
-    )
+    st.markdown('<span class="question-label">2. 성별</span>', unsafe_allow_html=True)
+    gender = st.radio("", ["남성","여성","응답하지 않음"], key="gender", index=None,
+                      disabled=(age is None))
 
-    # 4) 근무 유형
-    jobtype_disabled = (st.session_state.get("career") is None)
-    st.markdown("**4. 근무 유형**")
-    jobtype = st.radio(
-        "",
-        ["보안과","사회복귀과","의료과","총무과","기타"],
-        key="jobtype",
-        index=None,
-        disabled=jobtype_disabled
-    )
+    st.markdown('<span class="question-label">3. 교정 경력</span>', unsafe_allow_html=True)
+    career = st.radio("", ["5년 미만","5~10년 미만","10~20년 미만","20년 이상"], key="career", index=None,
+                      disabled=(gender is None))
 
-    # 5) 근무 기관
-    facil_disabled = (st.session_state.get("jobtype") is None)
-    st.markdown("**5. 근무 기관**")
-    facil = st.radio(
-        "",
-        ["교도소","구치소","소년시설","치료감호/의료","기타"],
-        key="facil",
-        index=None,
-        disabled=facil_disabled
-    )
+    st.markdown('<span class="question-label">4. 근무 유형</span>', unsafe_allow_html=True)
+    jobtype = st.radio("", ["보안과","사회복귀과","의료과","총무과","기타"], key="jobtype", index=None,
+                       disabled=(career is None))
 
-    # 6) 교대 형태
-    shift_disabled = (st.session_state.get("facil") is None)
-    st.markdown("**6. 교대 형태**")
-    shift = st.radio(
-        "",
-        ["주간 중심","교대(야간 포함)","혼합/불규칙"],
-        key="shift",
-        index=None,
-        disabled=shift_disabled
-    )
+    st.markdown('<span class="question-label">5. 근무 기관</span>', unsafe_allow_html=True)
+    facil = st.radio("", ["교도소","구치소","소년시설","치료감호/의료","기타"], key="facil", index=None,
+                     disabled=(jobtype is None))
 
-    # 7) 인권 관련 교육 경험(최근 3년)
-    hr_edu_disabled = (st.session_state.get("shift") is None)
-    st.markdown("**7. 인권 관련 교육 경험(최근 3년)**")
-    hr_edu = st.radio(
-        "",
-        ["전혀 없음","1회","2~3회","4회 이상"],
-        key="edu_hr",
-        index=None,
-        disabled=hr_edu_disabled
-    )
+    st.markdown('<span class="question-label">6. 교대 형태</span>', unsafe_allow_html=True)
+    shift = st.radio("", ["주간 중심","교대(야간 포함)","혼합/불규칙"], key="shift", index=None,
+                     disabled=(facil is None))
 
-    # 8) 정신질환 관련 교육 경험
-    edu_disabled = (st.session_state.get("edu_hr") is None)
-    st.markdown("**8. 정신질환 관련 교육 경험**")
-    edu = st.radio(
-        "",
-        ["없다","1회","2회 이상"],
-        key="edu_mental",
-        index=None,
-        disabled=edu_disabled
-    )
+    st.markdown('<span class="question-label">7. 인권 관련 교육 경험(최근 3년)</span>', unsafe_allow_html=True)
+    edu_hr = st.radio("", ["전혀 없음","1회","2~3회","4회 이상"], key="edu_hr", index=None,
+                      disabled=(shift is None))
 
-    # 9) 정신질환 수용자 대면 빈도
-    exposure_disabled = (st.session_state.get("edu_mental") is None)
-    st.markdown("**9. 정신질환 수용자 대면 빈도**")
-    exposure = st.radio(
-        "",
-        ["거의 없음","가끔","자주","매우 자주"],
-        key="exposure",
-        index=None,
-        disabled=exposure_disabled
-    )
+    st.markdown('<span class="question-label">8. 정신질환 관련 교육 경험</span>', unsafe_allow_html=True)
+    edu_mental = st.radio("", ["없다","1회","2회 이상"], key="edu_mental", index=None,
+                          disabled=(edu_hr is None))
 
-    # 10) 최종 학력
-    degree_disabled = (st.session_state.get("exposure") is None)
-    st.markdown("**10. 최종 학력**")
-    degree = st.radio(
-        "",
-        ["고졸","전문대","학사","석사 이상","응답하지 않음"],
-        key="degree",
-        index=None,
-        disabled=degree_disabled
-    )
+    st.markdown('<span class="question-label">9. 정신질환 수용자 대면 빈도</span>', unsafe_allow_html=True)
+    exposure = st.radio("", ["거의 없음","가끔","자주","매우 자주"], key="exposure", index=None,
+                        disabled=(edu_mental is None))
 
-    # ☕ 쿠폰 문항
+    st.markdown('<span class="question-label">10. 최종 학력</span>', unsafe_allow_html=True)
+    degree = st.radio("", ["고졸","전문대","학사","석사 이상","응답하지 않음"], key="degree", index=None,
+                      disabled=(exposure is None))
+
+
+    # ===== 쿠폰 =====
     st.markdown("---")
     st.markdown("### ☕ 커피 쿠폰 수령 (선택)")
-
-    want_coupon = st.checkbox(
-        "커피 쿠폰을 받기 위해 휴대폰 번호를 입력하겠습니다.",
-        key="want_coupon"
-    )
+    want_coupon = st.checkbox("커피 쿠폰을 받기 위해 휴대폰 번호를 입력하겠습니다.", key="want_coupon")
 
     if want_coupon:
-        st.text_input(
-            "휴대폰 번호 입력 (예: 01012345678, '-' 없이 숫자만)",
-            key="phone_input"
-        )
-        st.caption("※ 휴대폰 번호는 쿠폰 발송을 위해서만 사용되며, 별도 시트에 분리 저장됩니다.")
+        st.text_input("휴대폰 번호 입력 (예: 01012345678)", key="phone_input")
+        st.caption("※ '-' 없이 숫자만 입력 / 쿠폰 발송 전용 저장")
 
-    # 🔑 버튼 활성화 조건 계산
-    demo_keys = [
-        "age","gender","career","jobtype","facil",
-        "shift","edu_hr","edu_mental","exposure","degree"
-    ]
+
+    # ===== 제출 조건 =====
+    demo_keys = ["age","gender","career","jobtype","facil","shift","edu_hr","edu_mental","exposure","degree"]
     base_filled = all(st.session_state.get(k) is not None for k in demo_keys)
     phone_filled = bool(st.session_state.get("phone_input", "").strip())
     can_next = base_filled and (not want_coupon or phone_filled)
 
-    st.markdown("---")
-    st.caption("※ 모든 문항에 응답하면 버튼이 활성화됩니다. (쿠폰 선택 시, 휴대폰 번호도 필요합니다.)")
 
-    # ▶ 다음으로 이동
+    # ===== 다음 버튼 =====
     if st.button("다음 (결과 보기)", disabled=not can_next):
-
         st.session_state.demographic = {
-            "연령대": age,
-            "성별": gender,
-            "경력": career,
-            "직무": jobtype,
-            "기관": facil,
-            "교대": shift,
-            "인권교육": hr_edu,
-            "정신교육": edu,
-            "대면빈도": exposure,
-            "학력": degree
+            "연령대": age, "성별": gender, "경력": career, "직무": jobtype, "기관": facil,
+            "교대": shift, "인권교육": edu_hr, "정신교육": edu_mental,
+            "대면빈도": exposure, "학력": degree
         }
-
-        st.session_state["phone"] = (
-            st.session_state.get("phone_input", "").strip()
-            if want_coupon else None
-        )
-
+        st.session_state["phone"] = st.session_state.get("phone_input", "").strip() if want_coupon else None
         st.session_state.page = "result"
         st.rerun()
         
@@ -844,6 +781,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
