@@ -457,11 +457,6 @@ if st.session_state.page == "survey":
         for i in range(1, 28)
     )
 
-     can_submit = all(
-        st.session_state.get(f"q_{i}") is not None
-        for i in range(1, 28)
-    )
-
     # ⭐ 여기부터 추가: 커피 쿠폰 안내 및 휴대폰 번호 입력 (선택사항)
     st.markdown("---")
     st.subheader("☕ 설문 참여 감사 커피 쿠폰 (선택 사항)")
@@ -773,6 +768,7 @@ def save_phone(phone):
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         phone
     ])
+
 
 
 
