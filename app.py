@@ -503,7 +503,7 @@ if st.session_state.page == "survey":
         }
 
         st.session_state.page = "demographic" 
-        st.session_state.scroll_to_top = True
+        st.session_state.scroll_to_top_demo = True
         st.rerun()
 
 # =========================================================
@@ -812,6 +812,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
