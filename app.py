@@ -646,28 +646,30 @@ if st.session_state.page == "demographic":
     st.markdown("---")
     st.caption("※ 아래 버튼은 기본 정보 문항에 모두 응답한 경우에만 활성화됩니다.")
 
-    if st.button("다음 (결과 보기)", disabled=not can_next):
-        st.session_state.demographic = {
-            "연령대": st.session_state.get("age"),
-            "성별": st.session_state.get("gender"),
-            "경력": st.session_state.get("career"),
-            "직무": st.session_state.get("jobtype"),
-            "기관": st.session_state.get("facil"),
-            "교대": st.session_state.get("shift"),
-            "인권교육": st.session_state.get("edu_hr"),
-            "정신교육": st.session_state.get("edu_mental"),
-            "대면빈도": st.session_state.get("exposure"),
-            "학력": st.session_state.get("degree"),
-        }
+   # ▶ 다음으로 이동
+if st.button("다음 (결과 보기)", disabled=not can_next):
 
-        # ☕ 전화번호 저장
-        st.session_state["phone"] = (
-            st.session_state.get("phone_input", "").strip()
-            if want_coupon else None
-        )
-    
-        st.session_state.page = "result"
-        st.rerun()
+    st.session_state.demographic = {
+        "연령대": st.session_state.get("age"),
+        "성별": st.session_state.get("gender"),
+        "경력": st.session_state.get("career"),
+        "직무": st.session_state.get("jobtype"),
+        "기관": st.session_state.get("facil"),
+        "교대": st.session_state.get("shift"),
+        "인권교육": st.session_state.get("edu_hr"),
+        "정신교육": st.session_state.get("edu_mental"),
+        "대면빈도": st.session_state.get("exposure"),
+        "학력": st.session_state.get("degree"),
+    }
+
+    # ☕ 전화번호 저장
+    st.session_state["phone"] = (
+        st.session_state.get("phone_input", "").strip()
+        if st.session_state.get("want_coupon") else None
+    )
+
+    st.session_state.page = "result"
+    st.rerun()
         
 # =========================================================
 #                  ★ 3. 결과 화면 ★
@@ -838,6 +840,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
