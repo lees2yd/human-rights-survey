@@ -560,7 +560,7 @@ if st.session_state.page == "demographic":
                       disabled=(gender is None))
 
     st.markdown('<span class="question-label">4. 근무 유형</span>', unsafe_allow_html=True)
-    jobtype = st.radio("", ["보안과","사회복귀과","의료과","총무과","기타"], key="jobtype", index=None,
+    jobtype = st.radio("", ["보안과","사회복귀과","의료과","총무과/직훈과","기타"], key="jobtype", index=None,
                        disabled=(career is None))
 
     st.markdown('<span class="question-label">5. 근무 기관</span>', unsafe_allow_html=True)
@@ -735,6 +735,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
