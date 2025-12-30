@@ -63,6 +63,73 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+
+/* ===================================== */
+/* 1) 전체 레이아웃 폭 & 패딩            */
+/* ===================================== */
+
+/* PC에서 내용 폭을 너무 넓지 않게 제한 */
+[data-testid="stAppViewContainer"] > .main > div {
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+/* 모바일에서 좌우 패딩 조금 줄이기 */
+@media (max-width: 480px) {
+    .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+}
+
+/* ===================================== */
+/* 2) 일반 텍스트(표지/동의/결과) 설정    */
+/* ===================================== */
+
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li {
+    word-break: keep-all;     /* 한국어 단어 중간 끊김 방지 */
+    overflow-wrap: break-word;/* 너무 긴 단어는 강제로 줄바꿈 */
+    line-height: 1.7;
+    font-size: 1rem;
+}
+
+/* 제목은 왼쪽 정렬(폰에서 더 자연스러움) */
+h1, h2, h3 {
+    text-align: left !important;
+}
+
+/* 모바일에서는 글자 살짝 줄이고 줄간격도 살짝 줄임 */
+@media (max-width: 480px) {
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li {
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+}
+
+/* ===================================== */
+/* 3) 진행률바 모바일 간격 조정          */
+/* ===================================== */
+
+@media (max-width: 480px) {
+    .progress-fixed{
+        top: 2.8rem;
+        padding: 8px 10px;
+    }
+    .body-pad-top{
+        padding-top: calc(95px + 2.8rem);
+    }
+    .progress-text{
+        font-size: 0.8rem;
+    }
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 st.warning("VERSION CHECK 2025-FEEDBACK + COVER ENABLED")
 
 # =======================================
@@ -565,6 +632,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
