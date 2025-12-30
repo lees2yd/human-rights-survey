@@ -315,6 +315,22 @@ def save(row):
     sheet = sh.worksheet("sheet1")
     sheet.append_row(list(row.values()))
 
+def save_phone(phone):
+    """커피 쿠폰 발송을 위한 휴대폰 번호를 별도 시트에 저장"""
+    if not phone:
+        return
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=scope)
+    client = gspread.authorize(creds)
+
+    sh = client.open_by_key(SPREADSHEET_KEY)
+    # 📌 미리 구글시트 안에 'phone' 이라는 워크시트 만들어 두세요.
+    sheet = sh.worksheet("phone")
+    sheet.append_row([
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        phone
+    ])
 # =========================================================
 #                  ★ 0. 표지 화면 ★
 # =========================================================
@@ -461,62 +477,9 @@ if st.session_state.page == "survey":
     )
 
     # ---------------------------------------------------------
-    # ☕ 커피 쿠폰 안내 및 휴대폰 번호 입력 (선택사항)
-    # ---------------------------------------------------------
-    st.markdown("---")
-    st.subheader("☕ 설문 참여 감사 커피 쿠폰 (선택 사항)")
-    st.caption("원하시는 경우에만 휴대폰 번호를 남겨 주시면, 추첨을 통해 커피 쿠폰을 발송드립니다.")
-
-    want_coupon = st.checkbox(
-        "커피 쿠폰 추첨을 위해 연락처(휴대폰 번호)를 남기겠습니다. (선택)",
-        key="want_coupon"
-    )
-
-    if want_coupon:
-        st.text_input(
-            "휴대폰 번호를 입력해 주세요. ('-' 포함 또는 미포함 모두 가능)",
-            key="phone_input",
-            placeholder="예: 01012345678 또는 010-1234-5678"
-        )
-    else:
-        # 체크 해제 시 저장 방지
-        st.session_state["phone_input"] = ""
-
-    # ---------------------------------------------------------
     # 제출 버튼
     # ---------------------------------------------------------
-    submit = st.button("제출", disabled=not can_submit)
-
-    if submit:
-        answers = [st.session_state.get(f"q_{i}") for i in range(1, 28)]
-
-        total = sum(answers)
-        감 = sum(answers[0:9])
-        수 = sum(answers[9:18])
-        성 = sum(answers[18:27])
-
-        mh_items = [7, 8, 9, 16, 17, 18, 25, 26, 27]
-        mh_score = sum(answers[i - 1] for i in mh_items)
-
-        # ☕ 휴대폰 번호를 세션에 저장 (있으면)
-        phone = None
-        if st.session_state.get("want_coupon"):
-            phone = st.session_state.get("phone_input", "").strip()
-        st.session_state["phone"] = phone
-
-        st.session_state.result = {
-            "total": total,
-            "감": 감,
-            "수": 수,
-            "성": 성,
-            "정신": mh_score,
-            "answers": answers
-        }
-
-        st.session_state.page = "demographic" 
-        st.session_state.scroll_to_top = True
-        st.rerun()
-
+   
     submit = st.button("제출", disabled=not can_submit)
 
     if submit:
@@ -546,6 +509,7 @@ if st.session_state.page == "survey":
 # =========================================================
 #          ★ 3. 인구학적 정보 (선택 항목) 추가 페이지 ★
 # =========================================================
+
 if st.session_state.page == "demographic":
     st.header("기본 정보 (선택 사항)")
     st.caption("※ 익명이며 연구 목적 외 사용되지 않습니다.")
@@ -562,12 +526,37 @@ if st.session_state.page == "demographic":
     exposure = st.radio("정신질환 수용자 대면 빈도", ["거의 없음","가끔","자주","매우 자주"], key="exposure")
     degree = st.radio("최종 학력", ["고졸","전문대","학사","석사 이상","응답하지 않음"], key="degree")
 
+    st.markdown("---")
+    st.subheader("☕ 설문 참여 감사 커피 쿠폰 (선택 사항)")
+    st.caption("원하시는 경우에만 휴대폰 번호를 남겨 주시면, 추첨을 통해 커피 쿠폰을 발송드립니다.")
+
+    want_coupon = st.checkbox(
+        "커피 쿠폰 추첨을 위해 연락처(휴대폰 번호)를 남기겠습니다. (선택)",
+        key="want_coupon"
+    )
+
+    if want_coupon:
+        st.text_input(
+            "휴대폰 번호를 입력해 주세요. ('-' 포함 또는 미포함 모두 가능)",
+            key="phone_input",
+            placeholder="예: 01012345678 또는 010-1234-5678"
+        )
+    else:
+        st.session_state["phone_input"] = ""
+
     if st.button("결과 보기"):
         st.session_state.demographic = {
             "연령대": age, "성별": gender, "경력": career, "직무": jobtype,
             "기관": facil, "교대": shift, "인권교육": hr_edu, "정신교육": edu,
             "대면빈도": exposure, "학력": degree
         }
+
+        # ☕ 여기에서 전화번호를 세션에 저장
+        phone = None
+        if st.session_state.get("want_coupon"):
+            phone = st.session_state.get("phone_input", "").strip()
+        st.session_state["phone"] = phone
+        
         st.session_state.page = "result"
         st.rerun()
         
@@ -741,38 +730,8 @@ if st.session_state.page == "result":
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
 
-# =========================
-# Google Sheets 저장
-# =========================
-SPREADSHEET_KEY = "12l-MzIhszbWb5kV3muWyGoqyfBaKD4CARjqKktndiAg"
 
-def save(row):
-    scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=scope)
-    client = gspread.authorize(creds)
 
-    sh = client.open_by_key(SPREADSHEET_KEY)
-    sheet = sh.worksheet("sheet1")
-    sheet.append_row(list(row.values()))
-
-# ⭐ 여기부터 추가: 커피쿠폰용 휴대폰 번호 별도 저장 함수
-def save_phone(phone):
-    """커피 쿠폰 발송을 위한 휴대폰 번호를 별도 시트에 저장"""
-    if not phone:
-        return
-    scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=scope)
-    client = gspread.authorize(creds)
-
-    sh = client.open_by_key(SPREADSHEET_KEY)
-    # 📌 미리 구글시트 안에 'phone' 이라는 워크시트 만들어 두세요.
-    sheet = sh.worksheet("phone")
-    sheet.append_row([
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        phone
-    ])
 
 
 
