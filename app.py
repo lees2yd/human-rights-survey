@@ -628,39 +628,42 @@ if st.session_state.page == "demographic":
         )
         st.caption("※ 휴대폰 번호는 쿠폰 발송을 위해서만 사용되며 별도 시트에 저장됩니다.")
 
-    # ☑ 전 문항 응답 여부 체크
+    # ☑ 기본 정보 문항 모두 응답 여부 체크
     demo_keys = ["age","gender","career","jobtype","facil","shift",
                  "edu_hr","edu_mental","exposure","degree"]
-    can_next = all(st.session_state.get(k) is not None for k in demo_keys)
-    # ☕ 쿠폰 희망 시, 휴대폰 번호 필수 입력
-    if st.session_state.get("want_coupon") and not st.session_state.get("phone_input"):
-        can_next = False
+
+    base_filled = all(st.session_state.get(k) is not None for k in demo_keys)
+
+    # ☕ 쿠폰 여부 + 번호 입력 조건
+    want_coupon = st.session_state.get("want_coupon", False)
+    phone_filled = bool(st.session_state.get("phone_input", "").strip())
+
+    # 🔑 제출 버튼 활성화 조건 논리
+    # 1) 기본 정보 모두 응답 + 2) (쿠폰 X) or (쿠폰 O & 번호 입력)
+    can_next = base_filled and (not want_coupon or phone_filled)
 
     st.markdown("---")
     st.caption("※ 아래 버튼은 기본 정보 문항에 모두 응답한 경우에만 활성화됩니다.")
 
     if st.button("다음 (결과 보기)", disabled=not can_next):
-        st.session_state.demographic = {
-            "연령대": age,
-            "성별": gender,
-            "경력": career,
-            "직무": jobtype,
-            "기관": facil,
-            "교대": shift,
-            "인권교육": hr_edu,
-            "정신교육": edu,
-            "대면빈도": exposure,
-            "학력": degree
-        }
+    st.session_state.demographic = {
+        "연령대": st.session_state.get("age"),
+        "성별": st.session_state.get("gender"),
+        "경력": st.session_state.get("career"),
+        "직무": st.session_state.get("jobtype"),
+        "기관": st.session_state.get("facil"),
+        "교대": st.session_state.get("shift"),
+        "인권교육": st.session_state.get("edu_hr"),
+        "정신교육": st.session_state.get("edu_mental"),
+        "대면빈도": st.session_state.get("exposure"),
+        "학력": st.session_state.get("degree"),
+    }
 
-        # ☕ 여기에서 전화번호를 세션에 저장
-        phone = None
-        if st.session_state.get("want_coupon"):
-            phone = st.session_state.get("phone_input", "").strip()
-        st.session_state["phone"] = phone
-        
-        st.session_state.page = "result"
-        st.rerun()
+    # ☕ 전화번호 저장
+    st.session_state["phone"] = st.session_state.get("phone_input", "").strip() if want_coupon else None
+    
+    st.session_state.page = "result"
+    st.rerun()
         
 # =========================================================
 #                  ★ 3. 결과 화면 ★
@@ -831,6 +834,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
