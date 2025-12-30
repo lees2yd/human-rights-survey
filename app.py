@@ -81,6 +81,8 @@ st.markdown("""
         font-size: 1.05rem;
         font-weight: 500;
         margin-bottom: 4px;    /* 문항과 응답 사이를 좁게 */
+        line-height: 1.6;      /* 줄간격 조금 넉넉하게 */
+        word-break: keep-all;  /* 한국어 단어 중간 끊기 방지 */
     }
 
     /* ---- 라디오 버튼 사이 간격 ---- */
@@ -563,6 +565,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
