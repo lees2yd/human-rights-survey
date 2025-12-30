@@ -302,7 +302,7 @@ if st.session_state.page == "consent":
 - 응답은 연구 목적에 한해 사용됩니다.  
 """)
 
-    agree = st.checkbox("위 내용을 읽고 연구 참여에 동의합니다.")
+    agree = st.checkbox("위 내용을 이해하고 연구 참여에 동의합니다.")
 
     if not agree:
         st.warning("동의해야 설문을 진행할 수 있습니다.")
@@ -563,6 +563,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
