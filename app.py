@@ -861,14 +861,14 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     c.drawString(margin_x, y, score_line)
     y -= 10 * mm
 
-    # ---------- 4. 레이더 차트 (우측 상단) ----------
-    # 차트는 페이지 오른쪽 상단 쪽에 배치
+    # ---------- 4. 레이더 차트 (가운데 정렬) ----------
     chart_size = 55 * mm
-    chart_x = width - margin_x - chart_size
+    chart_x = (width - chart_size) / 2      # ⭐ 가운데 정렬
     chart_y_bottom = y - chart_size + 5 * mm
 
     radar_buf = make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong)
     radar_img = ImageReader(radar_buf)
+
     c.drawImage(
         radar_img,
         chart_x,
@@ -879,8 +879,8 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
         mask="auto",
     )
 
-    # 본문 텍스트는 레이더 차트 아래쪽부터 시작
-    y = chart_y_bottom - 8 * mm
+    # 차트 아래 본문 시작 위치 살짝 하향 조정
+    y = chart_y_bottom - 12 * mm
 
     # ---------- 5. 본문 섹션(OVERALL / MENTAL / SUMMARY) ----------
     c.setFont("NanumGothic", 11)
@@ -1515,6 +1515,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
