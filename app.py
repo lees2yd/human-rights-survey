@@ -805,7 +805,7 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     width, height = A4
 
     # 여백 설정
-    margin_x = 20 * mm
+    margin_x = 25 * mm
     margin_y = 20 * mm
     y = height - margin_y
 
@@ -1515,6 +1515,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
