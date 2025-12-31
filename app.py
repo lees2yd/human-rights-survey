@@ -824,10 +824,9 @@ if st.session_state.page == "consent":
 if st.session_state.page == "survey":
 
     st.title("인권감수성 설문 (27문항)")
-    # 기존 캡션은 간단 안내로만 두고,
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
 
-    # 🔴 상단 붉은색 밑줄 안내 (이미지처럼)
+    # 🔴 상단 붉은색 밑줄 안내
     st.markdown(
         """
         <p style="color:red; font-weight:700; text-decoration:underline; font-size:1.1rem;">
@@ -856,6 +855,7 @@ if st.session_state.page == "survey":
         unsafe_allow_html=True,
     )
 
+    # 진행률 계산
     answered = sum(
         1 for x in range(1, 28)
         if st.session_state.get(f"q_{x}") is not None
@@ -863,45 +863,62 @@ if st.session_state.page == "survey":
     progress = answered / 27
     pct = int(progress * 100)
 
-    # ✅ (1) 상단 고정 진행률 (milestoneBox 포함 버전으로 수정)
+    # ✅ 상단 고정 진행률
     st.markdown(f"""
     <div class="progress-fixed">
       <div class="progress-wrap">
         <div class="progress-bar" style="width:{pct}%"></div>
       </div>
       <div class="progress-text">진행률: <b>{answered} / 27 문항</b> ({pct}%)</div>
-
-      <!-- ✅ 메시지 자리 -->
       <div id="milestoneBox" class="progress-milestone hidden"></div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ✅ (3) 그리고 그 다음 줄에 기존 body-pad-top 그대로
     st.markdown('<div class="body-pad-top"></div>', unsafe_allow_html=True)
 
-   
     answers = []
 
+    # =========================
+    # 문항 루프
+    # =========================
     for i, q in enumerate(QUESTIONS, 1):
 
+        # 이전 문항을 응답해야 다음 문항 활성화
         if i == 1:
             disabled = False
         else:
             disabled = (st.session_state.get(f"q_{i-1}") is None)
 
+        # 질문 텍스트
         st.markdown(
             f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
             unsafe_allow_html=True
         )
 
-        ans = st.radio(
-            "",
-            [1, 2, 3, 4],
-            horizontal=True,
-            index=None,
-            key=f"q_{i}",
-            disabled=disabled
-        )
+        # 🔹 공감척도 레이아웃: [전혀 그렇지 않다] [1 2 3 4] [매우 그렇다]
+        left_col, mid_col, right_col = st.columns([1.7, 3, 1.7])
+
+        with left_col:
+            st.markdown(
+                "<div style='text-align:right; font-size:0.9rem;'>전혀 그렇지 않다</div>",
+                unsafe_allow_html=True
+            )
+
+        with mid_col:
+            ans = st.radio(
+                "",
+                [1, 2, 3, 4],
+                horizontal=True,
+                index=None,
+                key=f"q_{i}",
+                disabled=disabled
+            )
+
+        with right_col:
+            st.markdown(
+                "<div style='text-align:left; font-size:0.9rem;'>매우 그렇다</div>",
+                unsafe_allow_html=True
+            )
 
         answers.append(ans)
 
@@ -910,18 +927,14 @@ if st.session_state.page == "survey":
 
         st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
-# =========================
-    # 제출 가능 여부 체크
+    # =========================
+    # 제출 가능 여부 체크 (기존 코드 그대로)
     # =========================
     can_submit = all(
         st.session_state.get(f"q_{i}") is not None
         for i in range(1, 28)
     )
 
-    # ---------------------------------------------------------
-    # 제출 버튼
-    # ---------------------------------------------------------
-   
     submit = st.button("다음", disabled=not can_submit)
 
     if submit:
@@ -944,7 +957,7 @@ if st.session_state.page == "survey":
             "answers": answers
         }
 
-        st.session_state.page = "demographic" 
+        st.session_state.page = "demographic"
         st.rerun()
 
 # =========================================================
@@ -1213,6 +1226,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
