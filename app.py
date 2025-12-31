@@ -13,6 +13,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 from textwrap import wrap
 
+import matplotlib.pyplot as plt
+import numpy as np
+from reportlab.lib.utils import ImageReader
+
 # -------------------------------------------
 # 📌 한글 폰트 등록 (NanumGothic)
 # -------------------------------------------
@@ -729,6 +733,38 @@ SUMMARY_MESSAGE = '''**공통 종합 메시지**
 지금 이 결과를 ‘나의 한계’가 아니라,  
 앞으로 나와 동료, 기관이 함께 조정해 갈 수 있는 판단 구조의 출발점으로 활용해 주시면 좋겠습니다.'''
 
+def make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong):
+    labels = np.array(["감", "수", "성"])
+    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)
+    
+    values_total = np.array([gam, su, seong])
+    values_mh = np.array([mh_gam, mh_su, mh_seong])
+
+    # 닫힌 도형을 위해 다시 첫 값 붙이기
+    values_total = np.concatenate((values_total, [values_total[0]]))
+    values_mh = np.concatenate((values_mh, [values_mh[0]]))
+    angles_closed = np.concatenate((angles, [angles[0]]))
+
+    fig = plt.figure(figsize=(3, 3))
+    ax = fig.add_subplot(111, polar=True)
+
+    # 전체 점수
+    ax.plot(angles_closed, values_total)
+    ax.fill(angles_closed, values_total, alpha=0.2)
+
+    # 정신질환 상황 점수
+    ax.plot(angles_closed, values_mh)
+    ax.fill(angles_closed, values_mh, alpha=0.2)
+
+    ax.set_thetagrids(angles * 180/np.pi, labels)
+    ax.set_ylim(0, 36)
+
+    buf = BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    return buf
+
 # =========================
 #  PDF 결과지 생성 함수
 # =========================
@@ -776,26 +812,47 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     seong = result["성"]
     mental = result["정신"]
 
+     total = result["total"]
+    gam = result["감"]
+    su = result["수"]
+    seong = result["성"]
+    mental = result["정신"]
+
+    # 🔹 정신질환 상황용 감·수·성 3문항씩 (7~9, 16~18, 25~27)
+    ans = result.get("answers", [])
+    if len(ans) >= 27:
+        mh_gam = ans[6] + ans[7] + ans[8]        # 7~9번
+        mh_su = ans[15] + ans[16] + ans[17]      # 16~18번
+        mh_seong = ans[24] + ans[25] + ans[26]   # 25~27번
+    else:
+        mh_gam = mh_su = mh_seong = 0  # 혹시 answers가 없을 때 대비
+
     c.setFont("NanumGothic", 10)
     c.drawString(margin_x+5*mm, y-6*mm, f"총점: {total}점")
     c.drawString(margin_x+5*mm, y-12*mm, f"감(感): {gam}점   수(受): {su}점   성(性): {seong}점")
 
-    # 4) 프로파일 영역
+   # 4) 프로파일 영역
     y = y - 22*mm
     c.setFont("NanumGothic", 12)
     c.drawString(margin_x, y, "Ⅱ. 감·수·성 인권감수성 프로파일")
 
-    # 왼쪽: 레이더 차트 자리(박스)
+    # 왼쪽: 레이더 차트 이미지 영역
     y -= 5*mm
     left_box_top = y
     left_box_h = 40*mm
-    left_box_w = (width-2*margin_x) * 0.45
-    c.rect(margin_x, left_box_top-left_box_h, left_box_w, left_box_h, stroke=1, fill=0)
-    c.setFont("NanumGothic", 9)
-    c.drawCentredString(
-        margin_x + left_box_w/2,
-        left_box_top-left_box_h/2,
-        "웹 화면의 레이더 차트가\n들어가는 영역입니다."
+    left_box_w = (width - 2*margin_x) * 0.45
+
+    # 🔹 레이더 차트를 이미지로 그려서 삽입
+    radar_buf = make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong)
+    radar_img = ImageReader(radar_buf)
+    c.drawImage(
+        radar_img,
+        margin_x,
+        left_box_top - left_box_h,
+        width=left_box_w,
+        height=left_box_h,
+        preserveAspectRatio=True,
+        mask='auto'
     )
 
     # 오른쪽: 정신질환 관련 해석 요약
@@ -1395,6 +1452,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
