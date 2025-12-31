@@ -789,71 +789,27 @@ def make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong):
 # =========================
 def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     """
-    PDF에는 다음 내용만 담도록 축소:
-    1) 제목
-    2) 감·수·성 전체 수준 (총점 + 전체 해석)
-    3) 정신질환 수용자에 대한 감수성 수준
-    4) 레이더 차트 (감/수/성 + 정신질환 상황 점수)
-    5) 종합 안내 메시지
-
-    하위요인별 해석, 패턴 해석 등은 제외.
+    한 페이지용 간단 결과 PDF 생성:
+    - 제목
+    - 응답일시
+    - 총점 + 감/수/성 + 정신질환 점수 한 줄 요약
+    - 레이더 차트(전체 vs 정신질환 상황)
+    - OVERALL_TEXT (전체 인권감수성 해석)
+    - MENTAL_TEXT (정신질환 수용자 감수성 해석)
+    - SUMMARY_MESSAGE (공통 종합 메시지)
+    - 하단 비진단·비평가 고지문
     """
+
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    margin_x = 25 * mm
-    outer_top = height - 20 * mm
-    outer_bottom = 20 * mm
-    outer_height = outer_top - outer_bottom
+    # 여백 설정
+    margin_x = 20 * mm
+    margin_y = 20 * mm
+    y = height - margin_y
 
-    # 바깥 큰 네모
-    c.setLineWidth(1)
-    c.rect(
-        margin_x,
-        outer_bottom,
-        width - 2 * margin_x,
-        outer_height,
-        stroke=1,
-        fill=0
-    )
-
-    y = outer_top - 5 * mm
-
-    # 1) 제목
-    c.setFont("NanumGothic", 18)
-    c.drawCentredString(width / 2, y, "나의 감·수·성 인권감수성은?")
-    y -= 10 * mm
-    c.setFont("NanumGothic", 9)
-    c.drawCentredString(width / 2, y, "My Gam·Su·Seong Human-Rights Sensitivity Profile")
-
-    # 2) 기본 정보 (응답 일시)
-    y -= 12 * mm
-    info_box_top = y
-    info_box_h = 16 * mm
-    c.setLineWidth(0.5)
-    c.rect(
-        margin_x + 2 * mm,
-        info_box_top - info_box_h,
-        (width - 2 * margin_x) - 4 * mm,
-        info_box_h,
-        stroke=1,
-        fill=0
-    )
-
-    c.setFont("NanumGothic", 9)
-    c.drawString(
-        margin_x + 7 * mm,
-        info_box_top - 6 * mm,
-        f"응답 일시: {result.get('time_str', '')}"
-    )
-    c.drawString(
-        margin_x + 7 * mm,
-        info_box_top - 12 * mm,
-        "설문 코드: (연구자 기입)"
-    )
-
-    # 점수 가져오기
+    # ---------- 0. 점수·텍스트 준비 ----------
     total = result["total"]
     gam = result["감"]
     su = result["수"]
@@ -869,167 +825,124 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     else:
         mh_gam = mh_su = mh_seong = 0
 
-    # 3) 전체 점수 요약
-    y = info_box_top - info_box_h - 8 * mm
-    c.setFont("NanumGothic", 12)
-    c.drawString(margin_x + 3 * mm, y, "Ⅰ. 전체 감·수·성 인권감수성 요약")
-    y -= 5 * mm
+    # 화면에서 미리 저장해둔 텍스트 (마크다운 기호 제거 + PDF용 한자 정리)
+    def clean(text: str) -> str:
+        if not text:
+            return ""
+        text = text.replace("**", "")  # 굵게 마크다운 제거
+        return strip_hanja_for_pdf(text)
 
-    c.setLineWidth(0.5)
-    box_h = 18 * mm
-    c.rect(
-        margin_x + 2 * mm,
-        y - box_h,
-        (width - 2 * margin_x) - 4 * mm,
-        box_h,
-        stroke=1,
-        fill=0
-    )
+    overall_text = clean(result.get("txt_overall", ""))
+    mental_text = clean(result.get("txt_mental", ""))
+    summary_text = clean(result.get("txt_summary", ""))
 
+    # ---------- 1. 제목 ----------
+    c.setFont("NanumGothic", 18)
+    c.drawString(margin_x, y, "나의 감·수·성 인권감수성은?")
+    y -= 10 * mm
+
+    # (선택) 영문 부제 약간 작게
+    c.setFont("NanumGothic", 9)
+    c.drawString(margin_x, y, "My Gam·Su·Seong Human-Rights Sensitivity Profile")
+    y -= 8 * mm
+
+    # ---------- 2. 응답 일시 ----------
+    c.setFont("NanumGothic", 9)
+    c.drawString(margin_x, y, f"응답 일시: {result.get('time_str', '')}")
+    y -= 6 * mm
+
+    # ---------- 3. 점수 한 줄 요약 ----------
     c.setFont("NanumGothic", 10)
-    c.drawString(margin_x + 7 * mm, y - 6 * mm, f"총점: {total}점")
-    c.drawString(
-        margin_x + 7 * mm,
-        y - 12 * mm,
-        f"감: {gam}점   수: {su}점   성: {seong}점   (정신질환 관련: {mental}점)"
+    score_line = (
+        f"총점: {total}점  |  "
+        f"감: {gam}점  수: {su}점  성: {seong}점  "
+        f"(정신질환 관련: {mental}점)"
     )
+    c.drawString(margin_x, y, score_line)
+    y -= 10 * mm
 
-    # 4) 레이더 차트 + 정신질환 수준 간단 안내
-    y = y - box_h - 10 * mm
-    c.setFont("NanumGothic", 12)
-    c.drawString(margin_x + 3 * mm, y, "Ⅱ. 감·수·성 인권감수성 프로파일")
+    # ---------- 4. 레이더 차트 (우측 상단) ----------
+    # 차트는 페이지 오른쪽 상단 쪽에 배치
+    chart_size = 55 * mm
+    chart_x = width - margin_x - chart_size
+    chart_y_bottom = y - chart_size + 5 * mm
 
-    y -= 5 * mm
-    left_box_top = y
-    left_box_h = 40 * mm
-    left_box_w = ((width - 2 * margin_x) - 6 * mm) * 0.55
-
-    # 레이더 이미지 생성
     radar_buf = make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong)
     radar_img = ImageReader(radar_buf)
     c.drawImage(
         radar_img,
-        margin_x + 3 * mm,
-        left_box_top - left_box_h,
-        width=left_box_w,
-        height=left_box_h,
+        chart_x,
+        chart_y_bottom,
+        width=chart_size,
+        height=chart_size,
         preserveAspectRatio=True,
-        mask='auto'
+        mask="auto",
     )
 
-    # 오른쪽: 정신질환 수용자 감수성 수준(짧은 요약 박스)
-    right_x = margin_x + 3 * mm + left_box_w + 4 * mm
-    right_w = ((width - 2 * margin_x) - 6 * mm) - left_box_w - 4 * mm
+    # 본문 텍스트는 레이더 차트 아래쪽부터 시작
+    y = chart_y_bottom - 8 * mm
 
-    c.rect(right_x, left_box_top - left_box_h, right_w, left_box_h, stroke=1, fill=0)
-
-    mental_lv = mental_level(mental)
-    mental_text = strip_hanja_for_pdf(MENTAL_TEXT[mental_lv])
-
-    c.setFont("NanumGothic", 10)
-    c.drawString(right_x + 3 * mm, left_box_top - 6 * mm,
-                 f"정신질환 수용자 감수성 점수: {mental}점")
-
-    c.setFont("NanumGothic", 8)
-    from textwrap import wrap as _wrap  # 지역 alias
-    short_mental = " ".join(mental_text.splitlines())
-    wrapped = _wrap(short_mental, width=38)
-    text_y = left_box_top - 12 * mm
-    for line in wrapped[:7]:  # 너무 길지 않게 앞부분만
-        c.drawString(right_x + 3 * mm, text_y, line)
-        text_y -= 4 * mm
-
-    # 5) 하단 고지문
-    c.setFont("NanumGothic", 8)
-    c.drawString(
-        margin_x + 5 * mm,
-        outer_bottom + 5 * mm,
-        "감.수.성 판단설계연구소  |  연구 책임자: 감.수.성 판단설계전문가"
-    )
-    c.setFont("NanumGothic", 7)
-    c.drawString(
-        margin_x + 5 * mm,
-        outer_bottom + 1 * mm,
-        "※ 본 결과지는 자가점검용 비임상·비진단 자료이며, 인사평가·법적 판단의 근거로 사용할 수 없습니다."
-    )
-
-    # 🔸 1페이지 끝
-    c.showPage()
-
-    # ============================
-    #  2페이지: 텍스트 해석만 간단히
-    # ============================
-    width, height = A4
-    outer_top = height - 20 * mm
-    outer_bottom = 20 * mm
-    outer_height = outer_top - outer_bottom
-
-    c.setLineWidth(1)
-    c.rect(
-        margin_x,
-        outer_bottom,
-        width - 2 * margin_x,
-        outer_height,
-        stroke=1,
-        fill=0
-    )
-
-    y = outer_top - 5 * mm
-
-    c.setFont("NanumGothic", 14)
-    c.drawCentredString(width / 2, y, "감·수·성 인권감수성 요약 해석")
-    y -= 10 * mm
-    c.setFont("NanumGothic", 9)
-
-    # 화면에서 저장해 둔 텍스트 사용 + 한자 제거
-    overall_text = strip_hanja_for_pdf(result.get("txt_overall", ""))
-    mental_text = strip_hanja_for_pdf(result.get("txt_mental", ""))
-    summary_text = strip_hanja_for_pdf(result.get("txt_summary", ""))
-
-    blocks = [
-        "【전체 인권감수성】",
-        overall_text,
-        "",
-        "【정신질환 수용자 감수성】",
-        mental_text,
-        "",
-        "【종합 안내 메시지】",
-        summary_text,
-    ]
-
-    text_left = margin_x + 5 * mm
-    usable_width_chars = 60
+    # ---------- 5. 본문 섹션(OVERALL / MENTAL / SUMMARY) ----------
+    c.setFont("NanumGothic", 11)
     line_height = 4 * mm
-    bottom_limit = outer_bottom + 10 * mm
+    text_width_chars = 70  # 대략적인 줄 길이 (폰트 크기 기준)
 
-    for block in blocks:
-        if not block:
-            y -= line_height
-            continue
+    def draw_section(title: str, body: str):
+        nonlocal y
 
-        lines = _wrap(block.replace("\n", " "), width=usable_width_chars)
-        for line in lines:
-            if y < bottom_limit:
-                # 다음 페이지로 넘겨 같은 스타일 유지
+        # 페이지 하단 여유가 부족할 경우(이론상 한 페이지지만 안전장치)
+        if y < margin_y + 30 * mm:
+            c.showPage()
+            # 새 페이지에서도 동일한 스타일 유지
+            new_y = height - margin_y
+            c.setFont("NanumGothic", 11)
+            y = new_y
+
+        # 섹션 제목
+        c.setFont("NanumGothic", 11)
+        c.drawString(margin_x, y, title)
+        y -= 5 * mm
+
+        # 섹션 본문
+        c.setFont("NanumGothic", 9)
+        text = body.replace("\n", " ")
+        for line in wrap(text, width=text_width_chars):
+            if y < margin_y + 15 * mm:
                 c.showPage()
-                width, height = A4
-                outer_top = height - 20 * mm
-                outer_bottom = 20 * mm
-                outer_height = outer_top - outer_bottom
-                c.setLineWidth(1)
-                c.rect(
-                    margin_x,
-                    outer_bottom,
-                    width - 2 * margin_x,
-                    outer_height,
-                    stroke=1,
-                    fill=0
-                )
-                y = outer_top - 10 * mm
+                y = height - margin_y
                 c.setFont("NanumGothic", 9)
-
-            c.drawString(text_left, y, line)
+            c.drawString(margin_x, y, line)
             y -= line_height
+
+        y -= 3 * mm  # 섹션 간 간격
+
+    # 5-1) 전체 인권감수성
+    draw_section("【전체 인권감수성】", overall_text)
+
+    # 5-2) 정신질환 수용자 감수성
+    draw_section("【정신질환 수용자 감수성】", mental_text)
+
+    # 5-3) 종합 안내 메시지
+    draw_section("【종합 안내 메시지】", summary_text)
+
+    # ---------- 6. 하단 고지문 ----------
+    # (가능하면 마지막 페이지 하단 여백에 고정 느낌으로 배치)
+    # 현재 y가 너무 아래로 내려가 있으면 새 페이지에 고지문만 출력
+    if y < margin_y + 10 * mm:
+        c.showPage()
+        y = height - margin_y
+
+    disclaimer = (
+        "※ 본 결과지는 자가점검용 비임상·비진단 자료이며, "
+        "인사평가·법적 판단의 근거로 사용할 수 없습니다."
+    )
+    c.setFont("NanumGothic", 8)
+    # 하단에 가깝게 표시
+    c.drawString(
+        margin_x,
+        margin_y,
+        disclaimer
+    )
 
     c.save()
     pdf_bytes = buffer.getvalue()
@@ -1602,6 +1515,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
