@@ -237,9 +237,9 @@ QUESTIONS = [
 
 # 점수 → 수준(label) 매핑용
 LEVEL_LABEL_KO = {
-    "low": "낮은 수준",
-    "mid": "중간 수준",
-    "high": "높은 수준",
+    "low": "낮은",
+    "mid": "중간",
+    "high": "높은",
 }
 
 def overall_level(total: int) -> str:
@@ -1238,6 +1238,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
