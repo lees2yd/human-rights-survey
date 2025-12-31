@@ -806,24 +806,19 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     c.setLineWidth(0.5)
     c.rect(margin_x, y-18*mm, width-2*margin_x, 18*mm, stroke=1, fill=0)
 
+    # 🔹 점수 불러오기 (여기 줄이 문제였음)
     total = result["total"]
     gam = result["감"]
     su = result["수"]
     seong = result["성"]
     mental = result["정신"]
 
-     total = result["total"]
-    gam = result["감"]
-    su = result["수"]
-    seong = result["성"]
-    mental = result["정신"]
-
-    # 🔹 정신질환 상황용 감·수·성 3문항씩 (7~9, 16~18, 25~27)
+    # 🔹 정신질환 상황 점수 3문항씩 계산
     ans = result.get("answers", [])
     if len(ans) >= 27:
-        mh_gam = ans[6] + ans[7] + ans[8]        # 7~9번
-        mh_su = ans[15] + ans[16] + ans[17]      # 16~18번
-        mh_seong = ans[24] + ans[25] + ans[26]   # 25~27번
+        mh_gam = ans[6] + ans[7] + ans[8]       # 7~9번
+        mh_su = ans[15] + ans[16] + ans[17]    # 16~18번
+        mh_seong = ans[24] + ans[25] + ans[26] # 25~27번
     else:
         mh_gam = mh_su = mh_seong = 0  # 혹시 answers가 없을 때 대비
 
@@ -1452,6 +1447,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
