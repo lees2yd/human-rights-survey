@@ -785,8 +785,9 @@ def make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong):
     return buf
 
 # =========================
-#  PDF 결과지 생성 함수
+#  PDF 결과지 생성 함수 (여백/줄바꿈 보정 버전)
 # =========================
+
 def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     """
     한 페이지용 간단 결과 PDF 생성:
@@ -804,7 +805,7 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # 여백 설정
+    # 여백 설정 (좌우 동일)
     margin_x = 25 * mm
     margin_y = 20 * mm
     y = height - margin_y
@@ -883,9 +884,21 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     y = chart_y_bottom - 12 * mm
 
     # ---------- 5. 본문 섹션(OVERALL / MENTAL / SUMMARY) ----------
-    c.setFont("NanumGothic", 11)
+    body_font_name = "NanumGothic"
+    body_font_size = 9
     line_height = 4 * mm
-    text_width_chars = 70  # 대략적인 줄 길이 (폰트 크기 기준)
+
+    # 👉 실제 사용 가능한 텍스트 폭 (좌우 여백을 뺀 너비)
+    available_width = width - 2 * margin_x
+
+    # 👉 한글 1글자의 대략적인 폭
+    sample_char = "가"
+    char_width = pdfmetrics.stringWidth(sample_char, body_font_name, body_font_size)
+
+    # 👉 한 줄에 들어갈 수 있는 최대 글자 수 (여유를 조금 빼줌)
+    max_chars_per_line = int(available_width / char_width) - 2
+    if max_chars_per_line < 20:
+        max_chars_per_line = 20  # 너무 작아지지 않도록 안전장치
 
     def draw_section(title: str, body: str):
         nonlocal y
@@ -893,10 +906,8 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
         # 페이지 하단 여유가 부족할 경우(이론상 한 페이지지만 안전장치)
         if y < margin_y + 30 * mm:
             c.showPage()
-            # 새 페이지에서도 동일한 스타일 유지
-            new_y = height - margin_y
+            y = height - margin_y
             c.setFont("NanumGothic", 11)
-            y = new_y
 
         # 섹션 제목
         c.setFont("NanumGothic", 11)
@@ -904,15 +915,36 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
         y -= 5 * mm
 
         # 섹션 본문
-        c.setFont("NanumGothic", 9)
+        c.setFont(body_font_name, body_font_size)
         text = body.replace("\n", " ")
-        for line in wrap(text, width=text_width_chars):
-            if y < margin_y + 15 * mm:
-                c.showPage()
-                y = height - margin_y
-                c.setFont("NanumGothic", 9)
-            c.drawString(margin_x, y, line)
-            y -= line_height
+
+        # 1차: 대략적인 줄 나누기 (글자 수 기준)
+        rough_lines = wrap(text, width=max_chars_per_line)
+
+        # 2차: 실제 폭 기준으로 다시 세분화 (오른쪽 여백 맞추기)
+        for rough in rough_lines:
+            line = ""
+            for ch in rough:
+                test = line + ch
+                if pdfmetrics.stringWidth(test, body_font_name, body_font_size) <= available_width:
+                    line = test
+                else:
+                    # 현재 줄 출력
+                    if y < margin_y + 15 * mm:
+                        c.showPage()
+                        y = height - margin_y
+                        c.setFont(body_font_name, body_font_size)
+                    c.drawString(margin_x, y, line)
+                    y -= line_height
+                    line = ch
+            # 마지막 줄 출력
+            if line:
+                if y < margin_y + 15 * mm:
+                    c.showPage()
+                    y = height - margin_y
+                    c.setFont(body_font_name, body_font_size)
+                c.drawString(margin_x, y, line)
+                y -= line_height
 
         y -= 3 * mm  # 섹션 간 간격
 
@@ -926,8 +958,6 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     draw_section("【종합 안내 메시지】", summary_text)
 
     # ---------- 6. 하단 고지문 ----------
-    # (가능하면 마지막 페이지 하단 여백에 고정 느낌으로 배치)
-    # 현재 y가 너무 아래로 내려가 있으면 새 페이지에 고지문만 출력
     if y < margin_y + 10 * mm:
         c.showPage()
         y = height - margin_y
@@ -937,7 +967,6 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
         "인사평가·법적 판단의 근거로 사용할 수 없습니다."
     )
     c.setFont("NanumGothic", 8)
-    # 하단에 가깝게 표시
     c.drawString(
         margin_x,
         margin_y,
@@ -1515,6 +1544,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
