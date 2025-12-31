@@ -962,7 +962,108 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     c.drawString(margin_x + 5 * mm, outer_bottom + 1 * mm,
                  "※ 본 결과지는 자가점검용 비임상·비진단 자료이며, 인사평가·법적 판단의 근거로 사용할 수 없습니다.")
 
+    # 🔸 1페이지 종료
     c.showPage()
+
+    # =====================================================
+    #   2페이지: 한자 제거 + 전체 해석 텍스트 네모 안에 모두 출력
+    # =====================================================
+    width, height = A4
+    margin_x = 25 * mm
+
+    outer_top = height - 20 * mm
+    outer_bottom = 20 * mm
+    outer_height = outer_top - outer_bottom
+
+    c.setLineWidth(1)
+    c.rect(
+        margin_x,
+        outer_bottom,
+        width - 2 * margin_x,
+        outer_height,
+        stroke=1,
+        fill=0
+    )
+
+    y = outer_top - 5 * mm
+
+    # 제목
+    c.setFont("NanumGothic", 14)
+    c.drawCentredString(width / 2, y, "감·수·성 인권감수성 상세 해석")
+    y -= 10 * mm
+    c.setFont("NanumGothic", 9)
+
+    # 🔹 결과 dict에서 화면용 텍스트 불러오기 + 한자 제거
+    overall_text  = strip_hanja_for_pdf(result.get("txt_overall", ""))
+    emotion_text  = strip_hanja_for_pdf(result.get("txt_emotion", ""))
+    norm_text     = strip_hanja_for_pdf(result.get("txt_norm", ""))
+    reflect_text  = strip_hanja_for_pdf(result.get("txt_reflect", ""))
+    pattern_text  = strip_hanja_for_pdf(result.get("txt_pattern", ""))
+    mental_text   = strip_hanja_for_pdf(result.get("txt_mental", ""))
+    summary_text  = strip_hanja_for_pdf(result.get("txt_summary", ""))
+
+    blocks = [
+        "【전체 인권감수성】",
+        overall_text,
+        "",
+        "【감 – 감정 인식】",
+        emotion_text,
+        "",
+        "【수 – 기준·규범 적용】",
+        norm_text,
+        "",
+        "【성 – 성찰】",
+        reflect_text,
+        "",
+        "【감·수·성 조합/패턴】",
+        pattern_text,
+        "",
+        "【정신질환 수용자 감수성】",
+        mental_text,
+        "",
+        "【종합 안내 메시지】",
+        summary_text,
+    ]
+
+    text_left = margin_x + 5 * mm
+    usable_width_chars = 60  # 대략 1줄 60자 기준으로 감싸기
+    line_height = 4 * mm
+    bottom_limit = outer_bottom + 10 * mm
+
+    for block in blocks:
+        if not block:
+            y -= line_height  # 단락 사이 여백
+            continue
+
+        # 줄바꿈 처리 (개행 → 공백)
+        lines = wrap(block.replace("\n", " "), width=usable_width_chars)
+
+        for line in lines:
+            # 공간 부족하면 다음 페이지에 같은 형태의 네모 다시 그리고 이어서 작성
+            if y < bottom_limit:
+                c.showPage()
+                # 새 페이지에도 동일한 큰 네모
+                width, height = A4
+                outer_top = height - 20 * mm
+                outer_bottom = 20 * mm
+                outer_height = outer_top - outer_bottom
+
+                c.setLineWidth(1)
+                c.rect(
+                    margin_x,
+                    outer_bottom,
+                    width - 2 * margin_x,
+                    outer_height,
+                    stroke=1,
+                    fill=0
+                )
+                y = outer_top - 10 * mm
+                c.setFont("NanumGothic", 9)
+
+            c.drawString(text_left, y, line)
+            y -= line_height
+
+    # 🔚 PDF 종료
     c.save()
     pdf_bytes = buffer.getvalue()
     buffer.close()
@@ -1001,6 +1102,7 @@ def save_phone(phone):
         datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
         phone,
     ])
+    
 # =========================================================
 #                  ★ 0. 표지 화면 ★
 # =========================================================
@@ -1424,6 +1526,15 @@ if st.session_state.page == "result":
 
     pattern_key = detect_pattern(gam_lv, su_lv, seong_lv)
 
+    # 👉 PDF용: 화면에서 사용한 해석 텍스트를 그대로 저장
+    st.session_state.result["txt_overall"] = OVERALL_TEXT[overall_lv]
+    st.session_state.result["txt_emotion"] = EMOTION_TEXT[gam_lv]
+    st.session_state.result["txt_norm"] = NORM_TEXT[su_lv]
+    st.session_state.result["txt_reflect"] = REFLECT_TEXT[seong_lv]
+    st.session_state.result["txt_pattern"] = PATTERN_TEXT[pattern_key]
+    st.session_state.result["txt_mental"] = MENTAL_TEXT[mental_lv]
+    st.session_state.result["txt_summary"] = SUMMARY_MESSAGE
+
     # ---- 1) 전체 점수 ----
     st.markdown("### 🔹 1) 전체 감·수·성 인권감수성")
     st.caption(f"현재 전체 점수 수준: **{LEVEL_LABEL_KO[overall_lv]}**")
@@ -1512,6 +1623,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
