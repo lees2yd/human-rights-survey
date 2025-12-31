@@ -1382,8 +1382,8 @@ if st.session_state.page == "result":
     demo = st.session_state.get("demographic", {})
     for k, v in demo.items():
         row[k] = v  # row에 추가
-    
-      # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
+
+    # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
     phone = st.session_state.get("phone", None)
     if phone:
         try:
@@ -1395,6 +1395,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
