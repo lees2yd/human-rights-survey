@@ -870,6 +870,7 @@ def save_phone(phone):
     """커피 쿠폰 발송을 위한 휴대폰 번호를 별도 시트에 저장"""
     if not phone:
         return
+
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds = Credentials.from_service_account_info(
         st.secrets["gcp_service_account"], scopes=scope
@@ -878,9 +879,10 @@ def save_phone(phone):
 
     sh = client.open_by_key(SPREADSHEET_KEY)
     # 📌 미리 구글시트 안에 'phone' 이라는 워크시트 만들어 두세요.
+    sheet = sh.worksheet("phone")   # ← 이 줄 추가
     sheet.append_row([
         datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
-        phone
+        phone,
     ])
 # =========================================================
 #                  ★ 0. 표지 화면 ★
@@ -1393,6 +1395,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
