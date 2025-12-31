@@ -824,7 +824,37 @@ if st.session_state.page == "consent":
 if st.session_state.page == "survey":
 
     st.title("인권감수성 설문 (27문항)")
-    st.caption("1=전혀 그렇지 않다 / 4=매우 그렇다")
+    # 기존 캡션은 간단 안내로만 두고,
+    st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
+
+    # 🔴 상단 붉은색 밑줄 안내 (이미지처럼)
+    st.markdown(
+        """
+        <p style="color:red; font-weight:700; text-decoration:underline; font-size:1.1rem;">
+        최근 6개월간 근무 경험을 기준으로 작성해 주시기 바랍니다.
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # 📌 설문 응답 방법 안내문
+    st.markdown(
+        """
+        본 설문은 **최근 경험을 솔직하게 적어주시는 것**이 가장 중요합니다.  
+        각 문항에 대해 본인의 생각이나 경험에 가장 가까운 정도를 선택해 주십시오.
+
+        본 연구에서는 **4점 척도**를 사용합니다.
+
+        - **1점:** 전혀 그렇지 않다  
+        - **2점:** 그렇지 않은 편이다  
+        - **3점:** 그렇다  
+        - **4점:** 매우 그렇다  
+
+        정답이나 오답은 없으며,  
+        **개인의 경험과 생각을 있는 그대로 표시해 주시면 됩니다.**
+        """,
+        unsafe_allow_html=True,
+    )
 
     answered = sum(
         1 for x in range(1, 28)
@@ -1183,6 +1213,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
