@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import gspread
 from google.oauth2.service_account import Credentials
 import streamlit.components.v1 as components
@@ -876,9 +877,8 @@ def save_phone(phone):
 
     sh = client.open_by_key(SPREADSHEET_KEY)
     # 📌 미리 구글시트 안에 'phone' 이라는 워크시트 만들어 두세요.
-    sheet = sh.worksheet("phone")
-    sheet.append_row([
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+   sheet.append_row([
+        datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
         phone
     ])
 # =========================================================
@@ -1350,7 +1350,7 @@ if st.session_state.page == "result":
 
     # ---- 5-bis) 결과지 PDF 다운로드 ----
     # 응답 시간 문자열을 결과 dict에 추가 (보고서 상단 표시용)
-    st.session_state.result["time_str"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state.result["time_str"] = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
 
     pdf_bytes = make_result_pdf(
         st.session_state.result,
@@ -1366,7 +1366,7 @@ if st.session_state.page == "result":
 
     # 6) 저장
     row = {
-        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time": datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
         "total": total,
         "감": gam,
         "수": su,
@@ -1392,6 +1392,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
