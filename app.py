@@ -889,7 +889,7 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     line_height = 4 * mm
 
     # 👉 실제 사용 가능한 텍스트 폭 (좌우 여백을 뺀 너비)
-    available_width = width - 2 * margin_x
+    available_width = width - (margin_x * 1.5)
 
     # 👉 한글 1글자의 대략적인 폭
     sample_char = "가"
@@ -1544,6 +1544,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
