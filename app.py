@@ -1595,34 +1595,46 @@ if st.session_state.page == "result":
         mime="application/pdf",
     )
 
-    # 6) 저장
-    row = {
-        "time": datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
-        "total": total,
-        "감": gam,
-        "수": su,
-        "성": seong,
-        "정신": mental,
-    }
-    for i, a in enumerate(r["answers"], 1):
-        row[f"q{i}"] = a
+    # 6) 저장 (🔒 한 번만 저장되도록 세션 플래그 사용)
+    if not st.session_state.get("saved_to_sheet", False):
 
-    demo = st.session_state.get("demographic", {})
-    for k, v in demo.items():
-        row[k] = v  # row에 추가
+        row = {
+            "time": datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
+            "total": total,
+            "감": gam,
+            "수": su,
+            "성": seong,
+            "정신": mental,
+        }
+        for i, a in enumerate(r["answers"], 1):
+            row[f"q{i}"] = a
 
-    # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
-    phone = st.session_state.get("phone", None)
-    if phone:
+        demo = st.session_state.get("demographic", {})
+        for k, v in demo.items():
+            row[k] = v  # row에 추가
+
+        # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
+        phone = st.session_state.get("phone", None)
+        if phone:
+            try:
+                save_phone(phone)
+            except Exception as e:
+                st.warning("휴대폰 번호 저장 중 오류가 발생했습니다. 쿠폰 발송에 문제가 생길 수 있습니다.")
+                st.caption(str(e))
+
         try:
-            save_phone(phone)
+            save(row)
+            st.session_state.saved_to_sheet = True   # ✅ 이후에는 다시 저장 안 함
+            st.success("응답이 저장되었습니다.")
         except Exception as e:
-            st.warning("휴대폰 번호 저장 중 오류가 발생했습니다. 쿠폰 발송에 문제가 생길 수 있습니다.")
+            st.error("응답 저장 중 오류가 발생했습니다.")
             st.caption(str(e))
 
-    save(row)
-    st.success("응답이 저장되었습니다.")
-    st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+        st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
+    else:
+        # 이미 저장된 상태에서 페이지가 다시 렌더될 때
+        st.info("설문을 마치셨습니다. 감사합니다.")
 
 
 
