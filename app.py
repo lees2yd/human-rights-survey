@@ -872,7 +872,8 @@ def save_phone(phone):
         return
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=scope)
+        st.secrets["gcp_service_account"], scopes=scope
+    )
     client = gspread.authorize(creds)
 
     sh = client.open_by_key(SPREADSHEET_KEY)
@@ -1392,6 +1393,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
