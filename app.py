@@ -3,7 +3,14 @@ import pandas as pd
 from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
-import streamlit.components.v1 as components 
+import streamlit.components.v1 as components
+
+# ✅ PDF 생성을 위한 추가 import
+from io import BytesIO
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
+from textwrap import wrap
 
 # ✅ 반드시 가장 먼저
 st.set_page_config(page_title="감·수·성 인권감수성 설문", layout="centered")
@@ -1238,6 +1245,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
