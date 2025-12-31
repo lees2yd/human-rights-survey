@@ -877,7 +877,7 @@ def save_phone(phone):
 
     sh = client.open_by_key(SPREADSHEET_KEY)
     # 📌 미리 구글시트 안에 'phone' 이라는 워크시트 만들어 두세요.
-   sheet.append_row([
+    sheet.append_row([
         datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
         phone
     ])
@@ -1392,6 +1392,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
