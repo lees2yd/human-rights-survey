@@ -722,7 +722,7 @@ MENTAL_TEXT = {
 
 SUMMARY_MESSAGE = '''**공통 종합 메시지**  
 
-“감·수·성 인권감수성은 성격이 아니라 ‘조건과 구조’의 문제입니다.  
+“감·수·성 인권감수성은 성격이 아니라 ‘조건과 구조’의 문제입니다.
 
 이번 결과는 나의 인권감수성 수준을 평가·판정하기 위한 것이 아니라,  
 **어떤 조건에서 감정–기준–성찰이 잘 연결되고, 어떤 조건에서 끊어지는지를 살펴보는 지도(map)** 에 가깝습니다.  
@@ -732,6 +732,25 @@ SUMMARY_MESSAGE = '''**공통 종합 메시지**
 
 지금 이 결과를 ‘나의 한계’가 아니라,  
 앞으로 나와 동료, 기관이 함께 조정해 갈 수 있는 판단 구조의 출발점으로 활용해 주시면 좋겠습니다.'''
+
+# ----------------------------------------------------
+# 🧽 PDF용 한자 제거 함수 (PDF 출력 전 텍스트 정리)
+# ----------------------------------------------------
+def strip_hanja_for_pdf(text: str) -> str:
+    """
+    PDF에서는 한자를 제거하고 한글/숫자만 출력되도록 정리
+    """
+    replacements = {
+        "감(感)": "감",
+        "수(受)": "수",
+        "성(性)": "성",
+        "저(低)": "저",
+        "중(中)": "중",
+        "고(高)": "고",
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    return text
 
 def make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong):
     labels = np.array(["감", "수", "성"])
@@ -779,34 +798,66 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     width, height = A4
 
     margin_x = 25 * mm
-    y = height - 30 * mm
 
-    # 1) 제목
+    # 🔲 0) 바깥 큰 네모(외곽 박스) 먼저 그리기
+    outer_top = height - 20 * mm    # 위쪽 여백
+    outer_bottom = 20 * mm          # 아래 여백
+    outer_height = outer_top - outer_bottom
+
+    c.setLineWidth(1)
+    c.rect(
+        margin_x,
+        outer_bottom,
+        width - 2 * margin_x,
+        outer_height,
+        stroke=1,
+        fill=0
+    )
+
+    # 이 안에서만 내용 배치
+    y = outer_top - 5 * mm
+
+    # 1) 제목 (큰 네모 안)
     c.setFont("NanumGothic", 18)
     c.drawCentredString(width / 2, y, "나의 감·수·성 인권감수성은?")
     y -= 10 * mm
     c.setFont("NanumGothic", 9)
     c.drawCentredString(width / 2, y, "My Gam·Su·Seong Human-Rights Sensitivity Profile")
 
-    # 2) 기본 정보 박스
+    # 2) 기본 정보 박스 (네모 안)
     y -= 12 * mm
     box_top = y
     box_height = 18 * mm
-    c.rect(margin_x, box_top - box_height, width - 2 * margin_x, box_height, stroke=1, fill=0)
+    c.setLineWidth(0.5)
+    c.rect(
+        margin_x + 2 * mm,
+        box_top - box_height,
+        (width - 2 * margin_x) - 4 * mm,
+        box_height,
+        stroke=1,
+        fill=0
+    )
 
     c.setFont("NanumGothic", 9)
-    c.drawString(margin_x + 5 * mm, box_top - 6 * mm, f"응답 일시: {result.get('time_str', '')}")
-    c.drawString(margin_x + 5 * mm, box_top - 12 * mm, "설문 코드: (연구자 기입)")
+    c.drawString(margin_x + 7 * mm, box_top - 6 * mm, f"응답 일시: {result.get('time_str', '')}")
+    c.drawString(margin_x + 7 * mm, box_top - 12 * mm, "설문 코드: (연구자 기입)")
 
     # 3) 전체 점수 요약 박스
     y = box_top - box_height - 10 * mm
     c.setFont("NanumGothic", 12)
-    c.drawString(margin_x, y, "Ⅰ. 전체 감·수·성 인권감수성 요약")
+    c.drawString(margin_x + 3 * mm, y, "Ⅰ. 전체 감·수·성 인권감수성 요약")
     y -= 5 * mm
     c.setLineWidth(0.5)
-    c.rect(margin_x, y - 18 * mm, width - 2 * margin_x, 18 * mm, stroke=1, fill=0)
+    c.rect(
+        margin_x + 2 * mm,
+        y - 18 * mm,
+        (width - 2 * margin_x) - 4 * mm,
+        18 * mm,
+        stroke=1,
+        fill=0
+    )
 
-    # 🔹 점수 불러오기
+    # 🔹 점수 불러오기 (한자 없는 표기)
     total = result["total"]
     gam = result["감"]
     su = result["수"]
@@ -823,30 +874,29 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
         mh_gam = mh_su = mh_seong = 0  # 혹시 answers가 없을 때 대비
 
     c.setFont("NanumGothic", 10)
-    c.drawString(margin_x + 5 * mm, y - 6 * mm, f"총점: {total}점")
+    c.drawString(margin_x + 7 * mm, y - 6 * mm, f"총점: {total}점")
     c.drawString(
-        margin_x + 5 * mm,
+        margin_x + 7 * mm,
         y - 12 * mm,
-        f"감(感): {gam}점   수(受): {su}점   성(性): {seong}점"
+        f"감: {gam}점   수: {su}점   성: {seong}점"
     )
 
-    # 4) 프로파일 영역
+    # 4) 프로파일 영역 (레이더 + 정신질환 요약) – 모두 큰 네모 안
     y = y - 22 * mm
     c.setFont("NanumGothic", 12)
-    c.drawString(margin_x, y, "Ⅱ. 감·수·성 인권감수성 프로파일")
+    c.drawString(margin_x + 3 * mm, y, "Ⅱ. 감·수·성 인권감수성 프로파일")
 
-    # 왼쪽: 레이더 차트 이미지 영역
+    # 왼쪽: 레이더 차트 이미지
     y -= 5 * mm
     left_box_top = y
     left_box_h = 40 * mm
-    left_box_w = (width - 2 * margin_x) * 0.45
+    left_box_w = ((width - 2 * margin_x) - 6 * mm) * 0.45
 
-    # 🔹 레이더 차트를 이미지로 그려서 삽입
     radar_buf = make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong)
     radar_img = ImageReader(radar_buf)
     c.drawImage(
         radar_img,
-        margin_x,
+        margin_x + 3 * mm,
         left_box_top - left_box_h,
         width=left_box_w,
         height=left_box_h,
@@ -854,13 +904,15 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
         mask='auto'
     )
 
-    # 오른쪽: 정신질환 관련 해석 요약
-    right_x = margin_x + left_box_w + 5 * mm
-    right_w = (width - 2 * margin_x) - left_box_w - 5 * mm
+    # 오른쪽: 정신질환 관련 해석 요약 박스
+    right_x = margin_x + 3 * mm + left_box_w + 4 * mm
+    right_w = ((width - 2 * margin_x) - 6 * mm) - left_box_w - 4 * mm
+
     c.rect(right_x, left_box_top - left_box_h, right_w, left_box_h, stroke=1, fill=0)
 
     mental_lv = mental_level(mental)
-    mental_text = MENTAL_TEXT[mental_lv]
+    # 🔹 PDF용으로 한자 제거
+    mental_text = strip_hanja_for_pdf(MENTAL_TEXT[mental_lv])
 
     c.setFont("NanumGothic", 10)
     c.drawString(right_x + 3 * mm, left_box_top - 6 * mm, f"정신질환 수용자 관련 점수: {mental}점")
@@ -872,38 +924,43 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
         c.drawString(right_x + 3 * mm, text_y, line)
         text_y -= 4 * mm
 
-    # 5) 하위요인별 해석
+    # 5) 하위요인별 해석 – 한자 없는 표기, 네모 안
     y = left_box_top - left_box_h - 10 * mm
     c.setFont("NanumGothic", 12)
-    c.drawString(margin_x, y, "Ⅲ. 하위요인별 해석")
+    c.drawString(margin_x + 3 * mm, y, "Ⅲ. 하위요인별 해석")
     y -= 5 * mm
-    c.rect(margin_x, y - 40 * mm, width - 2 * margin_x, 40 * mm, stroke=1, fill=0)
-
-    # 감(感)
-    c.setFont("NanumGothic", 10)
-    c.drawString(margin_x + 3 * mm, y - 6 * mm, "감(感) – 감정 인식")
-    c.setFont("NanumGothic", 8)
-    emo_text = EMOTION_TEXT[subfactor_level(gam)]
-    for idx, line in enumerate(wrap(emo_text.replace("\n", " "), 60)[:3]):
-        c.drawString(margin_x + 3 * mm, y - 12 * mm - 4 * mm * idx, line)
-
-    # 수(受)
-    c.setFont("NanumGothic", 10)
-    c.drawString(margin_x + 3 * mm, y - 24 * mm, "수(受) – 기준·규범 적용")
-    c.setFont("NanumGothic", 8)
-    norm_text = NORM_TEXT[subfactor_level(su)]
-    for idx, line in enumerate(wrap(norm_text.replace("\n", " "), 60)[:2]):
-        c.drawString(margin_x + 3 * mm, y - 30 * mm - 4 * mm * idx, line)
-
-    # 6) 연구자·고지문 (하단)
-    c.setFont("NanumGothic", 8)
-    c.drawString(margin_x, 25 * mm, "감.수.성 판단설계연구소  |  연구 책임자: 감.수.성 판단설계전문가")
-    c.setFont("NanumGothic", 7)
-    c.drawString(
-        margin_x,
-        20 * mm,
-        "※ 본 결과지는 자가점검용 비임상·비진단 자료이며, 인사평가·법적 판단의 근거로 사용할 수 없습니다."
+    c.rect(
+        margin_x + 2 * mm,
+        y - 40 * mm,
+        (width - 2 * margin_x) - 4 * mm,
+        40 * mm,
+        stroke=1,
+        fill=0
     )
+
+    # 감
+    c.setFont("NanumGothic", 10)
+    c.drawString(margin_x + 5 * mm, y - 6 * mm, "감 – 감정 인식")
+    c.setFont("NanumGothic", 8)
+    emo_text = strip_hanja_for_pdf(EMOTION_TEXT[subfactor_level(gam)])
+    for idx, line in enumerate(wrap(emo_text.replace("\n", " "), 60)[:3]):
+        c.drawString(margin_x + 5 * mm, y - 12 * mm - 4 * mm * idx, line)
+
+    # 수
+    c.setFont("NanumGothic", 10)
+    c.drawString(margin_x + 5 * mm, y - 24 * mm, "수 – 기준·규범 적용")
+    c.setFont("NanumGothic", 8)
+    norm_text = strip_hanja_for_pdf(NORM_TEXT[subfactor_level(su)])
+    for idx, line in enumerate(wrap(norm_text.replace("\n", " "), 60)[:2]):
+        c.drawString(margin_x + 5 * mm, y - 30 * mm - 4 * mm * idx, line)
+
+    # 6) 하단 연구자·고지문 – 큰 네모 안 하단에 위치
+    c.setFont("NanumGothic", 8)
+    c.drawString(margin_x + 5 * mm, outer_bottom + 5 * mm,
+                 "감.수.성 판단설계연구소  |  연구 책임자: 감.수.성 판단설계전문가")
+    c.setFont("NanumGothic", 7)
+    c.drawString(margin_x + 5 * mm, outer_bottom + 1 * mm,
+                 "※ 본 결과지는 자가점검용 비임상·비진단 자료이며, 인사평가·법적 판단의 근거로 사용할 수 없습니다.")
 
     c.showPage()
     c.save()
@@ -1455,6 +1512,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
