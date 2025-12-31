@@ -826,6 +826,18 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
 
+    st.markdown("""
+    <style>
+    /* 라디오 버튼 가운데 정렬 */
+    .stRadio > div {
+        display: flex !important;
+        justify-content: center !important;   /* 🔥 가로 중앙 정렬 */
+        align-items: center !important;       /* 세로 균형 */
+        gap: 14px !important;                 /* 숫자 간 간격 */
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # 🔴 상단 붉은색 밑줄 안내
     st.markdown(
         """
@@ -1226,6 +1238,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
