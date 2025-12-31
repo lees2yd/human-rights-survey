@@ -903,25 +903,47 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     def draw_section(title: str, body: str):
         nonlocal y
 
-        # 페이지 하단 여유가 부족할 경우(이론상 한 페이지지만 안전장치)
+        # 페이지 하단 여유 체크
         if y < margin_y + 30 * mm:
             c.showPage()
             y = height - margin_y
             c.setFont("NanumGothic", 11)
 
-        # 섹션 제목
+        # 대제목 출력
         c.setFont("NanumGothic", 11)
         c.drawString(margin_x, y, title)
+        y -= 6 * mm
+
+        # ---- 여기서 "중간제목 + 본문" 구조 분리 ----
+        # 원본 텍스트 줄단위 분해
+        lines = [ln.strip() for ln in body.splitlines() if ln.strip()]
+
+        if not lines:
+            y -= 3 * mm
+            return
+
+        # 1줄째: "전체 인권감수성 – 중"
+        # 2줄째: "한 줄 요약"
+        # 3줄째부터 실제 본문
+        subtitle = lines[0]
+        content_lines = lines[1:]
+
+        # 2줄 형태라면 합쳐서 서브제목 처리
+        if len(lines) >= 2 and "한 줄 요약" in lines[1]:
+            subtitle = f"{lines[0]}  {lines[1]}"   # 중간제목 한 줄로 병합
+            content_lines = lines[2:]             # 3번째 줄부터 본문으로
+
+        # --- 서브제목 출력 ---
+        c.setFont("NanumGothic", 10)
+        c.drawString(margin_x, y, subtitle)
         y -= 5 * mm
 
-        # 섹션 본문
+        # --- 본문 출력 시작 ---
         c.setFont(body_font_name, body_font_size)
-        text = body.replace("\n", " ")
+        text = " ".join(content_lines)
 
-        # 1차: 대략적인 줄 나누기 (글자 수 기준)
         rough_lines = wrap(text, width=max_chars_per_line)
 
-        # 2차: 실제 폭 기준으로 다시 세분화 (오른쪽 여백 맞추기)
         for rough in rough_lines:
             line = ""
             for ch in rough:
@@ -929,7 +951,6 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
                 if pdfmetrics.stringWidth(test, body_font_name, body_font_size) <= available_width:
                     line = test
                 else:
-                    # 현재 줄 출력
                     if y < margin_y + 15 * mm:
                         c.showPage()
                         y = height - margin_y
@@ -937,7 +958,7 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
                     c.drawString(margin_x, y, line)
                     y -= line_height
                     line = ch
-            # 마지막 줄 출력
+
             if line:
                 if y < margin_y + 15 * mm:
                     c.showPage()
@@ -946,8 +967,8 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
                 c.drawString(margin_x, y, line)
                 y -= line_height
 
-        y -= 3 * mm  # 섹션 간 간격
-
+        y -= 4 * mm
+        
     # 5-1) 전체 인권감수성
     draw_section("【전체 인권감수성】", overall_text)
 
@@ -1544,6 +1565,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
