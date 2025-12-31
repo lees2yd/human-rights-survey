@@ -745,10 +745,10 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     y = height - 30 * mm
 
     # 1) 제목
-    c.setFont("Helvetica-Bold", 18)
+    c.setFont("NanumGothic", 18)
     c.drawCentredString(width/2, y, "나의 감·수·성 인권감수성은?")
     y -= 10 * mm
-    c.setFont("Helvetica", 9)
+    c.setFont("NanumGothic", 9)
     c.drawCentredString(width/2, y, "My Gam·Su·Seong Human-Rights Sensitivity Profile")
 
     # 2) 기본 정보 박스
@@ -757,13 +757,13 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     box_height = 18 * mm
     c.rect(margin_x, box_top-box_height, width-2*margin_x, box_height, stroke=1, fill=0)
 
-    c.setFont("Helvetica", 9)
+    c.setFont("NanumGothic", 9)
     c.drawString(margin_x + 5*mm, box_top-6*mm, f"응답 일시: {result.get('time_str', '')}")
     c.drawString(margin_x + 5*mm, box_top-12*mm, "설문 코드: (연구자 기입)")
 
     # 3) 전체 점수 요약
     y = box_top - box_height - 10 * mm
-    c.setFont("Helvetica-Bold", 12)
+    c.setFont("NanumGothic", 12)
     c.drawString(margin_x, y, "Ⅰ. 전체 감·수·성 인권감수성 요약")
     y -= 5 * mm
     c.setLineWidth(0.5)
@@ -775,13 +775,13 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     seong = result["성"]
     mental = result["정신"]
 
-    c.setFont("Helvetica", 10)
+    c.setFont("NanumGothic", 10)
     c.drawString(margin_x+5*mm, y-6*mm, f"총점: {total}점")
     c.drawString(margin_x+5*mm, y-12*mm, f"감(感): {gam}점   수(受): {su}점   성(性): {seong}점")
 
     # 4) 프로파일 영역
     y = y - 22*mm
-    c.setFont("Helvetica-Bold", 12)
+    c.setFont("NanumGothic", 12)
     c.drawString(margin_x, y, "Ⅱ. 감·수·성 인권감수성 프로파일")
 
     # 왼쪽: 레이더 차트 자리(박스)
@@ -790,7 +790,7 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     left_box_h = 40*mm
     left_box_w = (width-2*margin_x) * 0.45
     c.rect(margin_x, left_box_top-left_box_h, left_box_w, left_box_h, stroke=1, fill=0)
-    c.setFont("Helvetica", 9)
+    c.setFont("NanumGothic", 9)
     c.drawCentredString(
         margin_x + left_box_w/2,
         left_box_top-left_box_h/2,
@@ -805,9 +805,9 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     mental_lv = mental_level(mental)
     mental_text = MENTAL_TEXT[mental_lv]
 
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("NanumGothic", 10)
     c.drawString(right_x+3*mm, left_box_top-6*mm, f"정신질환 수용자 관련 점수: {mental}점")
-    c.setFont("Helvetica", 8)
+    c.setFont("NanumGothic", 8)
 
     wrapped = wrap(mental_text.replace("\n", " "), width=40)
     text_y = left_box_top-12*mm
@@ -817,31 +817,31 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
 
     # 5) 하위요인별 해석
     y = left_box_top - left_box_h - 10*mm
-    c.setFont("Helvetica-Bold", 12)
+    c.setFont("NanumGothic", 12)
     c.drawString(margin_x, y, "Ⅲ. 하위요인별 해석")
     y -= 5*mm
     c.rect(margin_x, y-40*mm, width-2*margin_x, 40*mm, stroke=1, fill=0)
 
     # 감
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("NanumGothic", 10)
     c.drawString(margin_x+3*mm, y-6*mm, "감(感) – 감정 인식")
-    c.setFont("Helvetica", 8)
+    c.setFont("NanumGothic", 8)
     emo_text = EMOTION_TEXT[subfactor_level(gam)]
     for idx, line in enumerate(wrap(emo_text.replace("\n", " "), 60)[:3]):
         c.drawString(margin_x+3*mm, y-12*mm-4*mm*idx, line)
 
     # 수
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("NanumGothic", 10)
     c.drawString(margin_x+3*mm, y-24*mm, "수(受) – 기준·규범 적용")
-    c.setFont("Helvetica", 8)
+    c.setFont("NanumGothic", 8)
     norm_text = NORM_TEXT[subfactor_level(su)]
     for idx, line in enumerate(wrap(norm_text.replace("\n", " "), 60)[:2]):
         c.drawString(margin_x+3*mm, y-30*mm-4*mm*idx, line)
 
     # 6) 연구자·고지문 (하단)
-    c.setFont("Helvetica", 8)
+    c.setFont("NanumGothic", 8)
     c.drawString(margin_x, 25*mm, "감.수.성 판단설계연구소  |  연구 책임자: 감.수.성 판단설계전문가")
-    c.setFont("Helvetica", 7)
+    c.setFont("NanumGothic", 7)
     c.drawString(margin_x, 20*mm, "※ 본 결과지는 자가점검용 비임상·비진단 자료이며, 인사평가·법적 판단의 근거로 사용할 수 없습니다.")
 
     c.showPage()
@@ -1392,6 +1392,7 @@ if st.session_state.page == "result":
     save(row)
     st.success("응답이 저장되었습니다.")
     st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+
 
 
 
