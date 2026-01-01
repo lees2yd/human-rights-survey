@@ -220,31 +220,62 @@ if "answers" not in st.session_state:
     st.session_state.answers = {}
 
 # =========================
-# 📌 설문 상단 진행률 바 (공통 영역)
+# 세션 상태 초기화
 # =========================
-# 👉 page 값에 따라 설문 화면에서만 상단 고정바가 보이도록 함
-if st.session_state.page == "survey":
-    # 현재까지 응답한 문항 수
-    answered = sum(
-        1 for x in range(1, 28)
-        if st.session_state.get(f"q_{x}") is not None
-    )
-    pct = int((answered / 27) * 100)
+if "page" not in st.session_state:
+    st.session_state.page = "cover"
 
-    # 🔹 상단 고정 진행률 바
+if "answers" not in st.session_state:
+    st.session_state.answers = {}
+
+# =========================
+# 📌 상단 진행률 바 (설문 + 인구학)
+# =========================
+TOTAL_SURVEY_Q = 27
+TOTAL_DEMO_Q = 10
+
+# 인구학 문항에 사용한 key들
+DEMO_KEYS = [
+    "age", "gender", "career", "jobtype", "facil",
+    "shift", "edu_hr", "edu_mental", "exposure", "degree"
+]
+
+progress_pct = None
+progress_label = ""
+
+if st.session_state.page == "survey":
+    # 27문항 설문 응답 개수
+    answered = sum(
+        1 for i in range(1, TOTAL_SURVEY_Q + 1)
+        if st.session_state.get(f"q_{i}") is not None
+    )
+    progress_pct = int((answered / TOTAL_SURVEY_Q) * 100)
+    progress_label = f"{answered} / {TOTAL_SURVEY_Q} 문항 완료 ({progress_pct}%)"
+
+elif st.session_state.page == "demographic":
+    # 인구학 10문항 응답 개수
+    answered = sum(
+        1 for k in DEMO_KEYS
+        if st.session_state.get(k) is not None
+    )
+    progress_pct = int((answered / TOTAL_DEMO_Q) * 100)
+    progress_label = f"인구학 정보 {answered} / {TOTAL_DEMO_Q}개 완료 ({progress_pct}%)"
+
+# 실제 렌더링
+if progress_pct is not None:
     st.markdown(f"""
     <div class="progress-fixed">
         <div class="progress-wrap">
-            <div class="progress-bar" style="width:{max(pct,1)}%"></div>
+            <div class="progress-bar" style="width:{max(progress_pct,1)}%"></div>
         </div>
         <div class="progress-text">
-            {answered} / 27 문항 완료 ({pct}%)
+            {progress_label}
         </div>
     </div>
     <div class="body-pad-top"></div>
     """, unsafe_allow_html=True)
 else:
-    # 설문 페이지가 아닐 때는 위쪽 여백만 확보
+    # 표지/동의/결과 페이지 등에서는 진행바 없이 여백만
     st.markdown('<div class="body-pad-top"></div>', unsafe_allow_html=True)
     
 # =========================
@@ -1553,6 +1584,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
