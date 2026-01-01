@@ -35,6 +35,31 @@ YESNO3 = [
 
 TOTAL_SECTIONS = 7  # 태도, 관계, 소진, 인식, 교육, 보상, 인구학
 
+# ---------------- 숫자 변환 함수 ----------------
+def likert5_to_num(v):
+    # "1 - 매우 부동의" -> 1
+    if v and v[0].isdigit():
+        return int(v.split(" ")[0])
+    return None
+
+def freq3_to_num(v):
+    # "1 - 항상 그렇다" -> 1
+    if v and v[0].isdigit():
+        return int(v.split(" ")[0])
+    return None
+
+def yesno3_to_num(v):
+    # "1 - 거의 없다" -> 1
+    if v and v[0].isdigit():
+        return int(v.split(" ")[0])
+    return None
+
+def sdiff7_to_num(v):
+    # "1"~"7" -> 1~7
+    if v and v.isdigit():
+        return int(v)
+    return None
+
 # ---------------- 연구 설명 및 동의 ----------------
 with st.expander("연구 설명 및 참여 동의", expanded=True):
     st.markdown(
@@ -394,12 +419,16 @@ with col1:
 
 with col2:
     years = st.number_input("3. 교정공무원 근무 연수(년)", min_value=0, max_value=40, step=1)
+    difficulty = st.selectbox(
+        "4. 현재 근무하시는 기관의 주관적 근무 난이도",
+        ["선택하세요", "매우 낮음", "낮음", "보통", "높음", "매우 높음"],
+    )
 
-org = st.text_input("4. 근무지 (예: ○○교도소, ○○구치소 등)")
-dept = st.text_input("5. 부서 (예: 경비과, 보안과, 의료과 등)")
+org = st.text_input("5. 근무지 (예: ○○교도소, ○○구치소 등)")
+dept = st.text_input("6. 부서 (예: 경비과, 보안과, 의료과 등)")
 
 freq_mental = st.selectbox(
-    "6. 지난 6개월 동안 정신문제 수용자를 얼마나 대면하였는지요?",
+    "7. 지난 6개월 동안 정신문제 수용자를 얼마나 대면하였는지요?",
     [
         "선택하세요",
         "거의 대면하지 않았다",
@@ -410,15 +439,15 @@ freq_mental = st.selectbox(
 )
 
 st.text_area(
-    "7. 현재 교도소에서 정신질환 수용자를 관리하는 데 가장 큰 장애물은 무엇이라고 생각하십니까?",
+    "8. 현재 교도소에서 정신질환 수용자를 관리하는 데 가장 큰 장애물은 무엇이라고 생각하십니까?",
     key="barrier"
 )
 st.text_area(
-    "8. 현재 교도소에서 정신질환 수용자의 관리를 향상시키기 위한 필요한 사항은 무엇이라고 생각하십니까?",
+    "9. 현재 교도소에서 정신질환 수용자의 관리를 향상시키기 위한 필요한 사항은 무엇이라고 생각하십니까?",
     key="improve"
 )
 st.text_area(
-    "9. 현재 교도소에서 정신문제 수용자의 인권 보호에 가장 필요한 사항은 무엇이라고 생각하십니까?",
+    "10. 현재 교도소에서 정신문제 수용자의 인권 보호에 가장 필요한 사항은 무엇이라고 생각하십니까?",
     key="rights_need"
 )
 
@@ -442,34 +471,43 @@ if st.button("설문 제출"):
     if missing:
         st.error(f"다음 항목(들)을 모두 응답해 주세요: {', '.join(missing)}")
     else:
+        # 숫자형 응답으로 변환
+        num_attitude = {k: likert5_to_num(v) for k, v in attitude_responses.items()}
+        num_rel = {k: sdiff7_to_num(v) for k, v in rel_responses.items()}
+        num_med = {k: likert5_to_num(v) for k, v in med_responses.items()}
+        num_burnout = {k: likert5_to_num(v) for k, v in burnout_responses.items()}
+        num_percep = {k: sdiff7_to_num(v) for k, v in percep_responses.items()}
+        num_edu = {k: likert5_to_num(v) for k, v in edu_responses.items()}
+
+        # 기본 정보 수집 (여기 값들은 그대로 문자열/숫자로 저장)
         data = {
             "timestamp": datetime.now().isoformat(),
             "gender": gender,
             "age": age,
             "org": org,
             "dept": dept,
-            "difficulty": st.session_state.get("difficulty", ""),  # 없으면 공란
+            "difficulty": difficulty,
             "years": years,
             "freq_mental": freq_mental,
             "barrier": st.session_state.get("barrier", ""),
             "improve": st.session_state.get("improve", ""),
             "rights_need": st.session_state.get("rights_need", ""),
-            "peer_support_1": peer_support_1,
-            "peer_support_2": peer_support_2,
+            "peer_support_1": freq3_to_num(peer_support_1),
+            "peer_support_2": freq3_to_num(peer_support_2),
             "family_view": family_view,
-            "family_safety": family_safety,
+            "family_safety": yesno3_to_num(family_safety),
             "edu_experience": ";".join(edu_experience),
             "want_reward": want_reward,
             "phone_number": phone_number,
         }
 
-        # 나머지 응답 병합
-        data.update(attitude_responses)
-        data.update(rel_responses)
-        data.update(med_responses)
-        data.update(burnout_responses)
-        data.update(percep_responses)
-        data.update(edu_responses)
+        # 나머지 응답 병합 (숫자 형태)
+        data.update(num_attitude)
+        data.update(num_rel)
+        data.update(num_med)
+        data.update(num_burnout)
+        data.update(num_percep)
+        data.update(num_edu)
 
         df_new = pd.DataFrame([data])
         csv_path = "perception_survey_responses.csv"
