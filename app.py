@@ -1116,7 +1116,6 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
 
-    # ✅ 여기 CSS 블록을 통째로 교체합니다
     st.markdown("""
     <style>
     /* 좌우 레이블 공통 스타일 */
@@ -1126,7 +1125,6 @@ if st.session_state.page == "survey":
         white-space: nowrap;
     }
 
-    /* PC/태블릿 기본 정렬 */
     .likert-left  { text-align: right; }
     .likert-right { text-align: left;  }
 
@@ -1137,17 +1135,21 @@ if st.session_state.page == "survey":
         gap: 18px !important;
     }
 
-    /* 모바일일 때는 레이블을 가운데로 배치 */
+    /* 🔹 모바일에서도 컬럼이 가로(ROW)로 유지되도록 강제 */
     @media (max-width: 480px) {
-        .likert-left,
-        .likert-right {
-            text-align: center;
-            margin-top: 4px;
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+        }
+        div[data-testid="column"] {
+            flex: 1 1 0 !important;
+        }
+        .likert-left, .likert-right {
+            font-size: 0.8rem;
         }
     }
     </style>
     """, unsafe_allow_html=True)
-
+    
     # 🔴 상단 붉은색 밑줄 안내
     st.markdown(
         """
@@ -1594,6 +1596,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
