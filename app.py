@@ -1162,10 +1162,17 @@ if st.session_state.page == "survey":
     answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
     pct = int((answered / 27) * 100)
 
+    # 🔹 상단 고정 진행률 바
     st.markdown(f"""
-    <div style="margin-top:10px; font-weight:600;">
-        진행률: <b>{answered} / 27</b> 문항 ({pct}%)
+    <div class="progress-fixed">
+        <div class="progress-wrap">
+            <div class="progress-bar" style="width:{pct}%"></div>
+        </div>
+        <div class="progress-text">
+            {answered} / 27 문항 완료 ({pct}%)
+        </div>
     </div>
+    <div class="body-pad-top"></div>
     """, unsafe_allow_html=True)
 
     st.write("")  # 간격
@@ -1535,6 +1542,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
