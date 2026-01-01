@@ -61,40 +61,39 @@ def sdiff7_to_num(v):
     return None
 
 # ---------------- 리커트 라디오 헬퍼 ----------------
-LIKERT5_UI = ["선택 안 함"] + LIKERT5
-SDIFF7_UI = ["선택 안 함"] + SDIFF_7
-FREQ3_UI = ["선택 안 함"] + FREQ3
-YESNO3_UI = ["선택 안 함"] + YESNO3
-
 def likert5_radio(label, key):
     return st.radio(
         label,
-        LIKERT5_UI,
+        LIKERT5,
         horizontal=True,  # 번호를 가로로 나열 → 모바일에서도 터치 편함
+        index=None,        # 처음엔 아무 것도 선택되지 않음
         key=key,
     )
 
 def sdiff7_radio(label, key):
     return st.radio(
         label,
-        SDIFF7_UI,
+        SDIFF_7,
         horizontal=True,
+        index=None,
         key=key,
     )
 
 def freq3_radio(label, key):
     return st.radio(
         label,
-        FREQ3_UI,
+        FREQ3,
         horizontal=True,
+        index=None,
         key=key,
     )
 
 def yesno3_radio(label, key):
     return st.radio(
         label,
-        YESNO3_UI,
+        YESNO3,
         horizontal=True,
+        index=None,
         key=key,
     )
 
@@ -234,11 +233,11 @@ with st.form("perception_survey_form"):
     for i, text in enumerate(rel_items, start=1):
         st.markdown(f"**형용사 쌍 {i}. {text}**")
         rel_responses[f"REL_M_{i:02d}"] = sdiff7_radio(
-            f"정신문제 수용자 (1=왼쪽, 7=오른쪽)",
+            "정신문제 수용자 (1=왼쪽, 7=오른쪽)",
             key=f"rel_m_{i}",
         )
         rel_responses[f"REL_G_{i:02d}"] = sdiff7_radio(
-            f"일반 수용자 (1=왼쪽, 7=오른쪽)",
+            "일반 수용자 (1=왼쪽, 7=오른쪽)",
             key=f"rel_g_{i}",
         )
 
@@ -250,12 +249,13 @@ with st.form("perception_survey_form"):
     family_view = st.selectbox(
         "가족들은 귀하가 교도소에서 근무하는 것에 대해 어떻게 느끼고 있습니까?",
         [
-            "선택하세요",
             "매우 기쁘며 긍정적임",
             "대체로 긍정적임",
             "중립적임",
             "부정적이거나 걱정이 많음",
         ],
+        index=None,
+        placeholder="선택하세요",
     )
     family_safety = yesno3_radio(
         "가족들은 교도소에서 근무할 때 당신의 안전을 걱정하는 경우가 있습니까?",
@@ -438,7 +438,7 @@ with st.form("perception_survey_form"):
     want_reward = st.radio(
         "보상(모바일 쿠폰) 추첨에 참여하시겠습니까?",
         ["아니요", "예"],
-        index=0,
+        index=None,
         key="want_reward",
     )
 
@@ -458,14 +458,21 @@ with st.form("perception_survey_form"):
 
     col1, col2 = st.columns(2)
     with col1:
-        gender = st.selectbox("1. 성별", ["선택하세요", "남", "여", "응답하지 않음"])
+        gender = st.selectbox(
+            "1. 성별",
+            ["남", "여", "응답하지 않음"],
+            index=None,
+            placeholder="선택하세요",
+        )
         age = st.number_input("2. 연령(만)", min_value=20, max_value=70, step=1)
 
     with col2:
         years = st.number_input("3. 교정공무원 근무 연수(년)", min_value=0, max_value=40, step=1)
         difficulty = st.selectbox(
             "4. 현재 근무하시는 기관의 주관적 근무 난이도",
-            ["선택하세요", "매우 낮음", "낮음", "보통", "높음", "매우 높음"],
+            ["매우 낮음", "낮음", "보통", "높음", "매우 높음"],
+            index=None,
+            placeholder="선택하세요",
         )
 
     org = st.text_input("5. 근무지 (예: ○○교도소, ○○구치소 등)")
@@ -474,12 +481,13 @@ with st.form("perception_survey_form"):
     freq_mental = st.selectbox(
         "7. 지난 6개월 동안 정신문제 수용자를 얼마나 대면하였는지요?",
         [
-            "선택하세요",
             "거의 대면하지 않았다",
             "가끔 대면했다",
             "자주 대면했다",
             "매우 자주 대면했다",
         ],
+        index=None,
+        placeholder="선택하세요",
     )
 
     st.text_area(
@@ -509,11 +517,11 @@ with st.form("perception_survey_form"):
 if submitted:
     # 아주 기본적인 필수 체크
     missing = []
-    if gender == "선택하세요":
+    if gender is None:
         missing.append("성별")
-    if org.strip() == "":
+    if not org.strip():
         missing.append("근무지")
-    if freq_mental == "선택하세요":
+    if freq_mental is None:
         missing.append("정신문제 수용자 대면 빈도")
 
     if missing:
