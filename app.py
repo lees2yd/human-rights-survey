@@ -1226,17 +1226,17 @@ if st.session_state.page == "survey":
             unsafe_allow_html=True
         )
 
-        # 🔹 라벨 두 줄 + 숫자 중앙 배치
+        # 🔹 라벨 두 줄 + 숫자 중앙 배치 (앞쪽)
         st.markdown(
             """
-            <div class="likert-container">
-                <div class="likert-side">
-                    <span>전혀</span>
-                    <span>그렇지 않다</span>
-                </div>
+    <div class="likert-container">
+      <div class="likert-side">
+        <span>전혀</span>
+        <span>그렇지 않다</span>
+      </div>
 
-                <div class="likert-center" style="margin: 0 24px;">
-            """,
+      <div class="likert-center" style="margin: 0 24px;">
+    """,
             unsafe_allow_html=True,
         )
 
@@ -1250,15 +1250,16 @@ if st.session_state.page == "survey":
             label_visibility="collapsed",
         )
 
+        # 🔹 라벨 두 줄 + 숫자 중앙 배치 (뒤쪽)
         st.markdown(
             """
-                </div>
-                <div class="likert-side">
-                    <span>매우</span>
-                    <span>그렇다</span>
-                </div>
-            </div>
-            """,
+      </div>
+      <div class="likert-side">
+        <span>매우</span>
+        <span>그렇다</span>
+      </div>
+    </div>
+    """,
             unsafe_allow_html=True,
         )
 
@@ -1605,6 +1606,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
