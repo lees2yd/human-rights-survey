@@ -1116,15 +1116,14 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
 
-    # 👉 숫자 라디오 버튼 정렬만 간단히 조정하는 CSS
+    # 👉 숫자 라디오 버튼만 정렬
     st.markdown("""
     <style>
-    /* 라디오 숫자 가운데 정렬 & 간격 */
     .stRadio > div {
         display: flex !important;
         justify-content: center !important;
         gap: 18px !important;
-        margin: 6px 0 10px 0 !important;
+        margin: 6px 0 12px 0 !important;
     }
     @media (max-width: 480px) {
         .stRadio > div {
@@ -1133,8 +1132,8 @@ if st.session_state.page == "survey":
     }
     </style>
     """, unsafe_allow_html=True)
-    
-    # 🔴 상단 붉은색 밑줄 안내
+
+    # 🔴 상단 안내
     st.markdown(
         """
         <p style="color:red; font-weight:700; text-decoration:underline; font-size:1.1rem;">
@@ -1144,104 +1143,80 @@ if st.session_state.page == "survey":
         unsafe_allow_html=True,
     )
 
-    # 📌 설문 응답 방법 안내문 (여기에만 말로 설명)
+    # 📌 응답 기준 안내 (숫자만 사용)
     st.markdown(
         """
-        본 설문은 **최근 경험을 솔직하게 적어주시는 것**이 가장 중요합니다.  
-        각 문항에 대해 본인의 생각이나 경험에 가장 가까운 정도를 선택해 주십시오.
-
-        본 연구에서는 **4점 척도**를 사용합니다.
+        본 설문은 **4점 척도**로 구성됩니다.
 
         - **1점:** 전혀 그렇지 않다  
         - **2점:** 그렇지 않은 편이다  
         - **3점:** 그렇다  
         - **4점:** 매우 그렇다  
 
-        정답이나 오답은 없으며,  
-        **개인의 경험과 생각을 있는 그대로 표시해 주시면 됩니다.**
+        각 문항에 대해 가장 가까운 점수를 선택해 주세요.
         """,
         unsafe_allow_html=True,
     )
 
     # 진행률 계산
-    answered = sum(
-        1 for x in range(1, 28)
-        if st.session_state.get(f"q_{x}") is not None
-    )
-    progress = answered / 27
-    pct = int(progress * 100)
+    answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
+    pct = int((answered / 27) * 100)
 
-    # ✅ 상단 고정 진행률
     st.markdown(f"""
-    <div class="progress-fixed">
-      <div class="progress-wrap">
-        <div class="progress-bar" style="width:{pct}%"></div>
-      </div>
-      <div class="progress-text">진행률: <b>{answered} / 27 문항</b> ({pct}%)</div>
-      <div id="milestoneBox" class="progress-milestone hidden"></div>
+    <div style="margin-top:10px; font-weight:600;">
+        진행률: <b>{answered} / 27</b> 문항 ({pct}%)
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="body-pad-top"></div>', unsafe_allow_html=True)
-
+    st.write("")  # 간격
     answers = []
 
- # =========================
-# 문항 루프
-# =========================
-for i, q in enumerate(QUESTIONS, 1):
+    # =========================
+    # 문항 루프  (※ 반드시 if 내부)
+    # =========================
+    for i, q in enumerate(QUESTIONS, 1):
 
-    # 이전 문항 응답 여부에 따라 disable
-    if i == 1:
-        disabled = False
-    else:
-        disabled = (st.session_state.get(f"q_{i-1}") is None)
+        # 이전 문항 응답해야 다음 활성화
+        disabled = False if i == 1 else (st.session_state.get(f"q_{i-1}") is None)
 
-    # 질문 텍스트
-    st.markdown(
-        f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
-        unsafe_allow_html=True
-    )
-
-    # 👉 가운데 컬럼에만 라디오 숫자 배치
-    col_left, col_center, col_right = st.columns([1, 2, 1])
-
-    with col_center:
-        ans = st.radio(
-            "",                 # 라벨 숨김
-            [1, 2, 3, 4],       # 숫자만
-            horizontal=True,
-            index=None,
-            key=f"q_{i}",
-            disabled=disabled,
-            label_visibility="collapsed",
+        # 질문 표시
+        st.markdown(
+            f"<div style='font-weight:600; font-size:1rem; margin-bottom:6px;'>{i}. {q}</div>",
+            unsafe_allow_html=True
         )
 
-    answers.append(ans)
+        # 숫자만 중앙
+        col_left, col_center, col_right = st.columns([1, 2, 1])
+        with col_center:
+            ans = st.radio(
+                "",
+                [1, 2, 3, 4],
+                horizontal=True,
+                index=None,
+                key=f"q_{i}",
+                disabled=disabled,
+                label_visibility="collapsed",
+            )
 
-    if ans is not None:
-        st.session_state.answers[i] = ans
+        answers.append(ans)
+        if ans is not None:
+            st.session_state.answers[i] = ans
 
-    st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+        st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
 
     # =========================
-    # 제출 버튼 (루프 바깥!)
+    # 제출 버튼 (※ for 루프 바깥)
     # =========================
-    can_submit = all(
-        st.session_state.get(f"q_{i}") is not None
-        for i in range(1, 28)
-    )
+    can_submit = all(st.session_state.get(f"q_{i}") is not None for i in range(1, 28))
 
-    submit = st.button("다음", disabled=not can_submit)
+    submit = st.button("다음", key="survey_next_btn", disabled=not can_submit)
 
     if submit:
         answers = [st.session_state.get(f"q_{i}") for i in range(1, 28)]
-
         total = sum(answers)
         감 = sum(answers[0:9])
         수 = sum(answers[9:18])
         성 = sum(answers[18:27])
-
         mh_items = [7, 8, 9, 16, 17, 18, 25, 26, 27]
         mh_score = sum(answers[i - 1] for i in mh_items)
 
@@ -1560,6 +1535,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
