@@ -218,6 +218,34 @@ if "page" not in st.session_state:
 
 if "answers" not in st.session_state:
     st.session_state.answers = {}
+
+# =========================
+# 📌 설문 상단 진행률 바 (공통 영역)
+# =========================
+# 👉 page 값에 따라 설문 화면에서만 상단 고정바가 보이도록 함
+if st.session_state.page == "survey":
+    # 현재까지 응답한 문항 수
+    answered = sum(
+        1 for x in range(1, 28)
+        if st.session_state.get(f"q_{x}") is not None
+    )
+    pct = int((answered / 27) * 100)
+
+    # 🔹 상단 고정 진행률 바
+    st.markdown(f"""
+    <div class="progress-fixed">
+        <div class="progress-wrap">
+            <div class="progress-bar" style="width:{max(pct,1)}%"></div>
+        </div>
+        <div class="progress-text">
+            {answered} / 27 문항 완료 ({pct}%)
+        </div>
+    </div>
+    <div class="body-pad-top"></div>
+    """, unsafe_allow_html=True)
+else:
+    # 설문 페이지가 아닐 때는 위쪽 여백만 확보
+    st.markdown('<div class="body-pad-top"></div>', unsafe_allow_html=True)
     
 # =========================
 # 문항
@@ -1158,23 +1186,6 @@ if st.session_state.page == "survey":
         unsafe_allow_html=True,
     )
 
-    # 진행률 계산
-    answered = sum(1 for x in range(1, 28) if st.session_state.get(f"q_{x}") is not None)
-    pct = int((answered / 27) * 100)
-
-    # 🔹 상단 고정 진행률 바
-    st.markdown(f"""
-    <div class="progress-fixed">
-        <div class="progress-wrap">
-            <div class="progress-bar" style="width:{pct}%"></div>
-        </div>
-        <div class="progress-text">
-            {answered} / 27 문항 완료 ({pct}%)
-        </div>
-    </div>
-    <div class="body-pad-top"></div>
-    """, unsafe_allow_html=True)
-
     st.write("")  # 간격
     answers = []
 
@@ -1542,6 +1553,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
