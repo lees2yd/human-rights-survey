@@ -1210,7 +1210,7 @@ if st.session_state.page == "survey":
     answers = []
 
     # =========================
-    # 문항 루프  🔽🔽 (이제 if 블록 안에 있음)
+    # 문항 루프
     # =========================
     for i, q in enumerate(QUESTIONS, 1):
 
@@ -1226,42 +1226,42 @@ if st.session_state.page == "survey":
             unsafe_allow_html=True
         )
 
-        # 🔹 라벨 두 줄 + 숫자 중앙 배치 (앞쪽)
-        st.markdown(
-            """
-    <div class="likert-container">
-      <div class="likert-side">
-        <span>전혀</span>
-        <span>그렇지 않다</span>
-      </div>
+        # 🔹 좌측·중앙·우측 3열 구성
+        left_col, mid_col, right_col = st.columns([1.7, 3, 1.7])
 
-      <div class="likert-center" style="margin: 0 24px;">
-    """,
-            unsafe_allow_html=True,
-        )
+        # 왼쪽: "전혀 / 그렇지 않다" (두 줄, 오른쪽 정렬)
+        with left_col:
+            st.markdown(
+                """
+                <div style="text-align:right; font-size:0.9rem; line-height:1.2;">
+                    전혀<br>그렇지 않다
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        ans = st.radio(
-            "",
-            [1, 2, 3, 4],
-            horizontal=True,
-            index=None,
-            key=f"q_{i}",
-            disabled=disabled,
-            label_visibility="collapsed",
-        )
+        # 가운데: 1~4 점수 (가운데 정렬은 위의 .stRadio CSS가 해 줍니다)
+        with mid_col:
+            ans = st.radio(
+                "",
+                [1, 2, 3, 4],
+                horizontal=True,
+                index=None,
+                key=f"q_{i}",
+                disabled=disabled,
+                label_visibility="collapsed",
+            )
 
-        # 🔹 라벨 두 줄 + 숫자 중앙 배치 (뒤쪽)
-        st.markdown(
-            """
-      </div>
-      <div class="likert-side">
-        <span>매우</span>
-        <span>그렇다</span>
-      </div>
-    </div>
-    """,
-            unsafe_allow_html=True,
-        )
+        # 오른쪽: "매우 / 그렇다" (두 줄, 왼쪽 정렬)
+        with right_col:
+            st.markdown(
+                """
+                <div style="text-align:left; font-size:0.9rem; line-height:1.2;">
+                    매우<br>그렇다
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         answers.append(ans)
 
@@ -1271,14 +1271,14 @@ if st.session_state.page == "survey":
         st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
     # =========================
-    # 🔚 루프 끝난 뒤: 제출 버튼은 여기
+    # 제출 가능 여부 체크 (루프 밖!)
     # =========================
     can_submit = all(
         st.session_state.get(f"q_{i}") is not None
         for i in range(1, 28)
     )
 
-    submit = st.button("다음", key="survey_next_btn", disabled=not can_submit)
+    submit = st.button("다음", disabled=not can_submit)
 
     if submit:
         answers = [st.session_state.get(f"q_{i}") for i in range(1, 28)]
@@ -1606,6 +1606,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
