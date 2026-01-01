@@ -1211,7 +1211,7 @@ if st.session_state.page == "survey":
     # =========================
     # 문항 루프
     # =========================
-    for i, q in enumerate(QUESTIONS, 1):
+for i, q in enumerate(QUESTIONS, 1):
 
     # 이전 문항을 응답해야 다음 문항 활성화
     if i == 1:
@@ -1246,13 +1246,12 @@ if st.session_state.page == "survey":
         index=None,
         key=f"q_{i}",
         disabled=disabled,
-        label_visibility="collapsed",   # 숫자만 보이게
+        label_visibility="collapsed",
     )
 
     st.markdown(
         """
             </div>
-
             <div class="likert-side">
                 <span>매우</span>
                 <span>그렇다</span>
@@ -1262,7 +1261,6 @@ if st.session_state.page == "survey":
         unsafe_allow_html=True,
     )
 
-    # ---- 이하 동일 ----
     answers.append(ans)
 
     if ans is not None:
@@ -1606,6 +1604,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
