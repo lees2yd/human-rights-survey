@@ -18,6 +18,18 @@ import numpy as np
 from reportlab.lib.utils import ImageReader
 
 # -------------------------------------------
+# 📌 matplotlib 한글 폰트 설정 (레이더 차트용)
+# -------------------------------------------
+from matplotlib import font_manager
+
+font_path = "fonts/NanumGothicCoding.ttf"  # reportlab에서 쓰는 것과 동일 경로
+font_manager.fontManager.addfont(font_path)
+nanum_font = font_manager.FontProperties(fname=font_path)
+
+plt.rcParams["font.family"] = nanum_font.get_name()
+plt.rcParams["axes.unicode_minus"] = False
+
+# -------------------------------------------
 # 📌 한글 폰트 등록 (NanumGothic)
 # -------------------------------------------
 from reportlab.pdfbase import pdfmetrics
@@ -1682,6 +1694,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
