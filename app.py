@@ -1156,6 +1156,7 @@ if st.session_state.page == "survey":
 
     </style>
     """, unsafe_allow_html=True)
+
     # 🔴 상단 붉은색 밑줄 안내
     st.markdown(
         """
@@ -1209,74 +1210,74 @@ if st.session_state.page == "survey":
     answers = []
 
     # =========================
-    # 문항 루프
+    # 문항 루프  🔽🔽 (이제 if 블록 안에 있음)
     # =========================
-for i, q in enumerate(QUESTIONS, 1):
+    for i, q in enumerate(QUESTIONS, 1):
 
-    # 이전 문항을 응답해야 다음 문항 활성화
-    if i == 1:
-        disabled = False
-    else:
-        disabled = (st.session_state.get(f"q_{i-1}") is None)
+        # 이전 문항을 응답해야 다음 문항 활성화
+        if i == 1:
+            disabled = False
+        else:
+            disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-    # 질문 텍스트
-    st.markdown(
-        f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
-        unsafe_allow_html=True
-    )
+        # 질문 텍스트
+        st.markdown(
+            f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
+            unsafe_allow_html=True
+        )
 
-    # 🔹 라벨 두 줄 + 숫자 중앙 배치
-    st.markdown(
-        """
-        <div class="likert-container">
-            <div class="likert-side">
-                <span>전혀</span>
-                <span>그렇지 않다</span>
+        # 🔹 라벨 두 줄 + 숫자 중앙 배치
+        st.markdown(
+            """
+            <div class="likert-container">
+                <div class="likert-side">
+                    <span>전혀</span>
+                    <span>그렇지 않다</span>
+                </div>
+
+                <div class="likert-center" style="margin: 0 24px;">
+            """,
+            unsafe_allow_html=True,
+        )
+
+        ans = st.radio(
+            "",
+            [1, 2, 3, 4],
+            horizontal=True,
+            index=None,
+            key=f"q_{i}",
+            disabled=disabled,
+            label_visibility="collapsed",
+        )
+
+        st.markdown(
+            """
+                </div>
+                <div class="likert-side">
+                    <span>매우</span>
+                    <span>그렇다</span>
+                </div>
             </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-            <div class="likert-center" style="margin: 0 24px;">
-        """,
-        unsafe_allow_html=True,
-    )
+        answers.append(ans)
 
-    ans = st.radio(
-        "",
-        [1, 2, 3, 4],
-        horizontal=True,
-        index=None,
-        key=f"q_{i}",
-        disabled=disabled,
-        label_visibility="collapsed",
-    )
+        if ans is not None:
+            st.session_state.answers[i] = ans
 
-    st.markdown(
-        """
-            </div>
-            <div class="likert-side">
-                <span>매우</span>
-                <span>그렇다</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    answers.append(ans)
-
-    if ans is not None:
-        st.session_state.answers[i] = ans
-
-    st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
     # =========================
-    # 제출 가능 여부 체크 (기존 코드 그대로)
+    # 🔚 루프 끝난 뒤: 제출 버튼은 여기
     # =========================
     can_submit = all(
         st.session_state.get(f"q_{i}") is not None
         for i in range(1, 28)
     )
 
-    submit = st.button("다음", disabled=not can_submit)
+    submit = st.button("다음", key="survey_next_btn", disabled=not can_submit)
 
     if submit:
         answers = [st.session_state.get(f"q_{i}") for i in range(1, 28)]
@@ -1604,6 +1605,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
