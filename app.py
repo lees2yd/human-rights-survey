@@ -1178,7 +1178,26 @@ def save_phone(phone):
         datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
         phone,
     ])
-    
+
+def save_feedback(feedback_text: str):
+    """설문 후 응답자의 자유 의견을 별도 시트에 저장"""
+    if not feedback_text or not feedback_text.strip():
+        return
+
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=scope
+    )
+    client = gspread.authorize(creds)
+
+    sh = client.open_by_key(SPREADSHEET_KEY)
+    # 📌 구글 시트 안에 'feedback' 이라는 워크시트를 미리 만들어 두세요.
+    sheet = sh.worksheet("feedback")
+    sheet.append_row([
+        datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
+        feedback_text,
+    ])
+
 # =========================================================
 #                  ★ 0. 표지 화면 ★
 # =========================================================
@@ -1491,7 +1510,6 @@ if st.session_state.page == "result":
         height=0,
     )
 
-
     # 2) 결과 데이터 가져오기
     r = st.session_state.get("result", None)
     if r is None:
@@ -1517,9 +1535,9 @@ if st.session_state.page == "result":
     values_total = [gam, su, seong]
 
     # 정신질환 상황 점수 — 감·수·성별 3문항씩 자동 분리
-    mh_gam = sum([r['answers'][6], r['answers'][7], r['answers'][8]])     # 7~9번
-    mh_su = sum([r['answers'][15], r['answers'][16], r['answers'][17]])   # 16~18번
-    mh_seong = sum([r['answers'][24], r['answers'][25], r['answers'][26]])# 25~27번
+    mh_gam = sum([r['answers'][6], r['answers'][7], r['answers'][8]])      # 7~9번
+    mh_su = sum([r['answers'][15], r['answers'][16], r['answers'][17]])    # 16~18번
+    mh_seong = sum([r['answers'][24], r['answers'][25], r['answers'][26]]) # 25~27번
     values_mh = [mh_gam, mh_su, mh_seong]
 
     fig = go.Figure()
@@ -1602,7 +1620,7 @@ if st.session_state.page == "result":
     st.markdown("### 🔹 5) 종합 안내 메시지")
     st.write(SUMMARY_MESSAGE)
 
-     # 🔐 안전한 해석을 위한 고지문 (비진단·비평가 선언)
+    # 🔐 안전한 해석을 위한 고지문 (비진단·비평가 선언)
     st.markdown("""
     ---
     ### 🔒 안전한 해석을 위한 고지문
@@ -1614,6 +1632,31 @@ if st.session_state.page == "result":
 
     ※ 법적·행정적 판단, 인사평가, 기질/병리 추정에 사용될 수 없습니다.
     """)
+
+    # --- 설문에 대한 자유 의견 입력 (선택) ---
+    st.markdown("---")
+    st.subheader("🗣 설문에 대한 의견 (선택)")
+
+    st.caption("문항 구성, 길이, 표현, 결과지 내용, 전반적인 느낌, 개선점 등에 대해 자유롭게 적어 주세요.")
+
+    feedback_text = st.text_area(
+        "자유 의견",
+        key="survey_feedback",
+        height=120,
+        placeholder="예) 문항이 조금 길게 느껴졌습니다.\n정신질환 관련 문항이 인상 깊었습니다.\n어려웠던 점이나 좋았던 점을 적어 주세요."
+    )
+
+    if st.button("의견 제출", key="feedback_submit"):
+        if feedback_text.strip():
+            try:
+                # ⚠️ 위쪽에 save_feedback 함수가 정의되어 있어야 합니다.
+                save_feedback(feedback_text)
+                st.success("의견이 저장되었습니다. 소중한 피드백 감사합니다.")
+            except Exception as e:
+                st.error("의견 저장 중 오류가 발생했습니다.")
+                st.caption(str(e))
+        else:
+            st.warning("내용을 입력하신 후 제출해 주세요.")
 
     # ---- 5-bis) 결과지 PDF 다운로드 ----
     # 응답 시간 문자열을 결과 dict에 추가 (보고서 상단 표시용)
@@ -1659,18 +1702,6 @@ if st.session_state.page == "result":
         row["정신교육"] = EDU_MENTAL_MAP.get(demo.get("정신교육"))
         row["대면빈도"] = EXPOSURE_MAP.get(demo.get("대면빈도"))
         row["학력"]     = DEGREE_MAP.get(demo.get("학력"))
-
-        # (선택) 라벨도 같이 저장하고 싶으면 아래 주석 해제해서 사용
-        # row["연령대_label"]   = demo.get("연령대")
-        # row["성별_label"]     = demo.get("성별")
-        # row["경력_label"]     = demo.get("경력")
-        # row["직무_label"]     = demo.get("직무")
-        # row["기관_label"]     = demo.get("기관")
-        # row["교대_label"]     = demo.get("교대")
-        # row["인권교육_label"] = demo.get("인권교육")
-        # row["정신교육_label"] = demo.get("정신교육")
-        # row["대면빈도_label"] = demo.get("대면빈도")
-        # row["학력_label"]     = demo.get("학력")
 
         # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
         phone = st.session_state.get("phone", None)
