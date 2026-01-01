@@ -1186,27 +1186,30 @@ if st.session_state.page == "survey":
 
     answers = []
 
-   # =========================
-    # 문항 루프
-    # =========================
-    for i, q in enumerate(QUESTIONS, 1):
+ # =========================
+# 문항 루프
+# =========================
+for i, q in enumerate(QUESTIONS, 1):
 
-        # 이전 문항 응답 여부에 따라 disable
-        if i == 1:
-            disabled = False
-        else:
-            disabled = (st.session_state.get(f"q_{i-1}") is None)
+    # 이전 문항 응답 여부에 따라 disable
+    if i == 1:
+        disabled = False
+    else:
+        disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-        # 질문 텍스트
-        st.markdown(
-            f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
-            unsafe_allow_html=True
-        )
+    # 질문 텍스트
+    st.markdown(
+        f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
+        unsafe_allow_html=True
+    )
 
-        # 👉 숫자만 나오는 라디오 버튼
+    # 👉 가운데 컬럼에만 라디오 숫자 배치
+    col_left, col_center, col_right = st.columns([1, 2, 1])
+
+    with col_center:
         ans = st.radio(
-            "",                   # 라벨 숨김
-            [1, 2, 3, 4],         # 숫자만
+            "",                 # 라벨 숨김
+            [1, 2, 3, 4],       # 숫자만
             horizontal=True,
             index=None,
             key=f"q_{i}",
@@ -1214,12 +1217,12 @@ if st.session_state.page == "survey":
             label_visibility="collapsed",
         )
 
-        answers.append(ans)
+    answers.append(ans)
 
-        if ans is not None:
-            st.session_state.answers[i] = ans
+    if ans is not None:
+        st.session_state.answers[i] = ans
 
-        st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
     # =========================
     # 제출 버튼 (루프 바깥!)
@@ -1557,6 +1560,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
