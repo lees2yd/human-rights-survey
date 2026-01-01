@@ -1116,44 +1116,18 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
 
-    # 👇 여기 CSS 블록을 이걸로 교체
+    # 👉 숫자 라디오 버튼 정렬만 간단히 조정하는 CSS
     st.markdown("""
     <style>
-    /* 전체 한 줄 컨테이너 */
-    .likert-container {
-        display: flex;
-        flex-wrap: nowrap;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        width: 100%;
-        margin: 8px 0 10px 0;
-    }
-
-    /* 좌우 문구 두 줄 */
-    .likert-side {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.2;
-        white-space: nowrap;
-        font-size: 0.9rem;
-    }
-    .likert-side.left  { text-align: right; min-width: 70px; }
-    .likert-side.right { text-align: left;  min-width: 70px; }
-
-    /* 가운데 숫자(라디오) 정렬 */
-    .likert-center .stRadio > div {
+    /* 라디오 숫자 가운데 정렬 & 간격 */
+    .stRadio > div {
         display: flex !important;
         justify-content: center !important;
         gap: 18px !important;
+        margin: 6px 0 10px 0 !important;
     }
-
-    /* 모바일 최적화 */
     @media (max-width: 480px) {
-        .likert-side {
-            font-size: 0.8rem;
-        }
-        .likert-center .stRadio > div {
+        .stRadio > div {
             gap: 12px !important;
         }
     }
@@ -1170,7 +1144,7 @@ if st.session_state.page == "survey":
         unsafe_allow_html=True,
     )
 
-    # 📌 설문 응답 방법 안내문
+    # 📌 설문 응답 방법 안내문 (여기에만 말로 설명)
     st.markdown(
         """
         본 설문은 **최근 경험을 솔직하게 적어주시는 것**이 가장 중요합니다.  
@@ -1212,7 +1186,7 @@ if st.session_state.page == "survey":
 
     answers = []
 
-    # =========================
+   # =========================
     # 문항 루프
     # =========================
     for i, q in enumerate(QUESTIONS, 1):
@@ -1229,40 +1203,15 @@ if st.session_state.page == "survey":
             unsafe_allow_html=True
         )
 
-        # 👇 좌측/가운데/우측을 우리가 직접 flex로 구성
-        st.markdown(
-            """
-            <div class="likert-container">
-              <div class="likert-side left">
-                <span>전혀</span>
-                <span>그렇지 않다</span>
-              </div>
-              <div class="likert-center">
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # 숫자 라디오 버튼
+        # 👉 숫자만 나오는 라디오 버튼
         ans = st.radio(
-            "",
-            [1, 2, 3, 4],
+            "",                   # 라벨 숨김
+            [1, 2, 3, 4],         # 숫자만
             horizontal=True,
             index=None,
             key=f"q_{i}",
             disabled=disabled,
             label_visibility="collapsed",
-        )
-
-        st.markdown(
-            """
-              </div>
-              <div class="likert-side right">
-                <span>매우</span>
-                <span>그렇다</span>
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
         )
 
         answers.append(ans)
@@ -1271,6 +1220,7 @@ if st.session_state.page == "survey":
             st.session_state.answers[i] = ans
 
         st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+
     # =========================
     # 제출 버튼 (루프 바깥!)
     # =========================
@@ -1607,6 +1557,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
