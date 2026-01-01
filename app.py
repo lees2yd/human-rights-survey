@@ -1116,35 +1116,45 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
 
+    # 👇 여기 CSS 블록을 이걸로 교체
     st.markdown("""
     <style>
-    /* 좌우 레이블 공통 스타일 */
-    .likert-left, .likert-right {
-        font-size: 0.9rem;
-        line-height: 1.2;
-        white-space: nowrap;
+    /* 전체 한 줄 컨테이너 */
+    .likert-container {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        width: 100%;
+        margin: 8px 0 10px 0;
     }
 
-    .likert-left  { text-align: right; }
-    .likert-right { text-align: left;  }
+    /* 좌우 문구 두 줄 */
+    .likert-side {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+        white-space: nowrap;
+        font-size: 0.9rem;
+    }
+    .likert-side.left  { text-align: right; min-width: 70px; }
+    .likert-side.right { text-align: left;  min-width: 70px; }
 
-    /* 라디오 버튼 가운데 정렬 */
-    .stRadio > div {
+    /* 가운데 숫자(라디오) 정렬 */
+    .likert-center .stRadio > div {
         display: flex !important;
         justify-content: center !important;
         gap: 18px !important;
     }
 
-    /* 🔹 모바일에서도 컬럼이 가로(ROW)로 유지되도록 강제 */
+    /* 모바일 최적화 */
     @media (max-width: 480px) {
-        div[data-testid="stHorizontalBlock"] {
-            flex-direction: row !important;
-        }
-        div[data-testid="column"] {
-            flex: 1 1 0 !important;
-        }
-        .likert-left, .likert-right {
+        .likert-side {
             font-size: 0.8rem;
+        }
+        .likert-center .stRadio > div {
+            gap: 12px !important;
         }
     }
     </style>
@@ -1207,7 +1217,7 @@ if st.session_state.page == "survey":
     # =========================
     for i, q in enumerate(QUESTIONS, 1):
 
-        # 이전 문항을 응답해야 다음 문항 활성화
+        # 이전 문항 응답 여부에 따라 disable
         if i == 1:
             disabled = False
         else:
@@ -1219,39 +1229,41 @@ if st.session_state.page == "survey":
             unsafe_allow_html=True
         )
 
-        # 🔹 좌(전혀 그렇지 않다) – 가운데(1~4) – 우(매우 그렇다)
-        left_col, mid_col, right_col = st.columns([1.7, 3, 1.7])
+        # 👇 좌측/가운데/우측을 우리가 직접 flex로 구성
+        st.markdown(
+            """
+            <div class="likert-container">
+              <div class="likert-side left">
+                <span>전혀</span>
+                <span>그렇지 않다</span>
+              </div>
+              <div class="likert-center">
+            """,
+            unsafe_allow_html=True,
+        )
 
-        with left_col:
-            st.markdown(
-                """
-                <div class="likert-left">
-                    전혀<br>그렇지 않다
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        # 숫자 라디오 버튼
+        ans = st.radio(
+            "",
+            [1, 2, 3, 4],
+            horizontal=True,
+            index=None,
+            key=f"q_{i}",
+            disabled=disabled,
+            label_visibility="collapsed",
+        )
 
-        with mid_col:
-            ans = st.radio(
-                "",
-                [1, 2, 3, 4],
-                horizontal=True,
-                index=None,
-                key=f"q_{i}",
-                disabled=disabled,
-                label_visibility="collapsed",
-            )
-
-        with right_col:
-            st.markdown(
-                """
-                <div class="likert-right">
-                    매우<br>그렇다
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        st.markdown(
+            """
+              </div>
+              <div class="likert-side right">
+                <span>매우</span>
+                <span>그렇다</span>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         answers.append(ans)
 
@@ -1259,7 +1271,6 @@ if st.session_state.page == "survey":
             st.session_state.answers[i] = ans
 
         st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
-
     # =========================
     # 제출 버튼 (루프 바깥!)
     # =========================
@@ -1596,6 +1607,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
