@@ -33,6 +33,8 @@ YESNO3 = [
     "3 - 매우 자주 있다",
 ]
 
+TOTAL_SECTIONS = 7  # 태도, 관계, 소진, 인식, 교육, 보상, 인구학
+
 # ---------------- 연구 설명 및 동의 ----------------
 with st.expander("연구 설명 및 참여 동의", expanded=True):
     st.markdown(
@@ -61,51 +63,13 @@ if not consent:
 
 st.markdown("---")
 
-# ---------------- Ⅰ. 인구학적 정보 ----------------
-st.header("Ⅰ. 인구학적 정보")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    gender = st.selectbox("1. 성별", ["선택하세요", "남", "여", "응답하지 않음"])
-    age = st.number_input("2. 연령(만)", min_value=20, max_value=70, step=1)
-    org = st.text_input("3. 근무지 (예: ○○교도소, ○○구치소 등)")
-    dept = st.text_input("4. 부서 (예: 경비과, 보안과, 의료과 등)")
-
-with col2:
-    difficulty = st.selectbox(
-        "5. 현재 근무하시는 기관의 주관적 근무 난이도",
-        ["선택하세요", "매우 낮음", "낮음", "보통", "높음", "매우 높음"],
-    )
-    years = st.number_input("6. 근무 연수 (년)", min_value=0, max_value=40, step=1)
-    freq_mental = st.selectbox(
-        "7. 지난 6개월 동안 정신문제 수용자를 얼마나 대면하였는지요?",
-        [
-            "선택하세요",
-            "거의 대면하지 않았다",
-            "가끔 대면했다",
-            "자주 대면했다",
-            "매우 자주 대면했다",
-        ],
-    )
-
-st.text_area(
-    "8. 현재 교도소에서 정신질환 수용자를 관리하는 데 가장 큰 장애물은 무엇이라고 생각하십니까?",
-    key="barrier"
-)
-st.text_area(
-    "9. 현재 교도소에서 정신질환 수용자의 관리를 향상시키기 위한 필요한 사항은 무엇이라고 생각하십니까?",
-    key="improve"
-)
-st.text_area(
-    "10. 현재 교도소에서 정신문제 수용자의 인권 보호에 가장 필요한 사항은 무엇이라고 생각하십니까?",
-    key="rights_need"
-)
-
-st.markdown("---")
-
-# ---------------- Ⅱ. 정신문제 수용자와 일반 수용자에 대한 태도 ----------------
-st.header("Ⅱ. 정신문제 수용자와 일반 수용자에 대한 태도 (38문항)")
+# ============================================================
+# Ⅰ. 정신문제 수용자와 일반 수용자에 대한 태도
+# ============================================================
+section = 1
+st.header("Ⅰ. 정신문제 수용자와 일반 수용자에 대한 태도 (38문항)")
+st.progress(section / TOTAL_SECTIONS)
+st.caption(f"진행률: {section} / {TOTAL_SECTIONS} 섹션")
 
 st.write(
     """
@@ -156,7 +120,6 @@ attitude_items = [
 ]
 
 attitude_responses = {}
-
 for i, text in enumerate(attitude_items, start=1):
     st.subheader(f"문항 {i}")
     st.markdown(text)
@@ -176,8 +139,13 @@ for i, text in enumerate(attitude_items, start=1):
 
 st.markdown("---")
 
-# ---------------- Ⅲ. 수용자·동료·가족·의료팀과의 관계 ----------------
-st.header("Ⅲ. 수용자·동료·가족·의료(심리치료)팀과의 관계")
+# ============================================================
+# Ⅱ. 수용자·동료·가족·의료팀과의 관계
+# ============================================================
+section = 2
+st.header("Ⅱ. 수용자·동료·가족·의료(심리치료)팀과의 관계")
+st.progress(section / TOTAL_SECTIONS)
+st.caption(f"진행률: {section} / {TOTAL_SECTIONS} 섹션")
 
 st.subheader("1. 관리하는 수용자와의 관계 (형용사 쌍)")
 
@@ -192,7 +160,6 @@ rel_items = [
 ]
 
 rel_responses = {}
-
 for i, text in enumerate(rel_items, start=1):
     c1, c2 = st.columns(2)
     with c1:
@@ -211,12 +178,10 @@ for i, text in enumerate(rel_items, start=1):
         )
 
 st.subheader("2. 동료 지지 관계")
-
 peer_support_1 = st.selectbox("나는 동료를 지지한다.", ["선택하세요"] + FREQ3)
 peer_support_2 = st.selectbox("나는 동료로부터 지지를 받는다.", ["선택하세요"] + FREQ3)
 
 st.subheader("3. 가족 지지 관계")
-
 family_view = st.selectbox(
     "가족들은 귀하가 교도소에서 근무하는 것에 대해 어떻게 느끼고 있습니까?",
     [
@@ -227,7 +192,6 @@ family_view = st.selectbox(
         "부정적이거나 걱정이 많음",
     ],
 )
-
 family_safety = st.selectbox(
     "가족들은 교도소에서 근무할 때 당신의 안전을 걱정하는 경우가 있습니까?",
     ["선택하세요"] + YESNO3,
@@ -251,8 +215,13 @@ for i, text in enumerate(med_items, start=1):
 
 st.markdown("---")
 
-# ---------------- Ⅳ. 직무소진 평가 (K-BAT) ----------------
-st.header("Ⅳ. 직무소진 평가 (K-BAT)")
+# ============================================================
+# Ⅲ. 직무소진 평가 (K-BAT)
+# ============================================================
+section = 3
+st.header("Ⅲ. 직무소진 평가 (K-BAT)")
+st.progress(section / TOTAL_SECTIONS)
+st.caption(f"진행률: {section} / {TOTAL_SECTIONS} 섹션")
 
 st.write("현재 귀하의 상태에 가장 가까운 정도를 선택해 주십시오. (1-매우 부동의 ~ 5-매우 동의)")
 
@@ -289,8 +258,13 @@ for i, text in enumerate(burnout_items, start=1):
 
 st.markdown("---")
 
-# ---------------- Ⅴ. 교도관의 인식 (4개 집단, 18 형용사) ----------------
-st.header("Ⅴ. 교도관의 인식 (정신문제 수용자 / 일반 수용자 / 정신질환 일반인 / 일반인)")
+# ============================================================
+# Ⅳ. 교도관의 인식 (4집단, 18 형용사)
+# ============================================================
+section = 4
+st.header("Ⅳ. 교도관의 인식 (정신문제 수용자 / 일반 수용자 / 정신질환 일반인 / 일반인)")
+st.progress(section / TOTAL_SECTIONS)
+st.caption(f"진행률: {section} / {TOTAL_SECTIONS} 섹션")
 
 st.write(
     """
@@ -343,11 +317,15 @@ for i, text in enumerate(percep_items, start=1):
 
 st.markdown("---")
 
-# ---------------- Ⅵ. 교육 경험 및 교육훈련 필요성 ----------------
-st.header("Ⅵ. 교육 경험 및 교육훈련 필요성")
+# ============================================================
+# Ⅴ. 교육 경험 및 교육훈련 필요성
+# ============================================================
+section = 5
+st.header("Ⅴ. 교육 경험 및 교육훈련 필요성")
+st.progress(section / TOTAL_SECTIONS)
+st.caption(f"진행률: {section} / {TOTAL_SECTIONS} 섹션")
 
 st.subheader("1. 교육 경험 (중복 선택 가능)")
-
 edu_experience = st.multiselect(
     "정신문제 수용자와 관련하여 받은 교육은 무엇인가요?",
     [
@@ -377,8 +355,13 @@ for i, text in enumerate(edu_items, start=1):
 
 st.markdown("---")
 
-# ---------------- Ⅶ. 보상 관련 (선택 사항) ----------------
-st.header("Ⅶ. 보상 관련 (선택 사항)")
+# ============================================================
+# Ⅵ. 보상 관련 (선택 사항)
+# ============================================================
+section = 6
+st.header("Ⅵ. 보상 관련 (선택 사항)")
+st.progress(section / TOTAL_SECTIONS)
+st.caption(f"진행률: {section} / {TOTAL_SECTIONS} 섹션")
 
 st.write(
     "설문을 마치신 분들 중 일부를 추첨하여 소정의 모바일 커피 쿠폰을 드릴 예정입니다.\n"
@@ -390,43 +373,82 @@ want_reward = st.radio(
     ["아니요", "예"],
     index=0,
 )
-
 phone_number = ""
 if want_reward == "예":
     phone_number = st.text_input("휴대전화 번호 (예: 010-0000-0000)")
 
 st.markdown("---")
 
+# ============================================================
+# Ⅶ. 인구학적 정보 (맨 마지막)
+# ============================================================
+section = 7
+st.header("Ⅶ. 인구학적 정보")
+st.progress(section / TOTAL_SECTIONS)
+st.caption(f"진행률: {section} / {TOTAL_SECTIONS} 섹션 (마지막)")
+
+col1, col2 = st.columns(2)
+with col1:
+    gender = st.selectbox("1. 성별", ["선택하세요", "남", "여", "응답하지 않음"])
+    age = st.number_input("2. 연령(만)", min_value=20, max_value=70, step=1)
+
+with col2:
+    years = st.number_input("3. 교정공무원 근무 연수(년)", min_value=0, max_value=40, step=1)
+
+org = st.text_input("4. 근무지 (예: ○○교도소, ○○구치소 등)")
+dept = st.text_input("5. 부서 (예: 경비과, 보안과, 의료과 등)")
+
+freq_mental = st.selectbox(
+    "6. 지난 6개월 동안 정신문제 수용자를 얼마나 대면하였는지요?",
+    [
+        "선택하세요",
+        "거의 대면하지 않았다",
+        "가끔 대면했다",
+        "자주 대면했다",
+        "매우 자주 대면했다",
+    ],
+)
+
+st.text_area(
+    "7. 현재 교도소에서 정신질환 수용자를 관리하는 데 가장 큰 장애물은 무엇이라고 생각하십니까?",
+    key="barrier"
+)
+st.text_area(
+    "8. 현재 교도소에서 정신질환 수용자의 관리를 향상시키기 위한 필요한 사항은 무엇이라고 생각하십니까?",
+    key="improve"
+)
+st.text_area(
+    "9. 현재 교도소에서 정신문제 수용자의 인권 보호에 가장 필요한 사항은 무엇이라고 생각하십니까?",
+    key="rights_need"
+)
+
+st.markdown("---")
+
 # ---------------- 제출 및 저장 ----------------
-st.header("Ⅷ. 설문 제출")
+st.header("설문 제출")
 
 st.write("모든 문항을 확인하신 뒤, 아래 버튼을 눌러 설문을 제출해 주세요.")
 
 if st.button("설문 제출"):
-    # 아주 기본적인 필수 체크 (성별/연령/근무지/근무연수/정신문제 대면 빈도만)
+    # 아주 기본적인 필수 체크
     missing = []
     if gender == "선택하세요":
         missing.append("성별")
-    if difficulty == "선택하세요":
-        missing.append("근무 난이도")
-    if freq_mental == "선택하세요":
-        missing.append("정신문제 수용자 대면 빈도")
     if org.strip() == "":
         missing.append("근무지")
-    if years is None:
-        missing.append("근무 연수")
+    if freq_mental == "선택하세요":
+        missing.append("정신문제 수용자 대면 빈도")
 
     if missing:
         st.error(f"다음 항목(들)을 모두 응답해 주세요: {', '.join(missing)}")
     else:
-        # 기본 정보 수집
         data = {
             "timestamp": datetime.now().isoformat(),
             "gender": gender,
             "age": age,
             "org": org,
             "dept": dept,
-            "difficulty": difficulty,
+            "difficulty": st.session_state.get("difficulty", ""),  # 없으면 공란
             "years": years,
             "freq_mental": freq_mental,
             "barrier": st.session_state.get("barrier", ""),
@@ -441,7 +463,7 @@ if st.button("설문 제출"):
             "phone_number": phone_number,
         }
 
-        # 나머지 문항 합치기
+        # 나머지 응답 병합
         data.update(attitude_responses)
         data.update(rel_responses)
         data.update(med_responses)
