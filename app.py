@@ -1528,7 +1528,7 @@ if st.session_state.page == "result":
     st.write(f"감: **{gam}점** / 수: **{su}점** / 성: **{seong}점**")
     st.write(f"정신질환 관련 점수: **{mental}점**")
 
-    # 4) 레이더 차트 (✅ 제출 후 결과 화면에서 항상 렌더)
+    # 4) 레이더 차트 (제출 후 결과 화면에서 항상 렌더)
     st.subheader("🕸 감·수·성 인권감수성 프로파일 (Radar Chart)")
 
     categories = ["감", "수", "성"]
@@ -1638,6 +1638,7 @@ if st.session_state.page == "result":
     st.subheader("🗣 설문에 대한 의견 (선택)")
 
     st.caption("문항 구성, 길이, 표현, 결과지 내용, 전반적인 느낌, 개선점 등에 대해 자유롭게 적어 주세요.")
+    st.caption("※ 입력은 선택 사항입니다. 적지 않아도 설문 제출이 가능합니다.")
 
     feedback_text = st.text_area(
         "자유 의견",
@@ -1646,20 +1647,7 @@ if st.session_state.page == "result":
         placeholder="예) 문항이 조금 길게 느껴졌습니다.\n정신질환 관련 문항이 인상 깊었습니다.\n어려웠던 점이나 좋았던 점을 적어 주세요."
     )
 
-    if st.button("의견 제출", key="feedback_submit"):
-        if feedback_text.strip():
-            try:
-                # ⚠️ 위쪽에 save_feedback 함수가 정의되어 있어야 합니다.
-                save_feedback(feedback_text)
-                st.success("의견이 저장되었습니다. 소중한 피드백 감사합니다.")
-            except Exception as e:
-                st.error("의견 저장 중 오류가 발생했습니다.")
-                st.caption(str(e))
-        else:
-            st.warning("내용을 입력하신 후 제출해 주세요.")
-
-    # ---- 5-bis) 결과지 PDF 다운로드 ----
-    # 응답 시간 문자열을 결과 dict에 추가 (보고서 상단 표시용)
+    # ---- 결과지 PDF 생성 & 다운로드 버튼 ----
     st.session_state.result["time_str"] = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
 
     pdf_bytes = make_result_pdf(
@@ -1674,57 +1662,73 @@ if st.session_state.page == "result":
         mime="application/pdf",
     )
 
-    # 6) 저장 (🔒 한 번만 저장되도록 세션 플래그 사용)
-    if not st.session_state.get("saved_to_sheet", False):
+    st.markdown("---")
 
-        row = {
-            "time": datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
-            "total": total,
-            "감": gam,
-            "수": su,
-            "성": seong,
-            "정신": mental,
-        }
-        # 설문 27문항 점수
-        for i, a in enumerate(r["answers"], 1):
-            row[f"q{i}"] = a
+    # ✅ 여기서 한 번에 설문 종료 + 저장 + (있다면) 의견 저장
+    if st.button("✅ 설문 종료 및 제출", key="final_submit"):
 
-        # 📊 인구학 정보 숫자 코드로 변환
-        demo = st.session_state.get("demographic", {})
+        if not st.session_state.get("saved_to_sheet", False):
 
-        row["연령대"]   = AGE_MAP.get(demo.get("연령대"))
-        row["성별"]     = GENDER_MAP.get(demo.get("성별"))
-        row["경력"]     = CAREER_MAP.get(demo.get("경력"))
-        row["직무"]     = JOBTYPE_MAP.get(demo.get("직무"))
-        row["기관"]     = FACIL_MAP.get(demo.get("기관"))
-        row["교대"]     = SHIFT_MAP.get(demo.get("교대"))
-        row["인권교육"] = EDU_HR_MAP.get(demo.get("인권교육"))
-        row["정신교육"] = EDU_MENTAL_MAP.get(demo.get("정신교육"))
-        row["대면빈도"] = EXPOSURE_MAP.get(demo.get("대면빈도"))
-        row["학력"]     = DEGREE_MAP.get(demo.get("학력"))
+            # 1) 기본 응답 저장용 row 구성
+            row = {
+                "time": datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S"),
+                "total": total,
+                "감": gam,
+                "수": su,
+                "성": seong,
+                "정신": mental,
+            }
+            # 설문 27문항 점수
+            for i, a in enumerate(r["answers"], 1):
+                row[f"q{i}"] = a
 
-        # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
-        phone = st.session_state.get("phone", None)
-        if phone:
+            # 📊 인구학 정보 숫자 코드로 변환
+            demo = st.session_state.get("demographic", {})
+
+            row["연령대"]   = AGE_MAP.get(demo.get("연령대"))
+            row["성별"]     = GENDER_MAP.get(demo.get("성별"))
+            row["경력"]     = CAREER_MAP.get(demo.get("경력"))
+            row["직무"]     = JOBTYPE_MAP.get(demo.get("직무"))
+            row["기관"]     = FACIL_MAP.get(demo.get("기관"))
+            row["교대"]     = SHIFT_MAP.get(demo.get("교대"))
+            row["인권교육"] = EDU_HR_MAP.get(demo.get("인권교육"))
+            row["정신교육"] = EDU_MENTAL_MAP.get(demo.get("정신교육"))
+            row["대면빈도"] = EXPOSURE_MAP.get(demo.get("대면빈도"))
+            row["학력"]     = DEGREE_MAP.get(demo.get("학력"))
+
+            # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
+            phone = st.session_state.get("phone", None)
+            if phone:
+                try:
+                    save_phone(phone)
+                except Exception as e:
+                    st.warning("휴대폰 번호 저장 중 오류가 발생했습니다. 쿠폰 발송에 문제가 생길 수 있습니다.")
+                    st.caption(str(e))
+
+            # 2) 메인 응답 저장
             try:
-                save_phone(phone)
+                save(row)
+                st.session_state.saved_to_sheet = True   # ✅ 이후에는 다시 저장 안 함
+                st.success("응답이 저장되었습니다. 설문에 참여해 주셔서 감사합니다.")
             except Exception as e:
-                st.warning("휴대폰 번호 저장 중 오류가 발생했습니다. 쿠폰 발송에 문제가 생길 수 있습니다.")
+                st.error("응답 저장 중 오류가 발생했습니다.")
                 st.caption(str(e))
 
-        try:
-            save(row)
-            st.session_state.saved_to_sheet = True   # ✅ 이후에는 다시 저장 안 함
-            st.success("응답이 저장되었습니다.")
-        except Exception as e:
-            st.error("응답 저장 중 오류가 발생했습니다.")
-            st.caption(str(e))
+            # 3) 의견이 있다면 별도 시트에 저장 (선택)
+            if feedback_text and feedback_text.strip():
+                try:
+                    # ⚠️ 위쪽에 save_feedback(feedback_text) 함수가 정의되어 있어야 합니다.
+                    save_feedback(feedback_text.strip())
+                    st.info("작성해 주신 의견도 함께 저장되었습니다.")
+                except Exception as e:
+                    st.warning("의견 저장 중 오류가 발생했습니다. (설문 응답은 정상 저장되었습니다.)")
+                    st.caption(str(e))
 
-        st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
+            st.caption("※ 본 설문은 연구 목적의 자가점검 도구이며 인사평가와 무관합니다.")
 
-    else:
-        # 이미 저장된 상태에서 페이지가 다시 렌더될 때
-        st.info("설문을 마치셨습니다. 감사합니다.")
+        else:
+            # 이미 저장된 상태에서 제출 버튼을 다시 눌렀을 때
+            st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
 
 
 
