@@ -1118,16 +1118,44 @@ if st.session_state.page == "survey":
 
     st.markdown("""
     <style>
-    /* 라디오 버튼 가운데 정렬 */
-    .stRadio > div {
-        display: flex !important;
-        justify-content: center !important;   /* 🔥 가로 중앙 정렬 */
-        align-items: center !important;       /* 세로 균형 */
-        gap: 14px !important;                 /* 숫자 간 간격 */
+
+    /* 전체 구조 컨테이너 */
+    .likert-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 6px 0 14px 0;
+        width: 100%;
     }
+
+    /* 좌우 글자 두 줄 */
+    .likert-side {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.9rem;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    /* 숫자 중앙 배치 */
+    .likert-center .stRadio > div {
+        display: flex !important;
+        justify-content: center !important;
+        gap: 18px !important;
+    }
+
+    /* 모바일 최적화 */
+    @media (max-width: 480px) {
+        .likert-side {
+            font-size: 0.8rem;
+        }
+        .likert-center .stRadio > div {
+            gap: 12px !important;
+        }
+    }
+
     </style>
     """, unsafe_allow_html=True)
-
     # 🔴 상단 붉은색 밑줄 안내
     st.markdown(
         """
@@ -1185,49 +1213,62 @@ if st.session_state.page == "survey":
     # =========================
     for i, q in enumerate(QUESTIONS, 1):
 
-        # 이전 문항을 응답해야 다음 문항 활성화
-        if i == 1:
-            disabled = False
-        else:
-            disabled = (st.session_state.get(f"q_{i-1}") is None)
+    # 이전 문항을 응답해야 다음 문항 활성화
+    if i == 1:
+        disabled = False
+    else:
+        disabled = (st.session_state.get(f"q_{i-1}") is None)
 
-        # 질문 텍스트
-        st.markdown(
-            f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
-            unsafe_allow_html=True
-        )
+    # 질문 텍스트
+    st.markdown(
+        f"<div class='question-block'><div class='question-text'>{i}. {q}</div>",
+        unsafe_allow_html=True
+    )
 
-        # 🔹 공감척도 레이아웃: [전혀 그렇지 않다] [1 2 3 4] [매우 그렇다]
-        left_col, mid_col, right_col = st.columns([1.7, 3, 1.7])
+    # 🔹 라벨 두 줄 + 숫자 중앙 배치
+    st.markdown(
+        """
+        <div class="likert-container">
+            <div class="likert-side">
+                <span>전혀</span>
+                <span>그렇지 않다</span>
+            </div>
 
-        with left_col:
-            st.markdown(
-                "<div style='text-align:right; font-size:0.9rem;'>전혀 그렇지 않다</div>",
-                unsafe_allow_html=True
-            )
+            <div class="likert-center" style="margin: 0 24px;">
+        """,
+        unsafe_allow_html=True,
+    )
 
-        with mid_col:
-            ans = st.radio(
-                "",
-                [1, 2, 3, 4],
-                horizontal=True,
-                index=None,
-                key=f"q_{i}",
-                disabled=disabled
-            )
+    ans = st.radio(
+        "",
+        [1, 2, 3, 4],
+        horizontal=True,
+        index=None,
+        key=f"q_{i}",
+        disabled=disabled,
+        label_visibility="collapsed",   # 숫자만 보이게
+    )
 
-        with right_col:
-            st.markdown(
-                "<div style='text-align:left; font-size:0.9rem;'>매우 그렇다</div>",
-                unsafe_allow_html=True
-            )
+    st.markdown(
+        """
+            </div>
 
-        answers.append(ans)
+            <div class="likert-side">
+                <span>매우</span>
+                <span>그렇다</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-        if ans is not None:
-            st.session_state.answers[i] = ans
+    # ---- 이하 동일 ----
+    answers.append(ans)
 
-        st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
+    if ans is not None:
+        st.session_state.answers[i] = ans
+
+    st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
     # =========================
     # 제출 가능 여부 체크 (기존 코드 그대로)
@@ -1565,6 +1606,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
