@@ -1116,44 +1116,35 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
 
+    # ✅ 여기 CSS 블록을 통째로 교체합니다
     st.markdown("""
     <style>
-
-    /* 전체 구조 컨테이너 */
-    .likert-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 6px 0 14px 0;
-        width: 100%;
-    }
-
-    /* 좌우 글자 두 줄 */
-    .likert-side {
-        display: flex;
-        flex-direction: column;
+    /* 좌우 레이블 공통 스타일 */
+    .likert-left, .likert-right {
         font-size: 0.9rem;
-        text-align: center;
+        line-height: 1.2;
         white-space: nowrap;
     }
 
-    /* 숫자 중앙 배치 */
-    .likert-center .stRadio > div {
+    /* PC/태블릿 기본 정렬 */
+    .likert-left  { text-align: right; }
+    .likert-right { text-align: left;  }
+
+    /* 라디오 버튼 가운데 정렬 */
+    .stRadio > div {
         display: flex !important;
         justify-content: center !important;
         gap: 18px !important;
     }
 
-    /* 모바일 최적화 */
+    /* 모바일일 때는 레이블을 가운데로 배치 */
     @media (max-width: 480px) {
-        .likert-side {
-            font-size: 0.8rem;
-        }
-        .likert-center .stRadio > div {
-            gap: 12px !important;
+        .likert-left,
+        .likert-right {
+            text-align: center;
+            margin-top: 4px;
         }
     }
-
     </style>
     """, unsafe_allow_html=True)
 
@@ -1226,21 +1217,19 @@ if st.session_state.page == "survey":
             unsafe_allow_html=True
         )
 
-        # 🔹 좌측·중앙·우측 3열 구성
+        # 🔹 좌(전혀 그렇지 않다) – 가운데(1~4) – 우(매우 그렇다)
         left_col, mid_col, right_col = st.columns([1.7, 3, 1.7])
 
-        # 왼쪽: "전혀 / 그렇지 않다" (두 줄, 오른쪽 정렬)
         with left_col:
             st.markdown(
                 """
-                <div style="text-align:right; font-size:0.9rem; line-height:1.2;">
+                <div class="likert-left">
                     전혀<br>그렇지 않다
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-        # 가운데: 1~4 점수 (가운데 정렬은 위의 .stRadio CSS가 해 줍니다)
         with mid_col:
             ans = st.radio(
                 "",
@@ -1252,11 +1241,10 @@ if st.session_state.page == "survey":
                 label_visibility="collapsed",
             )
 
-        # 오른쪽: "매우 / 그렇다" (두 줄, 왼쪽 정렬)
         with right_col:
             st.markdown(
                 """
-                <div style="text-align:left; font-size:0.9rem; line-height:1.2;">
+                <div class="likert-right">
                     매우<br>그렇다
                 </div>
                 """,
@@ -1271,7 +1259,7 @@ if st.session_state.page == "survey":
         st.markdown("<div class='answer-divider'></div>", unsafe_allow_html=True)
 
     # =========================
-    # 제출 가능 여부 체크 (루프 밖!)
+    # 제출 버튼 (루프 바깥!)
     # =========================
     can_submit = all(
         st.session_state.get(f"q_{i}") is not None
@@ -1606,6 +1594,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
