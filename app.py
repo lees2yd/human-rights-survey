@@ -1057,7 +1057,82 @@ def make_result_pdf(result: dict, demographic: dict | None = None) -> bytes:
     pdf_bytes = buffer.getvalue()
     buffer.close()
     return pdf_bytes
-    
+
+# =========================
+# 인구학 정보 → 숫자 코드 매핑
+# =========================
+AGE_MAP = {
+    "20대": 1,
+    "30대": 2,
+    "40대": 3,
+    "50대": 4,
+    "60대 이상": 5,
+    "응답하지 않음": 9,
+}
+
+GENDER_MAP = {
+    "남성": 1,
+    "여성": 2,
+    "응답하지 않음": 9,
+}
+
+CAREER_MAP = {
+    "5년 미만": 1,
+    "5~10년 미만": 2,
+    "10~20년 미만": 3,
+    "20년 이상": 4,
+}
+
+JOBTYPE_MAP = {
+    "보안과": 1,
+    "사회복귀과": 2,
+    "의료과": 3,
+    "총무과/직훈과": 4,
+    "기타": 9,
+}
+
+FACIL_MAP = {
+    "교도소": 1,
+    "구치소": 2,
+    "소년시설": 3,
+    "치료감호/의료": 4,
+    "기타": 9,
+}
+
+SHIFT_MAP = {
+    "주간 중심": 1,
+    "교대(야간 포함)": 2,
+    "혼합/불규칙": 3,
+}
+
+EDU_HR_MAP = {
+    "전혀 없음": 0,
+    "1회": 1,
+    "2~3회": 2,
+    "4회 이상": 3,
+}
+
+EDU_MENTAL_MAP = {
+    "없다": 0,
+    "1회": 1,
+    "2회 이상": 2,
+}
+
+EXPOSURE_MAP = {
+    "거의 없음": 0,
+    "가끔": 1,
+    "자주": 2,
+    "매우 자주": 3,
+}
+
+DEGREE_MAP = {
+    "고졸": 1,
+    "전문대": 2,
+    "학사": 3,
+    "석사 이상": 4,
+    "응답하지 않음": 9,
+}
+
 # =========================
 # Google Sheets 저장
 # =========================
@@ -1555,12 +1630,35 @@ if st.session_state.page == "result":
             "성": seong,
             "정신": mental,
         }
+        # 설문 27문항 점수
         for i, a in enumerate(r["answers"], 1):
             row[f"q{i}"] = a
 
+        # 📊 인구학 정보 숫자 코드로 변환
         demo = st.session_state.get("demographic", {})
-        for k, v in demo.items():
-            row[k] = v  # row에 추가
+
+        row["연령대"]   = AGE_MAP.get(demo.get("연령대"))
+        row["성별"]     = GENDER_MAP.get(demo.get("성별"))
+        row["경력"]     = CAREER_MAP.get(demo.get("경력"))
+        row["직무"]     = JOBTYPE_MAP.get(demo.get("직무"))
+        row["기관"]     = FACIL_MAP.get(demo.get("기관"))
+        row["교대"]     = SHIFT_MAP.get(demo.get("교대"))
+        row["인권교육"] = EDU_HR_MAP.get(demo.get("인권교육"))
+        row["정신교육"] = EDU_MENTAL_MAP.get(demo.get("정신교육"))
+        row["대면빈도"] = EXPOSURE_MAP.get(demo.get("대면빈도"))
+        row["학력"]     = DEGREE_MAP.get(demo.get("학력"))
+
+        # (선택) 라벨도 같이 저장하고 싶으면 아래 주석 해제해서 사용
+        # row["연령대_label"]   = demo.get("연령대")
+        # row["성별_label"]     = demo.get("성별")
+        # row["경력_label"]     = demo.get("경력")
+        # row["직무_label"]     = demo.get("직무")
+        # row["기관_label"]     = demo.get("기관")
+        # row["교대_label"]     = demo.get("교대")
+        # row["인권교육_label"] = demo.get("인권교육")
+        # row["정신교육_label"] = demo.get("정신교육")
+        # row["대면빈도_label"] = demo.get("대면빈도")
+        # row["학력_label"]     = demo.get("학력")
 
         # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
         phone = st.session_state.get("phone", None)
@@ -1584,6 +1682,7 @@ if st.session_state.page == "result":
     else:
         # 이미 저장된 상태에서 페이지가 다시 렌더될 때
         st.info("설문을 마치셨습니다. 감사합니다.")
+
 
 
 
