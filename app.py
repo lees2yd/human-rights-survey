@@ -244,12 +244,13 @@ if "answers" not in st.session_state:
 # 📌 상단 진행률 바 (설문 + 인구학)
 # =========================
 TOTAL_SURVEY_Q = 27
-TOTAL_DEMO_Q = 10
+TOTAL_DEMO_Q = 11
 
 # 인구학 문항에 사용한 key들
 DEMO_KEYS = [
     "age", "gender", "career", "jobtype", "facil",
-    "shift", "edu_hr", "edu_mental", "exposure", "degree"
+    "shift", "edu_hr", "edu_mental", "exposure", "degree",
+    "burnout_detach"
 ]
 
 progress_pct = None
@@ -1729,6 +1730,7 @@ if st.session_state.page == "result":
         else:
             # 이미 저장된 상태에서 제출 버튼을 다시 눌렀을 때
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
