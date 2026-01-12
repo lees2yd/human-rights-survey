@@ -1472,7 +1472,7 @@ if st.session_state.page == "demographic":
     # ===== 쿠폰 =====
     st.markdown("---")
     st.markdown("### ☕ 커피 쿠폰 수령 (선택)")
-    want_coupon = st.checkbox("커피 쿠폰을 받기 위해 휴대폰 번호를 입력하겠습니다.", key="want_coupon")
+    want_coupon = st.checkbox("커피 쿠폰을 받기 위해 휴대폰 번호를 입력하겠습니다. 수집된 번호는 본 연구와 분리저장되고 쿠폰발송 후 즉시 폐기합니다.", key="want_coupon")
 
     if want_coupon:
         st.text_input("휴대폰 번호 입력 (예: 01012345678)", key="phone_input")
@@ -1729,6 +1729,7 @@ if st.session_state.page == "result":
         else:
             # 이미 저장된 상태에서 제출 버튼을 다시 눌렀을 때
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
