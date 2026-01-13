@@ -1080,13 +1080,11 @@ AGE_MAP = {
     "40대": 3,
     "50대": 4,
     "60대 이상": 5,
-    "응답하지 않음": 9,
 }
 
 GENDER_MAP = {
     "남성": 1,
     "여성": 2,
-    "응답하지 않음": 9,
 }
 
 CAREER_MAP = {
@@ -1143,7 +1141,6 @@ DEGREE_MAP = {
     "전문대": 2,
     "학사": 3,
     "석사 이상": 4,
-    "응답하지 않음": 9,
 }
 
 BURNOUT_DETACH_MAP = {
@@ -1439,10 +1436,10 @@ if st.session_state.page == "demographic":
 
     # ===== 문항 =====
     st.markdown('<span class="question-label">1. 연령대</span>', unsafe_allow_html=True)
-    age = st.radio("", ["20대","30대","40대","50대","60대 이상","응답하지 않음"], key="age", index=None)
+    age = st.radio("", ["20대","30대","40대","50대","60대 이상"], key="age", index=None)
 
     st.markdown('<span class="question-label">2. 성별</span>', unsafe_allow_html=True)
-    gender = st.radio("", ["남성","여성","응답하지 않음"], key="gender", index=None,
+    gender = st.radio("", ["남성","여성"], key="gender", index=None,
                       disabled=(age is None))
 
     st.markdown('<span class="question-label">3. 교정 경력</span>', unsafe_allow_html=True)
@@ -1474,7 +1471,7 @@ if st.session_state.page == "demographic":
                         disabled=(edu_mental is None))
 
     st.markdown('<span class="question-label">10. 최종 학력</span>', unsafe_allow_html=True)
-    degree = st.radio("", ["고졸","전문대","학사","석사 이상","응답하지 않음"], key="degree", index=None,
+    degree = st.radio("", ["고졸","전문대","학사","석사 이상"], key="degree", index=None,
                       disabled=(exposure is None))
 
     # ✅ 11번: 직무소진(거리두기) 1문항 추가
@@ -1755,6 +1752,7 @@ if st.session_state.page == "result":
         else:
             # 이미 저장된 상태에서 제출 버튼을 다시 눌렀을 때
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
