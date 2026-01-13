@@ -1476,7 +1476,7 @@ if st.session_state.page == "demographic":
 
     # ✅ 11번: 직무소진(거리두기) 1문항 추가
     st.markdown(
-        '<span class="question-label">11. 최근 6개월간, 나는 수용자를 대할 때 정서적으로 거리를 두거나 무감각해진 느낌이 있었다.</span>',
+        '<span class="question-label">11. 최근 6개월간, 업무로 인해 마음이 지치거나 감정이 무뎌졌다고 느낀 적이 있다.</span>',
         unsafe_allow_html=True
     )
     burnout_detach = st.radio(
@@ -1752,6 +1752,7 @@ if st.session_state.page == "result":
         else:
             # 이미 저장된 상태에서 제출 버튼을 다시 눌렀을 때
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
