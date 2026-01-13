@@ -1146,6 +1146,13 @@ DEGREE_MAP = {
     "응답하지 않음": 9,
 }
 
+BURNOUT_DETACH_MAP = {
+    "전혀 아니다": 1,
+    "대체로 아니다": 2,
+    "대체로 그렇다": 3,
+    "매우 그렇다": 4,
+}
+
 # =========================
 # Google Sheets 저장
 # =========================
@@ -1420,7 +1427,7 @@ if st.session_state.page == "demographic":
     </style>
     """, unsafe_allow_html=True)
 
-    # 👉 페이지 진입할 때마다 화면 맨 위로 이동 (간단 버전)
+    # 👉 페이지 진입할 때마다 화면 맨 위로 이동
     components.html(
         "<script>window.scrollTo(0, 0);</script>",
         height=0,
@@ -1470,17 +1477,33 @@ if st.session_state.page == "demographic":
     degree = st.radio("", ["고졸","전문대","학사","석사 이상","응답하지 않음"], key="degree", index=None,
                       disabled=(exposure is None))
 
+    # ✅ 11번: 직무소진(거리두기) 1문항 추가
+    st.markdown(
+        '<span class="question-label">11. 최근 6개월간, 나는 수용자를 대할 때 정서적으로 거리를 두거나 무감각해진 느낌이 있었다.</span>',
+        unsafe_allow_html=True
+    )
+    burnout_detach = st.radio(
+        "",
+        ["전혀 아니다", "대체로 아니다", "대체로 그렇다", "매우 그렇다"],
+        key="burnout_detach",
+        index=None,
+        disabled=(degree is None)
+    )
+
     # ===== 쿠폰 =====
     st.markdown("---")
     st.markdown("### ☕ 커피 쿠폰 수령 (선택)")
-    want_coupon = st.checkbox("커피 쿠폰을 받기 위해 휴대폰 번호를 입력하겠습니다. 수집된 번호는 본 연구와 분리저장되고 쿠폰발송 후 즉시 폐기합니다.", key="want_coupon")
+    want_coupon = st.checkbox(
+        "커피 쿠폰을 받기 위해 휴대폰 번호를 입력하겠습니다. 수집된 번호는 본 연구와 분리저장되고 쿠폰발송 후 즉시 폐기합니다.",
+        key="want_coupon"
+    )
 
     if want_coupon:
         st.text_input("휴대폰 번호 입력 (예: 01012345678)", key="phone_input")
         st.caption("※ '-' 없이 숫자만 입력 / 쿠폰 발송 전용 저장")
 
     # ===== 제출 조건 =====
-    demo_keys = ["age","gender","career","jobtype","facil","shift","edu_hr","edu_mental","exposure","degree"]
+    demo_keys = ["age","gender","career","jobtype","facil","shift","edu_hr","edu_mental","exposure","degree","burnout_detach"]
     base_filled = all(st.session_state.get(k) is not None for k in demo_keys)
     phone_filled = bool(st.session_state.get("phone_input", "").strip())
     can_next = base_filled and (not want_coupon or phone_filled)
@@ -1490,7 +1513,8 @@ if st.session_state.page == "demographic":
         st.session_state.demographic = {
             "연령대": age, "성별": gender, "경력": career, "직무": jobtype, "기관": facil,
             "교대": shift, "인권교육": edu_hr, "정신교육": edu_mental,
-            "대면빈도": exposure, "학력": degree
+            "대면빈도": exposure, "학력": degree,
+            "직무소진_거리두기": burnout_detach  # ✅ 저장 추가
         }
         st.session_state["phone"] = st.session_state.get("phone_input", "").strip() if want_coupon else None
         st.session_state.page = "result"
@@ -1696,6 +1720,7 @@ if st.session_state.page == "result":
             row["정신교육"] = EDU_MENTAL_MAP.get(demo.get("정신교육"))
             row["대면빈도"] = EXPOSURE_MAP.get(demo.get("대면빈도"))
             row["학력"]     = DEGREE_MAP.get(demo.get("학력"))
+            row["직무소진_거리두기"] = BURNOUT_DETACH_MAP.get(demo.get("직무소진_거리두기"))
 
             # ☕ 커피 쿠폰용 휴대폰 번호 별도 저장
             phone = st.session_state.get("phone", None)
@@ -1730,6 +1755,7 @@ if st.session_state.page == "result":
         else:
             # 이미 저장된 상태에서 제출 버튼을 다시 눌렀을 때
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
