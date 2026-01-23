@@ -877,20 +877,9 @@ if st.session_state.page == "result":
         placeholder="예) 문항이 조금 길게 느껴졌습니다.\n정신질환 관련 문항이 인상 깊었습니다.\n개선점을 적어 주세요."
     )
 
-    # 6) PDF 생성 & 다운로드
-    st.session_state.result["time_str"] = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
-    pdf_bytes = make_result_pdf(st.session_state.result, st.session_state.get("demographic", {}))
-
-    st.download_button(
-        label="📄 결과지 PDF 다운로드",
-        data=pdf_bytes,
-        file_name="나의_감수성_인권감수성_결과지.pdf",
-        mime="application/pdf",
-    )
-
     st.markdown("---")
 
-    # 7) 설문 종료 및 제출(저장)
+    # 6) 설문 종료 및 제출(저장)
     if st.button("✅ 설문 종료 및 제출", key="final_submit"):
 
         if not st.session_state.get("saved_to_sheet", False):
@@ -956,6 +945,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
