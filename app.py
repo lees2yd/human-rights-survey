@@ -291,6 +291,26 @@ TYPE_TEXT_MH = {
 정신질환 수용자 관련 문항 응답에서 전반적인 점수 분포가 중간 범위에 위치한 유형입니다. 이 영역은 상황의 난이도, 경험, 지원 조건 등의 영향을 크게 받을 수 있음이 응답 양상에 반영되었습니다."""
 }
 
+# =========================
+# ✅ 유형 코드(명목척도) 매핑
+# - 서열 의미 없음(단순 식별 코드)
+# =========================
+TYPE_CODE_MAIN = {
+    "balance": 1,   # 균형형
+    "emotion": 2,   # 감우수형
+    "norm": 3,      # 수우수형
+    "reflect": 4,   # 성우수형
+    "normal": 5     # 보통형
+}
+
+TYPE_CODE_MH = {
+    "balance": 11,  # 정신질환 상황: 균형형
+    "emotion": 12,  # 정신질환 상황: 감우수형
+    "norm": 13,     # 정신질환 상황: 수우수형
+    "reflect": 14,  # 정신질환 상황: 성우수형
+    "normal": 15    # 정신질환 상황: 보통형
+}
+
 def classify_4type_by_scores(gam_score: int, su_score: int, seong_score: int,
                              mid_cut: int, balance_gap: int) -> str:
     # 균형형: 모두 mid_cut 이상 & max-min이 작음
@@ -353,7 +373,7 @@ def make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong):
     return buf
 
 # =========================
-# PDF 결과지 생성 (해석 텍스트 삭제 버전: 유형 중심)
+# PDF 결과지 생성 (유형 중심)
 # =========================
 def make_result_pdf(result: dict, demographic=None) -> bytes:
     buffer = BytesIO()
@@ -381,7 +401,6 @@ def make_result_pdf(result: dict, demographic=None) -> bytes:
     main_type_key = result.get("main_type_key", "normal")
     mh_type_key = result.get("mh_type_key", "normal")
 
-    # 1) 제목
     c.setFont("NanumGothic", 18)
     c.drawString(margin_x, y, "나의 감·수·성 인권감수성 결과")
     y -= 10 * mm
@@ -390,12 +409,10 @@ def make_result_pdf(result: dict, demographic=None) -> bytes:
     c.drawString(margin_x, y, "※ 자가점검용 요약 결과지(비진단·비평가)")
     y -= 8 * mm
 
-    # 2) 응답 일시
     c.setFont("NanumGothic", 9)
     c.drawString(margin_x, y, f"응답 일시: {result.get('time_str', '')}")
     y -= 6 * mm
 
-    # 3) 점수 요약
     c.setFont("NanumGothic", 10)
     c.drawString(
         margin_x, y,
@@ -403,19 +420,20 @@ def make_result_pdf(result: dict, demographic=None) -> bytes:
     )
     y -= 10 * mm
 
-    # 4) 레이더 차트(가운데)
     chart_size = 55 * mm
     chart_x = (width - chart_size) / 2
     chart_y_bottom = y - chart_size + 5 * mm
 
     radar_buf = make_radar_image(gam, su, seong, mh_gam, mh_su, mh_seong)
     radar_img = ImageReader(radar_buf)
-    c.drawImage(radar_img, chart_x, chart_y_bottom, width=chart_size, height=chart_size,
-                preserveAspectRatio=True, mask="auto")
+    c.drawImage(
+        radar_img, chart_x, chart_y_bottom,
+        width=chart_size, height=chart_size,
+        preserveAspectRatio=True, mask="auto"
+    )
 
     y = chart_y_bottom - 12 * mm
 
-    # 5) 유형 안내
     def draw_paragraph(title, body):
         nonlocal y
         if y < margin_y + 40 * mm:
@@ -427,7 +445,6 @@ def make_result_pdf(result: dict, demographic=None) -> bytes:
         y -= 6 * mm
 
         c.setFont("NanumGothic", 9)
-        # 간단 줄바꿈(대략)
         max_chars = 85
         words = body.replace("\n", " ").split(" ")
         line = ""
@@ -445,7 +462,6 @@ def make_result_pdf(result: dict, demographic=None) -> bytes:
     draw_paragraph("【전체(27문항) 유형】", TYPE_TEXT_MAIN.get(main_type_key, TYPE_TEXT_MAIN["normal"]))
     draw_paragraph("【정신질환 상황(9문항) 유형】", TYPE_TEXT_MH.get(mh_type_key, TYPE_TEXT_MH["normal"]))
 
-    # 6) 하단 고지문
     disclaimer = (
         "※ 본 결과지는 자가점검용 비임상·비진단 자료이며, "
         "인사평가·법적 판단의 근거로 사용할 수 없습니다."
@@ -784,17 +800,23 @@ if st.session_state.page == "result":
     mental = r["정신"]
 
     # 정신질환 상황 축 점수(3문항 합)
-    mh_gam = sum([r['answers'][6], r['answers'][7], r['answers'][8]])      # 7~9
-    mh_su = sum([r['answers'][15], r['answers'][16], r['answers'][17]])    # 16~18
-    mh_seong = sum([r['answers'][24], r['answers'][25], r['answers'][26]]) # 25~27
+    mh_gam = sum([r["answers"][6], r["answers"][7], r["answers"][8]])      # 7~9
+    mh_su = sum([r["answers"][15], r["answers"][16], r["answers"][17]])    # 16~18
+    mh_seong = sum([r["answers"][24], r["answers"][25], r["answers"][26]]) # 25~27
 
     # ✅ 유형키 산출
     main_type_key = classify_main_type(total, gam, su, seong)
     mh_type_key = classify_mental_type(mental, mh_gam, mh_su, mh_seong)
 
-    # PDF에 저장할 값
+    # ✅ 유형코드 산출(분석용)
+    main_type_code = TYPE_CODE_MAIN.get(main_type_key, TYPE_CODE_MAIN["normal"])
+    mh_type_code = TYPE_CODE_MH.get(mh_type_key, TYPE_CODE_MH["normal"])
+
+    # ✅ 세션에 저장(PDF/저장/추적용)
     st.session_state.result["main_type_key"] = main_type_key
     st.session_state.result["mh_type_key"] = mh_type_key
+    st.session_state.result["main_type_code"] = main_type_code
+    st.session_state.result["mh_type_code"] = mh_type_code
 
     # 1) 점수 요약
     st.title("📊 인권감수성 결과 요약")
@@ -810,12 +832,12 @@ if st.session_state.page == "result":
 
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(
-        r=values_total, theta=categories, fill='toself',
-        name='전체(27문항)', line=dict(color='blue')
+        r=values_total, theta=categories, fill="toself",
+        name="전체(27문항)", line=dict(color="blue")
     ))
     fig.add_trace(go.Scatterpolar(
-        r=values_mh, theta=categories, fill='toself',
-        name='정신질환 상황(3×3문항)', line=dict(color='red')
+        r=values_mh, theta=categories, fill="toself",
+        name="정신질환 상황(3×3문항)", line=dict(color="red")
     ))
     fig.update_layout(
         polar=dict(radialaxis=dict(visible=True, range=[0, 36])),
@@ -824,7 +846,7 @@ if st.session_state.page == "result":
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # 3) 유형 결과(요청하신 “총점 기준 분기”만 표시)
+    # 3) 유형 결과(표시는 텍스트로)
     st.subheader("🧭 결과 유형(총점 기준 분기)")
     st.markdown("### 🔹 1) 전체(27문항) 유형")
     st.write(TYPE_TEXT_MAIN[main_type_key])
@@ -880,8 +902,14 @@ if st.session_state.page == "result":
                 "수": su,
                 "성": seong,
                 "정신": mental,
-                "전체유형": main_type_key,
-                "정신질환유형": mh_type_key,
+
+                # ✅ 분석용(숫자)
+                "전체유형코드": main_type_code,
+                "정신질환유형코드": mh_type_code,
+
+                # ✅ 추적/검증용(문자)
+                "전체유형키": main_type_key,
+                "정신질환유형키": mh_type_key,
             }
 
             for i, a in enumerate(r["answers"], 1):
@@ -928,6 +956,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
