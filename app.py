@@ -895,10 +895,6 @@ if st.session_state.page == "result":
                 # ✅ 분석용(숫자)
                 "전체유형코드": main_type_code,
                 "정신질환유형코드": mh_type_code,
-
-                # ✅ 추적/검증용(문자)
-                "전체유형키": main_type_key,
-                "정신질환유형키": mh_type_key,
             }
 
             for i, a in enumerate(r["answers"], 1):
@@ -945,6 +941,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
