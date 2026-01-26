@@ -633,6 +633,15 @@ if st.session_state.page == "survey":
         """,
         unsafe_allow_html=True,
     )
+    
+    st.markdown(
+    """
+    ※ 문항이 애매하거나 상황이 완전히 일치하지 않더라도,  
+    **현재 본인의 이해와 경험에 가장 가까운 방향으로** 선택해 주세요.  
+    (정답은 없습니다.)
+    """,
+    unsafe_allow_html=True,
+)
 
     answers = []
     for i, q in enumerate(QUESTIONS, 1):
@@ -957,6 +966,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
