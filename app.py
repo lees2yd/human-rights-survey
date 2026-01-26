@@ -583,7 +583,7 @@ if st.session_state.page == "consent":
 
     st.markdown("---")
 
-    agree = st.checkbox("위 요약 내용을 확인했으며, 자발적으로 연구 참여에 동의합니다.")
+    agree = st.checkbox("연구 설명 내용을 확인 이해했으며, 본 연구에 자발적으로 참여하는 것에 동의합니다.")
     if not agree:
         st.warning("동의해야 설문을 진행할 수 있습니다.")
         st.stop()
@@ -957,6 +957,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
