@@ -607,10 +607,6 @@ if st.session_state.page == "consent":
 if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
-
-    # ✅ 정신질환 수용자 정의문(접기/펼치기)
-    with st.expander("📌 정신건강 문제를 가진 수용자 정의(클릭하여 확인)", expanded=False):
-        st.markdown(MH_DEFINITION_300)
         
     st.markdown("""
     <style>
@@ -978,6 +974,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
