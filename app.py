@@ -38,6 +38,14 @@ pdfmetrics.registerFont(TTFont("NanumGothic", "fonts/NanumGothicCoding.ttf"))
 # ✅ 원문(설명문·동의서) PDF 링크
 CONSENT_PDF_URL = "https://drive.google.com/file/d/1Qy1SSYDXaRY0EsNrcx7i-5aKXVsedOmP/view?usp=drive_link"
 
+# ✅ 설문 전 안내(정의문)
+MH_DEFINITION_300 = (
+    "※ [정신질환 수용자 정의] 정신질환 수용자란 진단 확정 여부와 무관하게, "
+    "현장에서 관찰되는 망상·환청, 와해된 언행, 과흥분·과대평가·충동행동, "
+    "극심한 침체·자살사고 등으로 인해 지시 이행, 위생·식사·복약 등 기본 기능이 "
+    "현저히 저하되거나 자·타해 위험이 증가하여 특별한 절차적 대응이 필요한 수용자입니다."
+)
+
 # ✅ 반드시 가장 먼저
 st.set_page_config(page_title="감·수·성 인권감수성 설문", layout="centered")
 
@@ -600,6 +608,10 @@ if st.session_state.page == "survey":
     st.title("인권감수성 설문 (27문항)")
     st.caption("※ 최근 근무 경험을 바탕으로 응답해 주세요.")
 
+    # ✅ 정신질환 수용자 정의문(접기/펼치기)
+    with st.expander("📌 정신질환 수용자 정의(클릭하여 확인)", expanded=False):
+        st.markdown(MH_DEFINITION_300)
+        
     st.markdown("""
     <style>
     .stRadio > div {
@@ -966,6 +978,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
