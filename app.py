@@ -676,6 +676,12 @@ if st.session_state.page == "survey":
         if ans is not None:
             st.session_state.answers[i] = ans
 
+          # ✅ 7번 문항 아래에만 정의 표시
+        if i == 7:
+            with st.expander("📌 정신건강 문제를 가진 수용자 정의(클릭하여 확인)", expanded=False):
+                st.caption("※ 이하 ‘정신건강 문제를 가진 수용자’ 관련 문항은 본 정의를 동일하게 적용하여 응답해 주세요.")
+                st.markdown(MH_DEFINITION_300)
+
         st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
 
     can_submit = all(st.session_state.get(f"q_{i}") is not None for i in range(1, 28))
@@ -974,6 +980,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
