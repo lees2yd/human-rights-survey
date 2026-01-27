@@ -488,7 +488,7 @@ def make_result_pdf(result: dict, demographic=None) -> bytes:
 # =========================
 # 인구학 정보 → 숫자 코드 매핑
 # =========================
-AGE_MAP = {"20대": 1, "30대": 2, "40대": 3, "50대": 4, "60대 이상": 5}
+AGE_MAP = {"20대": 1, "30대": 2, "40대": 3, "50대": 4}
 GENDER_MAP = {"남성": 1, "여성": 2}
 CAREER_MAP = {"5년 미만": 1, "5~10년 미만": 2, "10~20년 미만": 3, "20년 이상": 4}
 JOBTYPE_MAP = {"보안과": 1, "사회복귀과": 2, "의료과": 3, "총무과/직훈과": 4, "기타": 9}
@@ -742,7 +742,7 @@ if st.session_state.page == "demographic":
     st.caption("※ 선택 응답, 익명 처리 / 연구 목적 외 사용되지 않습니다.")
 
     st.markdown('<span class="question-label">1. 연령대</span>', unsafe_allow_html=True)
-    age = st.radio("", ["20대","30대","40대","50대","60대 이상"], key="age", index=None)
+    age = st.radio("", ["20대","30대","40대","50대"], key="age", index=None)
 
     st.markdown('<span class="question-label">2. 성별</span>', unsafe_allow_html=True)
     gender = st.radio("", ["남성","여성"], key="gender", index=None, disabled=(age is None))
@@ -980,6 +980,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
