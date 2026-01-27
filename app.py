@@ -177,11 +177,11 @@ if "saved_to_sheet" not in st.session_state:
 # 📌 상단 진행률 바 (설문 + 인구학)
 # =========================
 TOTAL_SURVEY_Q = 27
-TOTAL_DEMO_Q = 11
+TOTAL_DEMO_Q = 10
 
 DEMO_KEYS = [
     "age", "gender", "career", "jobtype", "facil",
-    "shift", "edu_hr", "edu_mental", "exposure", "degree",
+    "edu_hr", "edu_mental", "exposure", "degree",
     "burnout_detach"
 ]
 
@@ -491,9 +491,13 @@ def make_result_pdf(result: dict, demographic=None) -> bytes:
 AGE_MAP = {"20대": 1, "30대": 2, "40대": 3, "50대": 4}
 GENDER_MAP = {"남성": 1, "여성": 2}
 CAREER_MAP = {"5년 미만": 1, "5~10년 미만": 2, "10~20년 미만": 3, "20년 이상": 4}
-JOBTYPE_MAP = {"보안과": 1, "사회복귀과": 2, "의료과": 3, "총무과/직훈과": 4, "기타": 9}
+JOBTYPE_MAP = { 
+    "심리치료과(팀)/의료과": 1,
+    "보안 일근": 2,
+    "보안 야근": 3,
+    "기타 부서": 9
+    }
 FACIL_MAP = {"교도소": 1, "구치소": 2, "소년시설": 3, "치료감호/의료": 4, "기타": 9}
-SHIFT_MAP = {"주간 중심": 1, "교대(야간 포함)": 2, "혼합/불규칙": 3}
 EDU_HR_MAP = {"전혀 없음": 0, "1회": 1, "2~3회": 2, "4회 이상": 3}
 EDU_MENTAL_MAP = {"없다": 0, "1회": 1, "2회 이상": 2}
 EXPOSURE_MAP = {"거의 없음": 0, "가끔": 1, "자주": 2, "매우 자주": 3}
@@ -747,25 +751,26 @@ if st.session_state.page == "demographic":
     st.markdown('<span class="question-label">2. 성별</span>', unsafe_allow_html=True)
     gender = st.radio("", ["남성","여성"], key="gender", index=None, disabled=(age is None))
 
-    st.markdown('<span class="question-label">3. 교정 경력</span>', unsafe_allow_html=True)
+    st.markdown('<span class="question-label">3. 근무 경력</span>', unsafe_allow_html=True)
     career = st.radio("", ["5년 미만","5~10년 미만","10~20년 미만","20년 이상"], key="career", index=None,
                       disabled=(gender is None))
 
-    st.markdown('<span class="question-label">4. 근무 유형</span>', unsafe_allow_html=True)
-    jobtype = st.radio("", ["보안과","사회복귀과","의료과","총무과/직훈과","기타"], key="jobtype", index=None,
-                       disabled=(career is None))
+    st.markdown('<span class="question-label">4. 업무 유형</span>', unsafe_allow_html=True)
+    jobtype = st.radio(
+        "",
+        ["심리치료과(팀)/의료과", "보안 일근", "보안 야근", "기타 부서"],
+        key="jobtype",
+        index=None,
+        disabled=(career is None)
+    )
 
     st.markdown('<span class="question-label">5. 근무 기관</span>', unsafe_allow_html=True)
     facil = st.radio("", ["교도소","구치소","소년시설","치료감호/의료","기타"], key="facil", index=None,
                      disabled=(jobtype is None))
 
-    st.markdown('<span class="question-label">6. 교대 형태</span>', unsafe_allow_html=True)
-    shift = st.radio("", ["주간 중심","교대(야간 포함)","혼합/불규칙"], key="shift", index=None,
-                     disabled=(facil is None))
-
-    st.markdown('<span class="question-label">7. 인권 관련 교육 경험(최근 3년)</span>', unsafe_allow_html=True)
+    st.markdown('<span class="question-label">6. 인권 관련 교육 경험(최근 3년)</span>', unsafe_allow_html=True)
     edu_hr = st.radio("", ["전혀 없음","1회","2~3회","4회 이상"], key="edu_hr", index=None,
-                      disabled=(shift is None))
+                      disabled=(facil is None))
 
     st.markdown('<span class="question-label">8. 정신질환 관련 교육 경험</span>', unsafe_allow_html=True)
     edu_mental = st.radio("", ["없다","1회","2회 이상"], key="edu_mental", index=None,
@@ -780,7 +785,7 @@ if st.session_state.page == "demographic":
                       disabled=(exposure is None))
 
     st.markdown(
-        '<span class="question-label">11. 최근 6개월간, 업무로 인해 마음이 지치거나 감정이 무뎌졌다고 느낀 적이 있다.</span>',
+        '<span class="question-label">11. 최근 6개월간, 업무로 인해 정서적으로 지치거나 감정이 무뎌졌다고 느낀 적이 있다.</span>',
         unsafe_allow_html=True
     )
     burnout_detach = st.radio(
@@ -802,7 +807,7 @@ if st.session_state.page == "demographic":
         st.text_input("휴대폰 번호 입력 (예: 01012345678)", key="phone_input")
         st.caption("※ '-' 없이 숫자만 입력 / 쿠폰 발송 전용 저장")
 
-    demo_keys = ["age","gender","career","jobtype","facil","shift","edu_hr","edu_mental","exposure","degree","burnout_detach"]
+    demo_keys = ["age","gender","career","jobtype","facil","edu_hr","edu_mental","exposure","degree","burnout_detach"]
     base_filled = all(st.session_state.get(k) is not None for k in demo_keys)
     phone_filled = bool(st.session_state.get("phone_input", "").strip())
     can_next = base_filled and (not want_coupon or phone_filled)
@@ -810,7 +815,7 @@ if st.session_state.page == "demographic":
     if st.button("다음 (결과 보기)", disabled=not can_next):
         st.session_state.demographic = {
             "연령대": age, "성별": gender, "경력": career, "직무": jobtype, "기관": facil,
-            "교대": shift, "인권교육": edu_hr, "정신교육": edu_mental,
+            "인권교육": edu_hr, "정신교육": edu_mental,
             "대면빈도": exposure, "학력": degree,
             "직무소진_거리두기": burnout_detach
         }
@@ -913,7 +918,7 @@ if st.session_state.page == "result":
         "자유 의견",
         key="survey_feedback",
         height=120,
-        placeholder="예) 문항이 조금 길게 느껴졌습니다.\n정신질환 관련 문항이 인상 깊었습니다.\n개선점을 적어 주세요."
+        placeholder="예) 정신질환 관련 문항이 인상 깊었습니다.\n개선점을 적어 주세요."
     )
 
     st.markdown("---")
@@ -945,7 +950,6 @@ if st.session_state.page == "result":
             row["경력"]     = CAREER_MAP.get(demo.get("경력"))
             row["직무"]     = JOBTYPE_MAP.get(demo.get("직무"))
             row["기관"]     = FACIL_MAP.get(demo.get("기관"))
-            row["교대"]     = SHIFT_MAP.get(demo.get("교대"))
             row["인권교육"] = EDU_HR_MAP.get(demo.get("인권교육"))
             row["정신교육"] = EDU_MENTAL_MAP.get(demo.get("정신교육"))
             row["대면빈도"] = EXPOSURE_MAP.get(demo.get("대면빈도"))
@@ -980,6 +984,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
