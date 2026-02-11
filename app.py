@@ -36,7 +36,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 pdfmetrics.registerFont(TTFont("NanumGothic", "fonts/NanumGothicCoding.ttf"))
 
 # ✅ 원문(설명문·동의서) PDF 링크
-CONSENT_PDF_URL = "https://drive.google.com/file/d/1Qy1SSYDXaRY0EsNrcx7i-5aKXVsedOmP/view?usp=drive_link"
+CONSENT_PDF_URL = "https://drive.google.com/file/d/18tqhpmarLS6-ntv_4xtqPvS2BCNH9lMk/view?usp=sharing"
 
 # ✅ 설문 전 안내(정의문)
 MH_DEFINITION_300 = (
@@ -978,6 +978,7 @@ if st.session_state.page == "result":
 
         else:
             st.info("이미 제출된 설문입니다. 참여해 주셔서 감사합니다.")
+
 
 
 
