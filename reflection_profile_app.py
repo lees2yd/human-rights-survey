@@ -94,19 +94,19 @@ FACTOR_META = {
     "감": {
         "title": "감(感) — 정서적·상황적 인식",
         "question": "무엇을 알아차리고 있는가?",
-        "meaning": "자신과 수용자의 감정·정서 신호를 알아차리고, 취약성과 인권침해 가능성의 맥락에서 이해하는 기능입니다.",
+        "meaning": "자신과 수용자의 감정·정서 신호를 알아차리고, 취약성과 인권침해 가능성의 맥락에서 이해하는 판단영역입니다.",
         "practice": "반응하기 전에 표정·말투·행동의 변화를 관찰하고, 감정을 단정하지 않은 채 확인 질문을 한 번 해보세요.",
     },
     "수": {
         "title": "수(受) — 규범적·전문적 판단",
         "question": "어떤 기준으로 판단하고 있는가?",
-        "meaning": "상황정보를 목적·필요성·비례성·적법절차에 따라 검토하고, 전문적 협력을 통해 정당화 가능한 대응을 선택하는 기능입니다.",
+        "meaning": "상황정보를 목적·필요성·비례성·적법절차에 따라 검토하고, 전문적 협력을 통해 정당화 가능한 대응을 선택하는 판단영역입니다.",
         "practice": "조치 전에 ‘목적은 무엇인가, 덜 제한적인 방법은 없는가, 절차와 전문가 협력이 필요한가’를 확인해 보세요.",
     },
     "성": {
         "title": "성(性) — 성찰적 점검·조정",
         "question": "내 판단을 무엇이 움직이고 있는가?",
-        "meaning": "편견·피로·감정·동료 압력·조직의 권위와 관행이 판단에 미치는 영향을 점검하고 필요한 경우 조정하는 기능입니다.",
+        "meaning": "편견·피로·감정·동료 압력·조직의 권위와 관행이 판단에 미치는 영향을 점검하고 필요한 경우 조정하는 판단영역입니다.",
         "practice": "강한 감정이 들었던 사건 하나를 골라 사실, 나의 감정, 판단 근거, 동료 분위기를 분리해 짧게 기록해 보세요.",
     },
 }
@@ -169,28 +169,83 @@ def mental_factor_means(answers):
 
 
 def profile_summary(scores, tolerance=0.30):
-    ordered = sorted(scores, key=scores.get, reverse=True)
-    spread = scores[ordered[0]] - scores[ordered[-1]]
+    max_score = max(scores.values())
+    min_score = min(scores.values())
+    high_factors = [name for name, value in scores.items() if value == max_score]
+    low_factors = [name for name, value in scores.items() if value == min_score]
+    spread = max_score - min_score
     if spread < tolerance:
         return {
             "label": "비교적 균형적인 프로파일",
-            "lead": "세 기능의 문항평균 차이가 크지 않습니다.",
-            "detail": "특정 기능의 우열을 뜻하지 않으며, 실제 사례에서는 세 기능을 어떤 순서와 근거로 연결하는지 돌아보는 것이 좋습니다.",
-            "focus": None,
-            "growth": None,
+            "lead": "세 판단영역의 문항평균 차이가 크지 않습니다.",
+            "detail": "특정 영역의 우열을 뜻하지 않으며, 실제 사례에서는 세 판단영역을 어떤 순서와 근거로 연결하는지 돌아보는 것이 좋습니다.",
+            "focus": high_factors,
+            "growth": low_factors,
         }
+    high_text = "·".join(high_factors)
+    low_text = "·".join(low_factors)
     return {
-        "label": "기능별 차이가 나타난 프로파일",
-        "lead": f"응답상 ‘{ordered[0]}’ 기능이 상대적으로 익숙하고, ‘{ordered[-1]}’ 기능은 더 의식적으로 성찰해 볼 여지가 있습니다.",
+        "label": "영역별 차이가 나타난 프로파일",
+        "lead": f"응답상 ‘{high_text}’ 영역을 상대적으로 익숙하게 활용하는 경향이 나타났으며, ‘{low_text}’ 영역은 더 의식적으로 성찰해 볼 여지가 있습니다.",
         "detail": "이 차이는 능력의 우열이나 결함을 뜻하지 않습니다. 자기보고식 응답에서 나타난 개인 내부의 상대적 경향입니다.",
-        "focus": ordered[0],
-        "growth": ordered[-1],
+        "focus": high_factors,
+        "growth": low_factors,
     }
 
 
-def lowest_items(answers, limit=3):
+def reflection_items(answers, limit=3):
+    """낮은 응답 중 감·수·성이 가능한 한 고르게 포함되도록 문항을 고릅니다."""
+    values = list(answers.values())
+    if len(set(values)) == 1:
+        return []
     ordered = sorted(ITEMS, key=lambda item: (answers[item[0]], item[0]))
-    return ordered[:limit]
+    selected, used_factors = [], set()
+    for item in ordered:
+        if item[1] not in used_factors:
+            selected.append(item)
+            used_factors.add(item[1])
+        if len(selected) == limit:
+            return selected
+    for item in ordered:
+        if item not in selected:
+            selected.append(item)
+        if len(selected) == limit:
+            break
+    return selected
+
+
+def personalized_feedback(scores, sub_scores):
+    """규준판정 없이 개인 내부의 점수관계를 한 문단으로 통합합니다."""
+    summary = profile_summary(scores)
+    priorities = sorted(sub_scores.items(), key=lambda pair: pair[1])[:2]
+    first_name, first_score = priorities[0]
+    second_name, second_score = priorities[1]
+    spread = max(scores.values()) - min(scores.values())
+
+    if spread < 0.30:
+        opening = (
+            "귀하의 응답에서는 감·수·성 세 판단영역이 비교적 고르게 나타났습니다. "
+            "이는 세 영역의 절대적 수준이 같거나 충분하다는 판정이 아니라, 개인 내부의 평균 차이가 크지 않았다는 의미입니다."
+        )
+    else:
+        high_text = "·".join(summary["focus"])
+        low_text = "·".join(summary["growth"])
+        opening = (
+            f"귀하의 응답에서는 {high_text} 영역을 상대적으로 익숙하게 활용하는 경향이 나타났으며, "
+            f"{low_text} 영역은 더 의식적으로 돌아볼 여지가 있는 것으로 나타났습니다."
+        )
+
+    priority_text = (
+        f"하위 내용영역에서는 ‘{first_name}’({first_score:.2f})과 "
+        f"‘{second_name}’({second_score:.2f})이 우선적인 성찰 주제로 나타났습니다."
+    )
+    action_text = f"다음 근무에서는 {SUBDOMAIN_FEEDBACK[first_name]}을(를) 한 가지 구체적인 행동으로 시도해 보십시오."
+    caution = "이 결과는 능력의 우열이나 인권 수준에 대한 판정이 아니라 최근 경험에 관한 자기보고식 응답의 상대적 분포입니다."
+    return {
+        "paragraph": " ".join([opening, priority_text, action_text, caution]),
+        "priorities": priorities,
+        "recommended_action": SUBDOMAIN_FEEDBACK[first_name],
+    }
 
 
 def google_sheet():
@@ -301,7 +356,7 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
     story = [
         Paragraph("감·수·성 인권적 직무판단 자기성찰 프로파일", title_style),
         Paragraph(f"작성 시각: {datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M')}", small_style),
-        Paragraph("이 결과는 개인의 인권 수준이나 직무역량을 판정하는 검사가 아니라, 자신의 응답 안에서 상대적으로 익숙한 기능과 더 성찰해 볼 기능을 찾기 위한 자료입니다.", body_style),
+        Paragraph("이 결과는 개인의 인권 수준이나 직무역량을 판정하는 검사가 아니라, 자신의 응답 안에서 상대적으로 익숙하게 활용하는 판단영역과 더 성찰해 볼 영역을 찾기 위한 자료입니다.", body_style),
         Spacer(1, 4*mm),
     ]
 
@@ -311,6 +366,8 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
     story += [table, Spacer(1, 5*mm)]
 
     summary = profile_summary(scores)
+    personalized = personalized_feedback(scores, sub_scores)
+    story += [Paragraph("나의 종합 피드백", h_style), Paragraph(personalized["paragraph"], body_style)]
     story += [Paragraph("나의 프로파일 읽기", h_style), Paragraph(f"<b>{summary['label']}</b> — {summary['lead']} {summary['detail']}", body_style)]
     for factor in ["감", "수", "성"]:
         meta = FACTOR_META[factor]
@@ -321,8 +378,12 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
         story.append(Paragraph(f"<b>{name} ({value:.2f})</b>: {SUBDOMAIN_FEEDBACK[name]}", body_style))
 
     story += [Paragraph("지금 성찰해 볼 문항", h_style)]
-    for number, factor, _, text in lowest_items(answers):
-        story.append(Paragraph(f"{number}. [{factor}] {text} — 나의 최근 경험에서 이 문항이 어려웠던 상황은 무엇이었는가?", body_style))
+    selected_items = reflection_items(answers)
+    if selected_items:
+        for number, factor, _, text in selected_items:
+            story.append(Paragraph(f"{number}. [{factor}] {text} — 나의 최근 경험에서 이 문항이 어려웠던 상황은 무엇이었는가?", body_style))
+    else:
+        story.append(Paragraph("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 임의로 고르기보다, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 돌아보십시오.", body_style))
 
     story += [Paragraph("나의 한 가지 행동계획", h_style), Paragraph(action_plan.strip() if action_plan.strip() else "아직 작성하지 않았습니다.", body_style), Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style)]
 
@@ -356,7 +417,7 @@ if st.session_state.page == "intro":
     st.write("")
     st.markdown(
         """
-이 프로파일은 교정현장에서 인권 관련 상황을 마주할 때 자신이 평소 어떤 기능을 상대적으로 자주 활용한다고 인식하는지 돌아보기 위한 **교육용 자기성찰 활동이자 후속 타당화 연구 설문**입니다.
+이 프로파일은 교정현장에서 인권 관련 상황을 마주할 때 자신이 평소 어떤 판단영역을 상대적으로 자주 활용한다고 인식하는지 돌아보기 위한 **교육용 자기성찰 활동이자 후속 타당화 연구 설문**입니다.
 
 - **감(感)**: 정서와 취약성을 알아차리고 이해하기
 - **수(受)**: 비례성·적법절차·전문성에 따라 판단하기
@@ -478,6 +539,7 @@ if st.session_state.page == "result":
     sub_scores = subdomain_means(answers)
     mh_scores = mental_factor_means(answers)
     summary = profile_summary(scores)
+    personalized = personalized_feedback(scores, sub_scores)
 
     st.title("나의 자기성찰 프로파일")
     if st.session_state.research_saved:
@@ -497,11 +559,21 @@ if st.session_state.page == "result":
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[1, 4], tickvals=[1, 2, 3, 4])), showlegend=False, height=410, margin=dict(l=45, r=45, t=35, b=35))
     st.plotly_chart(fig, use_container_width=True)
 
+    st.subheader("나의 종합 피드백")
+    st.markdown(f'<div class="result-card">{personalized["paragraph"]}</div>', unsafe_allow_html=True)
+
     st.subheader(summary["label"])
     st.write(summary["lead"])
     st.caption(summary["detail"])
 
-    st.subheader("세 기능의 의미와 실천 제안")
+    st.subheader("우선 성찰영역")
+    priority_cols = st.columns(2)
+    for col, (name, value) in zip(priority_cols, personalized["priorities"]):
+        with col:
+            st.markdown(f'<div class="result-card"><b>{name}</b><br><span style="font-size:1.35rem">{value:.2f}</span><br><span class="small">{SUBDOMAIN_FEEDBACK[name]}</span></div>', unsafe_allow_html=True)
+    st.info(f"이번 프로파일의 우선 실천 제안: {personalized['recommended_action']}")
+
+    st.subheader("세 판단영역의 의미와 실천 제안")
     for factor in ["감", "수", "성"]:
         meta = FACTOR_META[factor]
         with st.expander(f"{meta['title']} · {scores[factor]:.2f}", expanded=True):
@@ -509,11 +581,11 @@ if st.session_state.page == "result":
             st.write(meta["meaning"])
             st.info(f"실천 제안: {meta['practice']}")
 
-    st.subheader("하위영역별 성찰 지도")
-    st.caption("점수가 낮다는 것은 결함이 아니라, 최근 경험을 바탕으로 더 의식적으로 돌아볼 주제라는 뜻입니다.")
-    for name, value in sorted(sub_scores.items(), key=lambda x: x[1]):
-        st.markdown(f"**{name} · {value:.2f}**")
-        st.write(SUBDOMAIN_FEEDBACK[name])
+    with st.expander("9개 하위 내용영역 전체 보기", expanded=False):
+        st.caption("점수가 낮다는 것은 결함이 아니라, 최근 경험을 바탕으로 더 의식적으로 돌아볼 주제라는 뜻입니다. 아래 내용영역은 별도로 검증된 9개 하위요인이 아니라 이론적 내용분류입니다.")
+        for name, value in sorted(sub_scores.items(), key=lambda x: x[1]):
+            st.markdown(f"**{name} · {value:.2f}**")
+            st.write(SUBDOMAIN_FEEDBACK[name])
 
     with st.expander("정신건강 문제 상황에서의 응답 경향", expanded=False):
         st.write("문항 수가 감 3개, 수 3개, 성 2개로 다르므로 합계가 아니라 문항평균으로 제시합니다. 별도의 표준화된 하위척도나 유형 판정이 아닙니다.")
@@ -522,9 +594,13 @@ if st.session_state.page == "result":
             col.metric(f"{factor} 평균", f"{mh_scores[factor]:.2f}")
 
     st.subheader("지금 성찰해 볼 세 문항")
-    for number, factor, _, text in lowest_items(answers):
-        st.markdown(f"**{number}. [{factor}] {text}**")
-        st.write("최근 이 문항을 실천하기 어려웠던 상황은 무엇이었으며, 개인의 경험·피로·업무절차·인력과 조직지원 중 무엇이 영향을 주었습니까?")
+    selected_items = reflection_items(answers)
+    if selected_items:
+        for number, factor, _, text in selected_items:
+            st.markdown(f"**{number}. [{factor}] {text}**")
+            st.write("최근 이 문항을 실천하기 어려웠던 상황은 무엇이었으며, 개인의 경험·피로·업무절차·인력과 조직지원 중 무엇이 영향을 주었습니까?")
+    else:
+        st.info("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 임의로 제시하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 성찰해 보십시오.")
 
     st.subheader("나의 한 가지 행동계획")
     action_plan = st.text_area(
@@ -537,10 +613,10 @@ if st.session_state.page == "result":
     st.markdown("**강의 성찰 질문**")
     st.markdown(
         """
-1. 내가 상대적으로 익숙하다고 응답한 기능은 실제 사례에서도 나타나는가?
-2. 더 성찰해 볼 기능이 낮게 응답된 이유는 개인 요인인가, 조직환경 요인인가?
+1. 내가 상대적으로 익숙하게 활용한다고 응답한 영역은 실제 사례에서도 나타나는가?
+2. 더 성찰해 볼 영역의 응답이 낮게 나타난 이유는 개인 요인인가, 조직환경 요인인가?
 3. 감·수·성 가운데 하나가 빠지면 나의 판단에는 어떤 위험이 생기는가?
-4. 다음 근무에서 세 기능을 연결하기 위해 무엇을 한 가지 바꿀 것인가?
+4. 다음 근무에서 세 판단영역을 연결하기 위해 무엇을 한 가지 바꿀 것인가?
 """
     )
 
