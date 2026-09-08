@@ -627,6 +627,50 @@ if st.session_state.page == "result":
     if st.button("처음부터 다시 하기", use_container_width=True):
         reset_profile()
 
-    with st.expander("척도 및 문항 정보"):
-        st.write("이 프로그램은 ‘감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토’에 제시된 최종 25문항을 교육용 자기성찰 형식으로 구성한 것입니다. 논문의 원문항 Q12와 Q25는 문항정제 과정에서 삭제되었습니다.")
-        st.write("현재 단계에서는 익명화된 집단 수준의 교육 요구와 개인의 자기성찰을 위한 보조자료로 제한하여 활용하는 것이 적절합니다.")
+    with st.expander("연구 근거 및 관련 논문", expanded=False):
+    st.write(
+        "이 프로그램은 교정공무원의 인권 관련 직무판단을 "
+        "감(感)·수(受)·성(性)의 세 판단영역으로 살펴보기 위해 개발된 "
+        "최종 25문항을 교육용 자기성찰 형식으로 구성한 것입니다."
+    )
+
+    st.write(
+        "현재 단계에서는 개인의 인권 수준이나 직무역량을 판정하기보다, "
+        "개인의 자기성찰과 익명화된 집단 수준의 교육 요구를 탐색하기 위한 "
+        "보조자료로 활용하는 것이 적절합니다."
+    )
+
+    st.markdown("#### 척도의 근거 연구")
+
+    st.markdown(
+        """
+**이성덕. (2026).**  
+감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과
+요인구조의 탐색적 검토. *교정연구, 36*(2).
+
+※ 온라인 논문정보는 학술지·KCI 등록 후 연결될 예정입니다.
+"""
+    )
+
+    st.markdown("#### 감·수·성 모델 관련 연구")
+
+    st.markdown(
+        """
+1. **이성덕. (2025).** 감정 기반 인권 감수성 교육의 새로운 패러다임:
+‘감(感)·수(受)·성(性)’ 모델의 이론적 정립과 철학적 기초.
+*법과인권교육연구, 18*(3), 117-145.  
+[논문정보 보기](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003245299)
+· [DOI](https://doi.org/10.35881/HLER.2025.18.3.6)
+
+2. **이성덕. (2026).** 감(感)·수(受)·성(性) 인권감수성 모델을 통한
+헌법 원리의 해석학적 탐색과 교육적 함의.
+*법과인권교육연구, 19*(1), 99-128.  
+[논문정보 보기](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003327070)
+· [DOI](https://doi.org/10.35881/HLER.2026.19.1.5)
+"""
+    )
+
+    st.markdown(
+        "[연구자의 감·수·성 관련 연구 전체 보기]"
+        "(https://scholar.google.com/citations?hl=ko&user=rcMXEpAAAAAJ)"
+    )
