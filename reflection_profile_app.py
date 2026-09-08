@@ -399,6 +399,45 @@ def init_state():
         st.session_state.answers = {}
     if "research_saved" not in st.session_state:
         st.session_state.research_saved = False
+    if "question_index" not in st.session_state:
+        st.session_state.question_index = 0
+
+
+def save_answer_and_advance(number):
+    """현재 응답을 저장하고 다음 문항으로 이동합니다."""
+    value = st.session_state.get(f"q_{number}")
+    if value is None:
+        return
+    st.session_state.answers[number] = value
+    if st.session_state.question_index < len(ITEMS) - 1:
+        st.session_state.question_index += 1
+    else:
+        st.session_state.answers = {
+            item_number: st.session_state[f"q_{item_number}"]
+            for item_number, _, _, _ in ITEMS
+        }
+        st.session_state.page = "demographics"
+
+
+def previous_question():
+    st.session_state.question_index = max(0, st.session_state.question_index - 1)
+
+
+def next_answered_question():
+    """이전에 응답한 문항을 다시 보는 경우 다음 문항으로 이동합니다."""
+    number, _, _, _ = ITEMS[st.session_state.question_index]
+    value = st.session_state.get(f"q_{number}")
+    if value is None:
+        return
+    st.session_state.answers[number] = value
+    if st.session_state.question_index < len(ITEMS) - 1:
+        st.session_state.question_index += 1
+    else:
+        st.session_state.answers = {
+            item_number: st.session_state[f"q_{item_number}"]
+            for item_number, _, _, _ in ITEMS
+        }
+        st.session_state.page = "demographics"
 
 
 def reset_profile():
@@ -474,35 +513,42 @@ if st.session_state.page == "consent":
 if st.session_state.page == "survey":
     st.title("25개 문항 자기점검")
     answered = sum(1 for n, _, _, _ in ITEMS if st.session_state.get(f"q_{n}") is not None)
-    st.progress(answered / len(ITEMS), text=f"{answered} / {len(ITEMS)} 문항 완료")
+    current_index = min(st.session_state.question_index, len(ITEMS) - 1)
+    number, factor, _, question_text = ITEMS[current_index]
+    st.progress(
+        answered / len(ITEMS),
+        text=f"문항 {current_index + 1} / {len(ITEMS)} · 응답 완료 {answered} / {len(ITEMS)}",
+    )
     st.caption("1 전혀 그렇지 않다 · 2 그렇지 않은 편이다 · 3 그런 편이다 · 4 매우 그렇다")
 
-    for number, factor, _, text in ITEMS:
-        if number == 7:
-            with st.expander("‘정신건강 문제가 있는 수용자’의 의미", expanded=False):
-                st.write("진단 여부와 관계없이 환청·망상, 심한 불안이나 흥분, 현저한 기능 저하 또는 자·타해 위험 등으로 인해 상황에 맞는 의사소통과 절차적·전문적 대응이 필요한 수용자를 의미합니다.")
-        factor_class = {"감": "factor-gam", "수": "factor-su", "성": "factor-seong"}[factor]
-        st.markdown(f'<div class="question"><span class="{factor_class}">{number}. [{factor}]</span> {text}</div>', unsafe_allow_html=True)
-        st.radio(
-            f"{number}번 응답",
-            options=[1, 2, 3, 4],
-            format_func=lambda value: f"{value}",
-            horizontal=True,
-            index=None,
-            key=f"q_{number}",
-            label_visibility="collapsed",
-        )
-        if st.session_state.get(f"q_{number}") is not None:
-            st.caption(SCALE_LABELS[st.session_state[f"q_{number}"]])
-        st.divider()
+    if number == 7:
+        with st.expander("‘정신건강 문제가 있는 수용자’의 의미", expanded=False):
+            st.write("진단 여부와 관계없이 환청·망상, 심한 불안이나 흥분, 현저한 기능 저하 또는 자·타해 위험 등으로 인해 상황에 맞는 의사소통과 절차적·전문적 대응이 필요한 수용자를 의미합니다.")
 
-    complete = all(st.session_state.get(f"q_{n}") is not None for n, _, _, _ in ITEMS)
-    if st.button("나의 프로파일 보기", type="primary", use_container_width=True, disabled=not complete):
-        st.session_state.answers = {n: st.session_state[f"q_{n}"] for n, _, _, _ in ITEMS}
-        st.session_state.page = "demographics"
-        st.rerun()
-    if not complete:
-        st.caption("모든 문항에 응답하면 결과를 확인할 수 있습니다.")
+    factor_class = {"감": "factor-gam", "수": "factor-su", "성": "factor-seong"}[factor]
+    st.markdown(
+        f'<div class="question"><span class="{factor_class}">{number}. [{factor}]</span> {question_text}</div>',
+        unsafe_allow_html=True,
+    )
+    st.radio(
+        f"{number}번 응답",
+        options=[1, 2, 3, 4],
+        format_func=lambda value: f"{value} · {SCALE_LABELS[value]}",
+        index=None,
+        key=f"q_{number}",
+        label_visibility="collapsed",
+        on_change=save_answer_and_advance,
+        args=(number,),
+    )
+
+    st.caption("응답을 선택하면 자동으로 다음 문항으로 넘어갑니다.")
+    navigation_columns = st.columns(2)
+    with navigation_columns[0]:
+        if current_index > 0:
+            st.button("← 이전 문항", use_container_width=True, on_click=previous_question)
+    with navigation_columns[1]:
+        if st.session_state.get(f"q_{number}") is not None:
+            st.button("다음 문항 →", type="primary", use_container_width=True, on_click=next_answered_question)
     st.stop()
 
 
@@ -627,50 +673,15 @@ if st.session_state.page == "result":
     if st.button("처음부터 다시 하기", use_container_width=True):
         reset_profile()
 
-    with st.expander("연구 근거 및 관련 논문", expanded=False):
-       st.write(
-        "이 프로그램은 교정공무원의 인권 관련 직무판단을 "
-        "감(感)·수(受)·성(性)의 세 판단영역으로 살펴보기 위해 개발된 "
-        "최종 25문항을 교육용 자기성찰 형식으로 구성한 것입니다."
-       )
- 
-       st.write(
-        "현재 단계에서는 개인의 인권 수준이나 직무역량을 판정하기보다, "
-        "개인의 자기성찰과 익명화된 집단 수준의 교육 요구를 탐색하기 위한 "
-        "보조자료로 활용하는 것이 적절합니다."
-       )
+    with st.expander("척도 및 문항 정보"):
+        st.write("이 프로그램은 ‘감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토’에 제시된 최종 25문항을 교육용 자기성찰 형식으로 구성한 것입니다.")
+        st.write("현재 단계에서는 익명화된 집단 수준의 교육 요구와 개인의 자기성찰을 위한 보조자료로 제한하여 활용하는 것이 적절합니다.")
+        st.markdown(
+            """
+**관련 연구**
 
-       st.markdown("#### 척도의 근거 연구")
-
-       st.markdown(
-           """
-**이성덕. (2026).**  
-감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과
-요인구조의 탐색적 검토. *교정연구, 36*(2).
-
-※ 온라인 논문정보는 학술지·KCI 등록 후 연결될 예정입니다.
-   """
-       )
-
-       st.markdown("#### 감·수·성 모델 관련 연구")
-
-       st.markdown(
-           """
-1. **이성덕. (2025).** 감정 기반 인권 감수성 교육의 새로운 패러다임:
-‘감(感)·수(受)·성(性)’ 모델의 이론적 정립과 철학적 기초.
-*법과인권교육연구, 18*(3), 117-145.  
-[논문정보 보기](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003245299)
-· [DOI](https://doi.org/10.35881/HLER.2025.18.3.6)
-
-2. **이성덕. (2026).** 감(感)·수(受)·성(性) 인권감수성 모델을 통한
-헌법 원리의 해석학적 탐색과 교육적 함의.
-*법과인권교육연구, 19*(1), 99-128.  
-[논문정보 보기](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003327070)
-· [DOI](https://doi.org/10.35881/HLER.2026.19.1.5)
-   """
-       )
-
-       st.markdown(
-           "[연구자의 감·수·성 관련 연구 전체 보기]"
-           "(https://scholar.google.com/citations?hl=ko&user=rcMXEpAAAAAJ)"
-       )
+- [감·수·성 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토 (KCI)](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003327070)
+- [감·수·성 모델 기반 교정공무원 인권감수성 연구 (KCI)](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003245299)
+- [관련 연구자 Google Scholar 프로필](https://scholar.google.com/citations?hl=ko&user=rcMXEpAAAAAJ)
+"""
+        )
