@@ -676,14 +676,29 @@ if st.session_state.page == "result":
         reset_profile()
 
     with st.expander("척도 및 문항 정보"):
-        st.write("이 프로그램은 ‘감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토’에 제시된 최종 25문항을 교육용 자기성찰 형식으로 구성한 것입니다.")
-        st.write("현재 단계에서는 익명화된 집단 수준의 교육 요구와 개인의 자기성찰을 위한 보조자료로 제한하여 활용하는 것이 적절합니다.")
+        st.write(
+            "이 프로그램은 이성덕의 「감(感)·수(受)·성(性) 모델 기반 "
+            "교정공무원 인권감수성 척도 개발과 요인구조의 탐색적 검토」에 "
+            "제시된 최종 25문항을 교육용 자기성찰 형식으로 구성한 것입니다."
+        )
+        st.write(
+            "현재 단계에서는 개인의 인권 수준이나 직무역량을 판정하는 검사로 "
+            "사용하지 않으며, 개인의 자기성찰과 익명화된 집단 수준의 교육 요구를 "
+            "확인하기 위한 보조자료로 제한하여 활용하는 것이 적절합니다."
+        )
+
         st.markdown(
             """
-**관련 연구**
+### 직접적인 척도 근거
 
-- [감·수·성 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토 (KCI)](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003327070)
-- [감·수·성 모델 기반 교정공무원 인권감수성 연구 (KCI)](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003245299)
-- [관련 연구자 Google Scholar 프로필](https://scholar.google.com/citations?hl=ko&user=rcMXEpAAAAAJ)
+- **이성덕. 「감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 척도 개발과 요인구조의 탐색적 검토」**
+  - 이 프로그램에서 사용하는 최종 25문항과 3요인 구조의 직접적인 근거 논문입니다.
+  - 현재 공개 학술정보 링크가 등록되는 중이며, KCI 등록이 완료되면 원문 링크를 연결할 예정입니다.
+
+### 감·수·성 모델 관련 연구
+
+- [감(感)·수(受)·성(性) 인권감수성 모델을 통한 헌법 원리의 해석학적 탐색과 교육적 함의](https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003327070)
+- [감정 기반 인권 감수성 교육의 새로운 패러다임: ‘감(感)·수(受)·성(性)’ 모델의 이론적 정립과 철학적 기초](https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003245299)
+- [이성덕 연구자 Google Scholar 프로필](https://scholar.google.com/citations?hl=ko&user=rcMXEpAAAAAJ)
 """
         )
