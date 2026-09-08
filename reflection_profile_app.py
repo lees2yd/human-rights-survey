@@ -451,7 +451,7 @@ init_state()
 if st.session_state.page == "intro":
     st.markdown('<div class="hero">', unsafe_allow_html=True)
     st.title("감·수·성 인권적 직무판단 자기성찰 프로파일")
-    st.markdown("**알아차림 · 판단 · 성찰을 통해 나의 직무판단을 돌아봅니다.**")
+    st.markdown("**알아차림 · 판단 · 성찰을 통해 나의 직무판단 구조를 돌아봅니다.**")
     st.markdown('</div>', unsafe_allow_html=True)
     st.write("")
     st.markdown(
