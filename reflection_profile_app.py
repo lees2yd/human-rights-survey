@@ -26,7 +26,7 @@ st.set_page_config(
 
 # 배포 전에 실제 IRB 승인 내용으로 바꾸십시오.
 RESEARCH_TITLE = "감·수·성 인권적 직무판단 척도의 독립표본 타당화 연구"
-IRB_APPROVAL_NO = "보건복지부 지정 공용기관생명윤리위원회의 심의를 거쳐 연구 승인(IRB No. P01-202602-01-030)"
+IRB_APPROVAL_NO = "보건복지부 지정 공용기관생명윤리위원회의 승인(IRB No. P01-202602-01-030)"
 PRINCIPAL_INVESTIGATOR = "이성덕"
 RESEARCH_CONTACT = "010-9619-4652, mindscaper2013@naver.com"
 DATA_RETENTION = "연구 종료 후 3년"
