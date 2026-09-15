@@ -122,26 +122,37 @@ if background_data_uri:
         unsafe_allow_html=True,
     )
 
-# 첫 화면만 넓은 화면과 휴대폰 화면에 맞춘 서로 다른 배경을 사용합니다.
-# 파일이 없으면 기존의 단색 hero 배경으로 자연스럽게 표시됩니다.
+# Streamlit의 Markdown 블록은 서로 독립적으로 렌더링됩니다. 따라서 첫 화면은
+# 빈 .hero div가 아니라 앱 전체에 전용 배경을 적용해야 실제 콘텐츠 뒤에 보입니다.
 hero_desktop_data_uri = image_data_uri(HERO_DESKTOP_PATH)
 hero_mobile_data_uri = image_data_uri(HERO_MOBILE_PATH) or hero_desktop_data_uri
-if hero_desktop_data_uri:
+
+
+def apply_intro_background():
+    """첫 화면에만 전용 배경을 적용하고, 텍스트는 개별 반투명 카드 위에 보이게 합니다."""
+    if not hero_desktop_data_uri:
+        return
     st.markdown(
         f"""
 <style>
-  .hero {{
-    background-image: linear-gradient(145deg,rgba(255,255,255,.62),rgba(239,249,255,.68)), url("{hero_desktop_data_uri}") !important;
+  .stApp {{
+    background-image: linear-gradient(145deg,rgba(248,252,255,.26),rgba(239,249,255,.38)), url("{hero_desktop_data_uri}") !important;
     background-repeat: no-repeat, no-repeat !important;
     background-size: cover, cover !important;
     background-position: center, center bottom !important;
+    background-attachment: fixed, fixed !important;
   }}
+  .hero {{padding:0 !important; border:0 !important; background:transparent !important; box-shadow:none !important;}}
+  .intro-lead {{padding:.8rem 1rem; border:1px solid rgba(207,232,248,.88); border-radius:16px; background:rgba(255,255,255,.74); box-shadow:0 5px 14px rgba(77,147,192,.08);}}
+  .factor-card {{background:rgba(255,255,255,.82);}}
   @media(max-width:520px) {{
-    .hero {{
-      background-image: linear-gradient(180deg,rgba(255,255,255,.60),rgba(245,251,255,.50)), url("{hero_mobile_data_uri}") !important;
+    .stApp {{
+      background-image: linear-gradient(180deg,rgba(248,252,255,.20),rgba(239,249,255,.33)), url("{hero_mobile_data_uri}") !important;
       background-size: cover, cover !important;
       background-position: center, center bottom !important;
+      background-attachment: scroll, scroll !important;
     }}
+    .intro-lead {{padding:.72rem .8rem; background:rgba(255,255,255,.77);}}
   }}
 </style>
 """,
@@ -570,7 +581,7 @@ def render_brand_bar():
 init_state()
 
 if st.session_state.page == "intro":
-    st.markdown('<div class="hero">', unsafe_allow_html=True)
+    apply_intro_background()
     st.markdown(logo_html("intro-logo"), unsafe_allow_html=True)
     st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
     st.markdown('<div class="intro-title">감·수·성<br>인권적 직무판단<br>자기성찰 프로파일</div>', unsafe_allow_html=True)
@@ -584,7 +595,6 @@ if st.session_state.page == "intro":
     for col, (label, description) in zip(factor_cols, factor_intro):
         with col:
             st.markdown(f'<div class="factor-card"><b>{label}</b><span>{description}</span></div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
     st.write("")
     st.markdown('<div class="notice"><b>참여 안내:</b> 최근 6개월의 근무 경험을 떠올려 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 5~7분입니다.<br><br>이름·직원번호·정확한 소속기관은 수집하지 않습니다. 응답은 교육용 자기성찰에 활용되며, 연구 참여에 동의한 경우에만 익명화된 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
     st.write("")
@@ -783,17 +793,6 @@ if st.session_state.page == "result":
         "다음 근무에서 시도할 작고 구체적인 행동을 적어보세요.",
         placeholder="예: 흥분한 수용자에게 지시하기 전, 감정을 단정하지 않고 현재 가장 불편한 점을 한 번 확인한다.",
         height=110,
-    )
-
-    st.markdown("---")
-    st.markdown("**강의 성찰 질문**")
-    st.markdown(
-        """
-1. 내가 상대적으로 익숙하게 활용한다고 응답한 영역은 실제 사례에서도 나타나는가?
-2. 더 성찰해 볼 영역의 응답이 낮게 나타난 이유는 개인 요인인가, 조직환경 요인인가?
-3. 감·수·성 가운데 하나가 빠지면 나의 판단에는 어떤 위험이 생기는가?
-4. 다음 근무에서 세 판단영역을 연결하기 위해 무엇을 한 가지 바꿀 것인가?
-"""
     )
 
     st.warning("영역 간 작은 차이는 측정오차를 넘어서는 의미 있는 차이라고 단정할 수 없습니다. 결과를 타인·기관 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단 또는 인권침해 가능성 예측에 사용하지 마십시오.")
