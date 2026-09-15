@@ -31,7 +31,7 @@ PRINCIPAL_INVESTIGATOR = "이성덕"
 RESEARCH_CONTACT = "010-9619-4652, mindscaper2013@naver.com"
 DATA_RETENTION = "연구 종료 후 3년"
 WORKSHEET_NAME = "responses"
-SCALE_PAPER_URL = "https://krscs.or.kr/html/sub6_01.html"
+SCALE_PAPER_URL = "http://krscs.or.kr/html/sub6_01.html"
 
 st.markdown(
     """
