@@ -1,5 +1,6 @@
 import io
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import matplotlib.pyplot as plt
@@ -20,7 +21,7 @@ from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, 
 
 st.set_page_config(
     page_title="감·수·성 인권적 직무판단 자기성찰 프로파일",
-    page_icon="🧭",
+    page_icon="🫶",
     layout="centered",
 )
 
@@ -32,21 +33,33 @@ RESEARCH_CONTACT = "010-9619-4652, mindscaper2013@naver.com"
 DATA_RETENTION = "연구 종료 후 3년"
 WORKSHEET_NAME = "responses"
 SCALE_PAPER_URL = "http://krscs.or.kr/html/sub6_01.html"
+LOGO_PATH = Path(__file__).with_name("gam_su_seong_logo.png")
 
 st.markdown(
     """
 <style>
-  .block-container {max-width: 860px; padding-top: 2.2rem; padding-bottom: 4rem;}
-  h1, h2, h3 {word-break: keep-all;}
+  .stApp {background: linear-gradient(145deg,#f8fcff 0%,#eaf6ff 52%,#f8fcff 100%);}
+  .block-container {max-width: 880px; padding-top: 1.6rem; padding-bottom: 4rem;}
+  h1, h2, h3 {word-break: keep-all; color:#163f67;}
   p, li {line-height: 1.72; word-break: keep-all;}
-  .hero {padding: 1.4rem 1.5rem; border-radius: 18px; background: linear-gradient(135deg,#eef5ff,#f4f0ff); border:1px solid #dbe6f6;}
-  .notice {padding: 1rem 1.1rem; border-left: 5px solid #4f6fad; background:#f7f9fc; border-radius:8px;}
-  .question {font-weight:650; font-size:1.03rem; margin-top:1.15rem; margin-bottom:.2rem;}
-  .factor-gam {color:#1d5d9b;} .factor-su {color:#2f7d54;} .factor-seong {color:#7a4e9d;}
-  .result-card {padding:1rem 1.1rem; border:1px solid #dfe5ec; border-radius:14px; background:white; margin:.5rem 0;}
-  .small {font-size:.9rem; color:#59636e;}
+  .hero {padding:2.25rem 2rem 1.8rem; border-radius:26px; background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(239,249,255,.94)); border:1px solid #cfe8f8; box-shadow:0 14px 34px rgba(62,135,183,.13);}
+  .brand-bar {padding:.65rem 1rem; margin-bottom:1.1rem; border-radius:16px; background:rgba(255,255,255,.76); border:1px solid #d8edf9; color:#28618e; font-size:.92rem; text-align:center;}
+  .intro-kicker {color:#4b94c8; font-weight:700; letter-spacing:.06em; text-align:center; margin:.3rem 0 .75rem;}
+  .intro-title {color:#163f67; font-size:2.45rem; font-weight:800; line-height:1.23; text-align:center; margin:.2rem 0 .85rem;}
+  .intro-lead {color:#315b7c; font-size:1.05rem; text-align:center; max-width:620px; margin:0 auto 1.4rem; line-height:1.75;}
+  .factor-card {padding:1rem .65rem; min-height:106px; text-align:center; border:1px solid #d7ecf9; border-radius:17px; background:rgba(255,255,255,.84); color:#163f67; box-shadow:0 5px 14px rgba(77,147,192,.08);}
+  .factor-card b {display:block; color:#2f8dca; font-size:1.25rem; margin-bottom:.25rem;}
+  .factor-card span {font-size:.9rem; color:#426d8e;}
+  .notice {padding:1rem 1.1rem; border-left:5px solid #55aee1; background:rgba(255,255,255,.82); border-radius:11px; color:#315b7c;}
+  .question {font-weight:650; font-size:1.05rem; margin-top:1.15rem; margin-bottom:.35rem; color:#163f67; padding:1rem 1.05rem; border-radius:14px; background:rgba(255,255,255,.80); border:1px solid #d8edf9;}
+  .factor-gam,.factor-su,.factor-seong {color:#278bcb;}
+  .result-card {padding:1rem 1.1rem; border:1px solid #d7ecf9; border-radius:14px; background:rgba(255,255,255,.88); margin:.5rem 0;}
+  .small {font-size:.9rem; color:#59738a;}
   div[data-testid="stRadio"] > div {gap:1.1rem;}
-  @media(max-width:520px){.block-container{padding-left:1rem;padding-right:1rem}.hero{padding:1rem}.question{font-size:.98rem}}
+  div[data-testid="stButton"] > button {border:0; border-radius:13px; background:linear-gradient(135deg,#48a9e1,#2589c8); color:white; font-weight:700; min-height:3.1rem; box-shadow:0 7px 16px rgba(37,137,200,.22);}
+  div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#2589c8,#176fae); color:white;}
+  div[data-testid="stExpander"] {border:1px solid #d4eaf8; border-radius:14px; background:rgba(255,255,255,.76);}
+  @media(max-width:520px){.block-container{padding-left:1rem;padding-right:1rem}.hero{padding:1.5rem 1rem}.intro-title{font-size:1.9rem}.question{font-size:.98rem}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -123,6 +136,28 @@ SUBDOMAIN_FEEDBACK = {
     "권위·관행 성찰": "동료 압력과 관행을 사실상의 정답으로 받아들이지 않고 판단 근거를 언어화",
     "자기점검·조정": "피로와 스트레스가 반응 강도에 미치는 영향을 점검하고 행동을 조정",
 }
+
+PRACTICE_GUIDES = {
+    "감": {
+        "title": "감(感) 연습 — 고통·취약성의 신호 알아차리기",
+        "steps": "그때 나와 상대에게 나타난 감정·표정·말투·행동을 구체적으로 적고, 그 신호가 존엄·안전·보호 필요성과 어떻게 연결되는지 한 문장으로 써 보세요.",
+    },
+    "수": {
+        "title": "수(受) 연습 — 목적·필요성·절차를 다시 설계하기",
+        "steps": "내 조치의 목적과 법적·직무상 근거를 적은 뒤, 덜 제한적인 대안, 필요한 절차, 의료·심리 등 전문적 협력의 필요성을 차례로 점검해 보세요.",
+    },
+    "성": {
+        "title": "성(性) 연습 — 편견·권위·피로의 영향 점검하기",
+        "steps": "내 판단에 피로, 과거 경험, 동료 분위기, 권위나 관행이 미친 영향을 적고, 상대방의 권리와 관계에 미칠 결과를 고려한 다음 행동을 한 가지 정해 보세요.",
+    },
+}
+
+INTEGRATED_PRACTICE = (
+    "최근 불편하거나 긴장되었던 수용자 대응 상황 하나를 떠올려 보십시오. "
+    "① 감(感): 나와 상대는 어떤 감정·고통·취약성을 경험했는가? "
+    "② 수(受): 나의 대응은 목적, 필요성, 침해 최소성, 절차 및 전문적 협력의 기준에 비추어 적절했는가? "
+    "③ 성(性): 피로, 선입견, 동료 분위기, 권위나 관행이 내 판단에 영향을 주지는 않았는가? 다음에는 무엇을 조정할 것인가?"
+)
 
 MENTAL_ITEMS = {7, 8, 9, 15, 16, 17, 24, 25}
 
@@ -215,12 +250,9 @@ def reflection_items(answers, limit=3):
     return selected
 
 
-def personalized_feedback(scores, sub_scores):
+def personalized_feedback(scores):
     """규준판정 없이 개인 내부의 점수관계를 한 문단으로 통합합니다."""
     summary = profile_summary(scores)
-    priorities = sorted(sub_scores.items(), key=lambda pair: pair[1])[:2]
-    first_name, first_score = priorities[0]
-    second_name, second_score = priorities[1]
     spread = max(scores.values()) - min(scores.values())
 
     if spread < 0.30:
@@ -236,17 +268,25 @@ def personalized_feedback(scores, sub_scores):
             f"{low_text} 영역은 더 의식적으로 돌아볼 여지가 있는 것으로 나타났습니다."
         )
 
-    priority_text = (
-        f"하위 내용영역에서는 ‘{first_name}’({first_score:.2f})과 "
-        f"‘{second_name}’({second_score:.2f})이 우선적인 성찰 주제로 나타났습니다."
-    )
-    action_text = f"다음 근무에서는 {SUBDOMAIN_FEEDBACK[first_name]}을(를) 한 가지 구체적인 행동으로 시도해 보십시오."
+    action_text = "이 결과는 영역별 우열을 정하는 자료가 아니라, 한 사례를 감·수·성의 순환으로 다시 살펴보고 다음 행동을 설계하기 위한 성찰 자료입니다."
     caution = "이 결과는 능력의 우열이나 인권 수준에 대한 판정이 아니라 최근 경험에 관한 자기보고식 응답의 상대적 분포입니다."
     return {
-        "paragraph": " ".join([opening, priority_text, action_text, caution]),
-        "priorities": priorities,
-        "recommended_action": SUBDOMAIN_FEEDBACK[first_name],
+        "paragraph": " ".join([opening, action_text, caution]),
     }
+
+
+def practice_topics(answers):
+    """상대적으로 더 살펴볼 응답을 감·수·성별 연습주제로 바꿉니다. 별도 하위척도 판정은 하지 않습니다."""
+    selected = reflection_items(answers)
+    return [
+        {
+            "factor": factor,
+            "item": text,
+            "title": PRACTICE_GUIDES[factor]["title"],
+            "steps": PRACTICE_GUIDES[factor]["steps"],
+        }
+        for _, factor, _, text in selected
+    ]
 
 
 def google_sheet():
@@ -367,24 +407,21 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
     story += [table, Spacer(1, 5*mm)]
 
     summary = profile_summary(scores)
-    personalized = personalized_feedback(scores, sub_scores)
+    personalized = personalized_feedback(scores)
     story += [Paragraph("나의 종합 피드백", h_style), Paragraph(personalized["paragraph"], body_style)]
     story += [Paragraph("나의 프로파일 읽기", h_style), Paragraph(f"<b>{summary['label']}</b> — {summary['lead']} {summary['detail']}", body_style)]
     for factor in ["감", "수", "성"]:
         meta = FACTOR_META[factor]
         story += [Paragraph(meta["title"], h_style), Paragraph(meta["meaning"], body_style), Paragraph(f"실천 제안: {meta['practice']}", body_style)]
 
-    story += [PageBreak(), Paragraph("하위영역별 성찰", h_style)]
-    for name, value in sorted(sub_scores.items(), key=lambda x: x[1]):
-        story.append(Paragraph(f"<b>{name} ({value:.2f})</b>: {SUBDOMAIN_FEEDBACK[name]}", body_style))
-
-    story += [Paragraph("지금 성찰해 볼 문항", h_style)]
-    selected_items = reflection_items(answers)
-    if selected_items:
-        for number, factor, _, text in selected_items:
-            story.append(Paragraph(f"{number}. [{factor}] {text} — 나의 최근 경험에서 이 문항이 어려웠던 상황은 무엇이었는가?", body_style))
+    story += [PageBreak(), Paragraph("한 사례를 감·수·성으로 다시 보기", h_style), Paragraph(INTEGRATED_PRACTICE, body_style)]
+    story += [Paragraph("결과에 연결한 연습주제", h_style)]
+    topics = practice_topics(answers)
+    if topics:
+        for topic in topics:
+            story += [Paragraph(f"<b>{topic['title']}</b>", body_style), Paragraph(f"연결 문항: {topic['item']}", body_style), Paragraph(topic['steps'], body_style)]
     else:
-        story.append(Paragraph("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 임의로 고르기보다, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 돌아보십시오.", body_style))
+        story.append(Paragraph("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 우선순위로 정하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 돌아보십시오.", body_style))
 
     story += [Paragraph("나의 한 가지 행동계획", h_style), Paragraph(action_plan.strip() if action_plan.strip() else "아직 작성하지 않았습니다.", body_style), Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style)]
 
@@ -447,36 +484,47 @@ def reset_profile():
     st.rerun()
 
 
+def render_brand_bar():
+    logo_col, text_col = st.columns([1, 7])
+    with logo_col:
+        if LOGO_PATH.exists():
+            st.image(str(LOGO_PATH), width=46)
+    with text_col:
+        st.markdown('<div class="brand-bar"><b>감·수·성</b> · 인권적 직무판단 자기성찰 프로파일</div>', unsafe_allow_html=True)
+
+
 init_state()
 
 if st.session_state.page == "intro":
     st.markdown('<div class="hero">', unsafe_allow_html=True)
-    st.title("감·수·성 인권적 직무판단 자기성찰 프로파일")
-    st.markdown("**알아차림 · 판단 · 성찰을 통해 나의 직무판단 구조를 살펴봅니다.**")
+    if LOGO_PATH.exists():
+        logo_left, logo_center, logo_right = st.columns([3, 2, 3])
+        with logo_center:
+            st.image(str(LOGO_PATH), use_container_width=True)
+    st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-title">감·수·성<br>인권적 직무판단 자기성찰 프로파일</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-lead">교정현장에서 마주하는 상황을 떠올리며, 나의 감정 인식·대응 기준·성찰 습관을 살펴보는 교육용 자기점검입니다.<br>정답이나 등급은 없으며, 인사평가나 개인 비교에 사용하지 않습니다.</div>', unsafe_allow_html=True)
+    factor_cols = st.columns(3)
+    factor_intro = [
+        ("감(感)", "정서와 취약성 알아차리기"),
+        ("수(受)", "기준에 따라 대응 판단하기"),
+        ("성(性)", "내 판단을 성찰하고 조정하기"),
+    ]
+    for col, (label, description) in zip(factor_cols, factor_intro):
+        with col:
+            st.markdown(f'<div class="factor-card"><b>{label}</b><span>{description}</span></div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     st.write("")
-    st.markdown(
-        """
-이 프로파일은 교정현장에서 인권 관련 상황을 마주할 때 자신이 평소 감·수·성의 판단영역을 어떻게 활용하고 있는지 돌아보기 위한 **교육용 자기성찰 활동**입니다. 
-참여자는 응답 결과를 통해 자신이 상대적으로 익숙하게 활용하는 영역과 앞으로 더 성찰해 볼 영역을 확인할 수 있습니다. 
-아울러 동의한 응답자의 익명화된 자료는 감·수·성 척도의 타당성을 검토하고 향후 인권교육을 개선하기 위한 후속연구에 활용됩니다.
-
-- **감(感)**: 정서와 취약성을 알아차리고 이해하기
-- **수(受)**: 비례성·적법절차·전문성에 따라 판단하기
-- **성(性)**: 편견·감정·권위와 관행의 영향을 성찰하고 조정하기
-
-최근 **6개월의 근무 경험**을 떠올려 가장 가까운 응답을 선택해 주세요. 정답은 없습니다. 예상 소요시간은 약 5~7분입니다.
-"""
-    )
-    st.markdown('<div class="notice"><b>중요:</b> 개인의 인권 수준·성향·직무역량을 판정하거나 다른 사람과 비교하는 검사가 아닙니다. 이름·직원번호·정확한 기관명은 수집하지 않으며, 개인 결과는 인사평가나 책임판단에 사용하지 않습니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="notice"><b>참여 안내:</b> 최근 6개월의 근무 경험을 떠올려 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 5~7분입니다.<br><br>이름·직원번호·정확한 소속기관은 수집하지 않습니다. 응답은 교육용 자기성찰에 활용되며, 연구 참여에 동의한 경우에만 익명화된 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
     st.write("")
-    if st.button("연구 설명과 동의 확인하기", type="primary", use_container_width=True):
+    if st.button("자기성찰 시작", type="primary", use_container_width=True):
         st.session_state.page = "consent"
         st.rerun()
     st.stop()
 
 
 if st.session_state.page == "consent":
+    render_brand_bar()
     st.title("연구 참여 설명 및 동의")
     st.markdown(f"**연구명:** {RESEARCH_TITLE}  \n**연구책임자:** {PRINCIPAL_INVESTIGATOR}  \n**IRB 승인번호:** {IRB_APPROVAL_NO}  \n**연구 문의:** {RESEARCH_CONTACT}")
     st.markdown(
@@ -516,6 +564,7 @@ if st.session_state.page == "consent":
 
 
 if st.session_state.page == "survey":
+    render_brand_bar()
     st.title("25개 문항 자기점검")
     answered = sum(1 for n, _, _, _ in ITEMS if st.session_state.get(f"q_{n}") is not None)
     current_index = min(st.session_state.question_index, len(ITEMS) - 1)
@@ -558,6 +607,7 @@ if st.session_state.page == "survey":
 
 
 if st.session_state.page == "demographics":
+    render_brand_bar()
     st.title("기본정보")
     st.markdown('<div class="notice">정확한 기관명은 수집하지 않습니다. 모든 항목은 범주형이며 각 문항에서 ‘응답하지 않음’을 선택할 수 있습니다.</div>', unsafe_allow_html=True)
     st.write("")
@@ -585,12 +635,13 @@ if st.session_state.page == "demographics":
 
 
 if st.session_state.page == "result":
+    render_brand_bar()
     answers = st.session_state.answers
     scores = factor_means(answers)
     sub_scores = subdomain_means(answers)
     mh_scores = mental_factor_means(answers)
     summary = profile_summary(scores)
-    personalized = personalized_feedback(scores, sub_scores)
+    personalized = personalized_feedback(scores)
 
     st.title("나의 자기성찰 프로파일")
     if st.session_state.research_saved:
@@ -617,12 +668,18 @@ if st.session_state.page == "result":
     st.write(summary["lead"])
     st.caption(summary["detail"])
 
-    st.subheader("우선 성찰영역")
-    priority_cols = st.columns(2)
-    for col, (name, value) in zip(priority_cols, personalized["priorities"]):
-        with col:
-            st.markdown(f'<div class="result-card"><b>{name}</b><br><span style="font-size:1.35rem">{value:.2f}</span><br><span class="small">{SUBDOMAIN_FEEDBACK[name]}</span></div>', unsafe_allow_html=True)
-    st.info(f"이번 프로파일의 우선 실천 제안: {personalized['recommended_action']}")
+    st.subheader("한 사례를 감·수·성으로 다시 보기")
+    st.markdown(f'<div class="notice">{INTEGRATED_PRACTICE}</div>', unsafe_allow_html=True)
+
+    st.subheader("결과에 연결한 연습주제")
+    topics = practice_topics(answers)
+    if topics:
+        for topic in topics:
+            with st.expander(topic["title"], expanded=True):
+                st.markdown(f"**연결 문항:** {topic['item']}")
+                st.write(topic["steps"])
+    else:
+        st.info("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 우선순위로 정하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 성찰해 보십시오.")
 
     st.subheader("세 판단영역의 의미와 실천 제안")
     for factor in ["감", "수", "성"]:
@@ -632,11 +689,11 @@ if st.session_state.page == "result":
             st.write(meta["meaning"])
             st.info(f"실천 제안: {meta['practice']}")
 
-    with st.expander("9개 하위 내용영역 전체 보기", expanded=False):
-        st.caption("점수가 낮다는 것은 결함이 아니라, 최근 경험을 바탕으로 더 의식적으로 돌아볼 주제라는 뜻입니다. 아래 내용영역은 별도로 검증된 9개 하위요인이 아니라 이론적 내용분류입니다.")
-        for name, value in sorted(sub_scores.items(), key=lambda x: x[1]):
-            st.markdown(f"**{name} · {value:.2f}**")
-            st.write(SUBDOMAIN_FEEDBACK[name])
+    with st.expander("9개 내용영역과 연습 방향", expanded=False):
+        st.caption("아래 9개 영역은 문항의 이론적 내용분류이며, 별도로 검증된 하위척도나 점수 순위가 아닙니다.")
+        for name, guidance in SUBDOMAIN_FEEDBACK.items():
+            st.markdown(f"**{name}**")
+            st.write(guidance)
 
     with st.expander("정신건강 문제 상황에서의 응답 경향", expanded=False):
         st.write("문항 수가 감 3개, 수 3개, 성 2개로 다르므로 합계가 아니라 문항평균으로 제시합니다. 별도의 표준화된 하위척도나 유형 판정이 아닙니다.")
