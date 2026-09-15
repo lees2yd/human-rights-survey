@@ -50,6 +50,7 @@ st.markdown(
   .block-container {max-width: 880px; padding-top: 1.6rem; padding-bottom: 4rem;}
   h1, h2, h3 {word-break: keep-all; color:#163f67;}
   p, li {line-height: 1.72; word-break: keep-all;}
+  .stMarkdown, .stMarkdown p, .stMarkdown li, .stCaption, .stText, .stRadio label, .stRadio label p, .stCheckbox label, .stCheckbox label p, [data-testid="stMetricLabel"], [data-testid="stMetricValue"] {word-break:keep-all !important; overflow-wrap:normal !important; line-break:strict;}
   .hero {padding:2.25rem 2rem 1.8rem; border-radius:26px; background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(239,249,255,.94)); border:1px solid #cfe8f8; box-shadow:0 14px 34px rgba(62,135,183,.13);}
   .brand-bar {padding:.65rem 1rem; margin:.35rem 0 1.1rem; border-radius:16px; background:rgba(255,255,255,.76); border:1px solid #d8edf9; color:#28618e; font-size:.92rem; text-align:center; word-break:keep-all;}
   .logo-wrap {display:flex; justify-content:center; align-items:center; line-height:0; overflow:visible;}
@@ -86,8 +87,8 @@ st.markdown(
     .factor-card{min-height:0; padding:.82rem .6rem; margin-bottom:.15rem;}
     .factor-card b{font-size:1.08rem;}
     .factor-card span{font-size:.85rem;}
-    .question{font-size:1rem; line-height:1.62; padding:.88rem .9rem; word-break:keep-all; overflow-wrap:break-word;}
-    div[data-testid="stRadio"] label p{font-size:.94rem; line-height:1.55; word-break:keep-all;}
+    .question{font-size:1rem; line-height:1.62; padding:.88rem .9rem; word-break:keep-all; overflow-wrap:normal;}
+    div[data-testid="stRadio"] label p{font-size:.94rem; line-height:1.55; word-break:keep-all; overflow-wrap:normal;}
   }
 </style>
 """,
@@ -213,6 +214,11 @@ INTEGRATED_PRACTICE = (
     "③ 성(性): 피로, 선입견, 동료 분위기, 권위나 관행이 내 판단에 영향을 주지는 않았는가? 다음에는 무엇을 조정할 것인가?"
 )
 
+COMMON_REFLECTION_QUESTION = (
+    "위 세 문항과 관련하여, 최근 이를 실천하기 어려웠던 경험을 떠올려 보십시오. "
+    "그때 개인의 감정·피로, 업무절차, 인력·조직지원 중 무엇이 영향을 주었으며, 다음에는 무엇을 다르게 조정해 볼 수 있습니까?"
+)
+
 MENTAL_ITEMS = {7, 8, 9, 15, 16, 17, 24, 25}
 
 DEMOGRAPHIC_OPTIONS = {
@@ -302,31 +308,6 @@ def reflection_items(answers, limit=3):
         if len(selected) == limit:
             break
     return selected
-
-
-def personalized_feedback(scores):
-    """규준판정 없이 개인 내부의 점수관계를 한 문단으로 통합합니다."""
-    summary = profile_summary(scores)
-    spread = max(scores.values()) - min(scores.values())
-
-    if spread < 0.30:
-        opening = (
-            "귀하의 응답에서는 감·수·성 세 판단영역이 비교적 고르게 나타났습니다. "
-            "이는 세 영역의 절대적 수준이 같거나 충분하다는 판정이 아니라, 개인 내부의 평균 차이가 크지 않았다는 의미입니다."
-        )
-    else:
-        high_text = "·".join(summary["focus"])
-        low_text = "·".join(summary["growth"])
-        opening = (
-            f"귀하의 응답에서는 {high_text} 영역을 상대적으로 익숙하게 활용하는 경향이 나타났으며, "
-            f"{low_text} 영역은 더 의식적으로 돌아볼 여지가 있는 것으로 나타났습니다."
-        )
-
-    action_text = "이 결과는 영역별 우열을 정하는 자료가 아니라, 한 사례를 감·수·성의 순환으로 다시 살펴보고 다음 행동을 설계하기 위한 성찰 자료입니다."
-    caution = "이 결과는 능력의 우열이나 인권 수준에 대한 판정이 아니라 최근 경험에 관한 자기보고식 응답의 상대적 분포입니다."
-    return {
-        "paragraph": " ".join([opening, action_text, caution]),
-    }
 
 
 def practice_topics(answers):
@@ -461,8 +442,6 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
     story += [table, Spacer(1, 5*mm)]
 
     summary = profile_summary(scores)
-    personalized = personalized_feedback(scores)
-    story += [Paragraph("나의 종합 피드백", h_style), Paragraph(personalized["paragraph"], body_style)]
     story += [Paragraph("나의 프로파일 읽기", h_style), Paragraph(f"<b>{summary['label']}</b> — {summary['lead']} {summary['detail']}", body_style)]
     for factor in ["감", "수", "성"]:
         meta = FACTOR_META[factor]
@@ -476,6 +455,15 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
             story += [Paragraph(f"<b>{topic['title']}</b>", body_style), Paragraph(f"연결 문항: {topic['item']}", body_style), Paragraph(topic['steps'], body_style)]
     else:
         story.append(Paragraph("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 우선순위로 정하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 돌아보십시오.", body_style))
+
+    story += [Paragraph("지금 성찰해 볼 세 문항", h_style)]
+    selected_items = reflection_items(answers)
+    if selected_items:
+        for number, factor, _, text in selected_items:
+            story.append(Paragraph(f"{number}. [{factor}] {text}", body_style))
+        story += [Paragraph("성찰 질문", h_style), Paragraph(COMMON_REFLECTION_QUESTION, body_style)]
+    else:
+        story.append(Paragraph("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 임의로 제시하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 성찰해 보십시오.", body_style))
 
     story += [Paragraph("나의 한 가지 행동계획", h_style), Paragraph(action_plan.strip() if action_plan.strip() else "아직 작성하지 않았습니다.", body_style), Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style)]
 
@@ -696,7 +684,6 @@ if st.session_state.page == "result":
     sub_scores = subdomain_means(answers)
     mh_scores = mental_factor_means(answers)
     summary = profile_summary(scores)
-    personalized = personalized_feedback(scores)
 
     st.title("나의 자기성찰 프로파일")
     if st.session_state.research_saved:
@@ -715,9 +702,6 @@ if st.session_state.page == "result":
     fig.add_trace(go.Scatterpolar(r=[scores["감"], scores["수"], scores["성"], scores["감"]], theta=["감", "수", "성", "감"], fill="toself", name="전체 프로파일", line=dict(color="#4f6fad")))
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[1, 4], tickvals=[1, 2, 3, 4])), showlegend=False, height=410, margin=dict(l=45, r=45, t=35, b=35))
     st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("나의 종합 피드백")
-    st.markdown(f'<div class="result-card">{personalized["paragraph"]}</div>', unsafe_allow_html=True)
 
     st.subheader(summary["label"])
     st.write(summary["lead"])
@@ -761,7 +745,8 @@ if st.session_state.page == "result":
     if selected_items:
         for number, factor, _, text in selected_items:
             st.markdown(f"**{number}. [{factor}] {text}**")
-            st.write("최근 이 문항을 실천하기 어려웠던 상황은 무엇이었으며, 개인의 경험·피로·업무절차·인력과 조직지원 중 무엇이 영향을 주었습니까?")
+        st.markdown("**성찰 질문**")
+        st.write(COMMON_REFLECTION_QUESTION)
     else:
         st.info("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 임의로 제시하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 성찰해 보십시오.")
 
