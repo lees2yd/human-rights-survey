@@ -1,3 +1,4 @@
+import base64
 import io
 from datetime import datetime
 from pathlib import Path
@@ -34,6 +35,13 @@ DATA_RETENTION = "연구 종료 후 3년"
 WORKSHEET_NAME = "responses"
 SCALE_PAPER_URL = "http://krscs.or.kr/html/sub6_01.html"
 LOGO_PATH = Path(__file__).with_name("gam_su_seong_logo.png")
+BACKGROUND_PATH = Path(__file__).with_name("human_rights_background.png")
+
+
+def image_data_uri(path):
+    if not path.exists():
+        return ""
+    return f"data:image/png;base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
 
 st.markdown(
     """
@@ -43,7 +51,13 @@ st.markdown(
   h1, h2, h3 {word-break: keep-all; color:#163f67;}
   p, li {line-height: 1.72; word-break: keep-all;}
   .hero {padding:2.25rem 2rem 1.8rem; border-radius:26px; background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(239,249,255,.94)); border:1px solid #cfe8f8; box-shadow:0 14px 34px rgba(62,135,183,.13);}
-  .brand-bar {padding:.65rem 1rem; margin-bottom:1.1rem; border-radius:16px; background:rgba(255,255,255,.76); border:1px solid #d8edf9; color:#28618e; font-size:.92rem; text-align:center;}
+  .brand-bar {padding:.65rem 1rem; margin:.35rem 0 1.1rem; border-radius:16px; background:rgba(255,255,255,.76); border:1px solid #d8edf9; color:#28618e; font-size:.92rem; text-align:center; word-break:keep-all;}
+  .logo-wrap {display:flex; justify-content:center; align-items:center; line-height:0; overflow:visible;}
+  .logo-wrap img {display:block; object-fit:contain; height:auto;}
+  .intro-logo {margin:.1rem 0 .65rem;}
+  .intro-logo img {width:138px; max-width:38vw;}
+  .page-logo {margin:1.2rem 0 .1rem;}
+  .page-logo img {width:54px; max-width:18vw;}
   .intro-kicker {color:#4b94c8; font-weight:700; letter-spacing:.06em; text-align:center; margin:.3rem 0 .75rem;}
   .intro-title {color:#163f67; font-size:2.45rem; font-weight:800; line-height:1.23; text-align:center; margin:.2rem 0 .85rem;}
   .intro-lead {color:#315b7c; font-size:1.05rem; text-align:center; max-width:620px; margin:0 auto 1.4rem; line-height:1.75;}
@@ -59,11 +73,51 @@ st.markdown(
   div[data-testid="stButton"] > button {border:0; border-radius:13px; background:linear-gradient(135deg,#48a9e1,#2589c8); color:white; font-weight:700; min-height:3.1rem; box-shadow:0 7px 16px rgba(37,137,200,.22);}
   div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#2589c8,#176fae); color:white;}
   div[data-testid="stExpander"] {border:1px solid #d4eaf8; border-radius:14px; background:rgba(255,255,255,.76);}
-  @media(max-width:520px){.block-container{padding-left:1rem;padding-right:1rem}.hero{padding:1.5rem 1rem}.intro-title{font-size:1.9rem}.question{font-size:.98rem}}
+  @media(max-width:520px){
+    .block-container{padding:2.55rem .95rem 3rem;}
+    .hero{padding:1.35rem .9rem 1.25rem; border-radius:20px;}
+    .intro-logo{margin:.15rem 0 .55rem;}
+    .intro-logo img{width:112px; max-width:112px;}
+    .page-logo{margin:1rem 0 .1rem;}
+    .page-logo img{width:48px; max-width:48px;}
+    .intro-title{font-size:1.52rem; line-height:1.32; margin:.15rem 0 .7rem; word-break:keep-all;}
+    .intro-lead{font-size:.94rem; line-height:1.7; margin-bottom:1rem;}
+    .intro-kicker{font-size:.82rem; margin:.15rem 0 .45rem;}
+    .factor-card{min-height:0; padding:.82rem .6rem; margin-bottom:.15rem;}
+    .factor-card b{font-size:1.08rem;}
+    .factor-card span{font-size:.85rem;}
+    .question{font-size:1rem; line-height:1.62; padding:.88rem .9rem; word-break:keep-all; overflow-wrap:break-word;}
+    div[data-testid="stRadio"] label p{font-size:.94rem; line-height:1.55; word-break:keep-all;}
+  }
 </style>
 """,
     unsafe_allow_html=True,
 )
+
+background_data_uri = image_data_uri(BACKGROUND_PATH)
+if background_data_uri:
+    st.markdown(
+        f"""
+<style>
+  .stApp {{
+    background-image: linear-gradient(rgba(248,252,255,.80),rgba(248,252,255,.80)), url("{background_data_uri}");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover, cover;
+    background-position: center, center bottom;
+    background-attachment: fixed, fixed;
+  }}
+  @media(max-width:520px) {{
+    .stApp {{
+      background-image: linear-gradient(rgba(248,252,255,.84),rgba(248,252,255,.84)), url("{background_data_uri}");
+      background-size: auto 100%, auto 100%;
+      background-position: center, center bottom;
+      background-attachment: scroll, scroll;
+    }}
+  }}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
 
 
 SCALE_LABELS = {
@@ -484,25 +538,26 @@ def reset_profile():
     st.rerun()
 
 
+def logo_html(css_class):
+    """Streamlit 열 배치와 무관하게 로고 전체가 보이도록 고정 크기의 HTML 이미지를 만듭니다."""
+    if not LOGO_PATH.exists():
+        return ""
+    encoded = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+    return f'<div class="logo-wrap {css_class}"><img src="data:image/png;base64,{encoded}" alt="감·수·성 로고"></div>'
+
+
 def render_brand_bar():
-    logo_col, text_col = st.columns([1, 7])
-    with logo_col:
-        if LOGO_PATH.exists():
-            st.image(str(LOGO_PATH), width=46)
-    with text_col:
-        st.markdown('<div class="brand-bar"><b>감·수·성</b> · 인권적 직무판단 자기성찰 프로파일</div>', unsafe_allow_html=True)
+    st.markdown(logo_html("page-logo"), unsafe_allow_html=True)
+    st.markdown('<div class="brand-bar"><b>감·수·성</b> · 인권적 직무판단 자기성찰 프로파일</div>', unsafe_allow_html=True)
 
 
 init_state()
 
 if st.session_state.page == "intro":
     st.markdown('<div class="hero">', unsafe_allow_html=True)
-    if LOGO_PATH.exists():
-        logo_left, logo_center, logo_right = st.columns([3, 2, 3])
-        with logo_center:
-            st.image(str(LOGO_PATH), use_container_width=True)
+    st.markdown(logo_html("intro-logo"), unsafe_allow_html=True)
     st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
-    st.markdown('<div class="intro-title">감·수·성<br>인권적 직무판단 자기성찰 프로파일</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-title">감·수·성<br>인권적 직무판단<br>자기성찰 프로파일</div>', unsafe_allow_html=True)
     st.markdown('<div class="intro-lead">교정현장에서 마주하는 상황을 떠올리며, 나의 감정 인식·대응 기준·성찰 습관을 살펴보는 교육용 자기점검입니다.<br>정답이나 등급은 없으며, 인사평가나 개인 비교에 사용하지 않습니다.</div>', unsafe_allow_html=True)
     factor_cols = st.columns(3)
     factor_intro = [
