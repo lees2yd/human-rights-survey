@@ -36,6 +36,8 @@ WORKSHEET_NAME = "responses"
 SCALE_PAPER_URL = "http://krscs.or.kr/html/sub6_01.html"
 LOGO_PATH = Path(__file__).with_name("gam_su_seong_logo.png")
 BACKGROUND_PATH = Path(__file__).with_name("human_rights_background.png")
+HERO_DESKTOP_PATH = Path(__file__).with_name("hero_background_desktop.png")
+HERO_MOBILE_PATH = Path(__file__).with_name("hero_background_mobile.png")
 
 
 def image_data_uri(path):
@@ -113,6 +115,32 @@ if background_data_uri:
       background-size: auto 100%, auto 100%;
       background-position: center, center bottom;
       background-attachment: scroll, scroll;
+    }}
+  }}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
+# 첫 화면만 넓은 화면과 휴대폰 화면에 맞춘 서로 다른 배경을 사용합니다.
+# 파일이 없으면 기존의 단색 hero 배경으로 자연스럽게 표시됩니다.
+hero_desktop_data_uri = image_data_uri(HERO_DESKTOP_PATH)
+hero_mobile_data_uri = image_data_uri(HERO_MOBILE_PATH) or hero_desktop_data_uri
+if hero_desktop_data_uri:
+    st.markdown(
+        f"""
+<style>
+  .hero {{
+    background-image: linear-gradient(145deg,rgba(255,255,255,.62),rgba(239,249,255,.68)), url("{hero_desktop_data_uri}") !important;
+    background-repeat: no-repeat, no-repeat !important;
+    background-size: cover, cover !important;
+    background-position: center, center bottom !important;
+  }}
+  @media(max-width:520px) {{
+    .hero {{
+      background-image: linear-gradient(180deg,rgba(255,255,255,.60),rgba(245,251,255,.50)), url("{hero_mobile_data_uri}") !important;
+      background-size: cover, cover !important;
+      background-position: center, center bottom !important;
     }}
   }}
 </style>
