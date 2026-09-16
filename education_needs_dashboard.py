@@ -4,19 +4,29 @@
 개별 응답자 평가가 아니라, 강의 집단의 교육 우선순위와 교육안을 제시하기 위한 파일이다.
 """
 
+import io
 from collections import Counter, defaultdict
 from datetime import datetime
+from pathlib import Path
 
 import gspread
 import plotly.graph_objects as go
 import streamlit as st
 from google.oauth2.service_account import Credentials
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
 st.set_page_config(page_title="감·수·성 교육필요 대시보드", page_icon="📘", layout="wide")
 
 WORKSHEET_NAME = "responses"
 PRIORITY_COUNT = 3
+FONT_PATH = Path(__file__).parent / "fonts" / "NanumGothicCoding.ttf"
 
 ITEMS = [
     (1, "감", "공감적 이해", "수용자가 소란을 피울 때, 그 안에 두려움이나 불안이 있을 수 있다고 생각한다."),
@@ -287,8 +297,7 @@ def render_profile_summary(records):
             st.markdown(f"**Q{row['번호']} · {row['영역']} / {row['하위영역']} - {row['평균']:.2f}점**  \n{row['문항']}")
 
 
-def render_course_plan(priorities):
-    option = st.radio("강의 시간", ["2시간 핵심 과정", "4시간 심화 과정"], horizontal=True)
+def course_blocks(priorities, option):
     factor_sequence = []
     for item in priorities:
         if item["영역"] not in factor_sequence:
@@ -297,9 +306,101 @@ def render_course_plan(priorities):
         blocks = [("15분", "집단 응답 경향 읽기", "세 판단영역은 개인 평가가 아니라 직무 판단의 성찰 지점임을 확인"), ("60분", "우선 주제 사례 실습", "선정된 세 주제의 관찰-판단-성찰 미니 실습"), ("30분", "통합 직무사례 토의", "감정 신호, 비례·절차, 권한 성찰을 한 사례에 연결"), ("15분", "행동계획", "다음 근무에서 실천할 한 가지와 동료 피드백 약속")]
     else:
         blocks = [("25분", "집단 응답 경향과 인권적 직무판단", "교육의 목적·한계·성찰 원칙을 공유"), ("135분", "영역별 심화 모듈", "감-수-성 우선 주제를 각각 사례, 역할연습, 토의로 운영"), ("55분", "통합 시뮬레이션", "교정 현장 상황에서 감정 인식-비례성·절차-성찰을 연결해 대응안 비교"), ("25분", "성찰 저널과 사후 실천", "사실·감정·판단 근거·동료·관행·대안을 기록하고 실행계획 작성")]
+    return factor_sequence, blocks
+
+
+def render_course_plan(priorities):
+    option = st.radio("강의 시간", ["2시간 핵심 과정", "4시간 심화 과정"], horizontal=True)
+    factor_sequence, blocks = course_blocks(priorities, option)
     st.markdown(f"**이번 분석에서 반영할 중심 영역:** {' · '.join(factor_sequence)}")
     for duration, title, content in blocks:
         st.markdown(f"<div class='guide'><h4>{duration} | {title}</h4><p>{content}</p></div>", unsafe_allow_html=True)
+    return option
+
+
+def pdf_font_name():
+    """저장소의 한글 폰트를 우선 사용해 PDF에서 한글이 깨지지 않게 한다."""
+    if "NanumGothic" in pdfmetrics.getRegisteredFontNames():
+        return "NanumGothic"
+    candidates = [FONT_PATH, Path("fonts/NanumGothicCoding.ttf"), Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf")]
+    for path in candidates:
+        if path.exists():
+            pdfmetrics.registerFont(TTFont("NanumGothic", str(path)))
+            return "NanumGothic"
+    raise RuntimeError("한글 PDF 폰트를 찾지 못했습니다. fonts/NanumGothicCoding.ttf 파일을 저장소에 유지해 주세요.")
+
+
+def pdf_paragraph(text, style):
+    return Paragraph(str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), style)
+
+
+def build_pdf_report(records, filters, start_date, end_date, course_option):
+    """현재 선택 조건의 집단 결과만 담은 교육계획 PDF 바이트를 만든다."""
+    font = pdf_font_name()
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=16 * mm, leftMargin=16 * mm, topMargin=15 * mm, bottomMargin=15 * mm)
+    styles = getSampleStyleSheet()
+    title = ParagraphStyle("title_ko", parent=styles["Title"], fontName=font, fontSize=18, leading=25, textColor=colors.HexColor("#163F67"), spaceAfter=8)
+    h1 = ParagraphStyle("h1_ko", parent=styles["Heading1"], fontName=font, fontSize=13, leading=19, textColor=colors.HexColor("#1B6FAD"), spaceBefore=12, spaceAfter=7)
+    h2 = ParagraphStyle("h2_ko", parent=styles["Heading2"], fontName=font, fontSize=11, leading=16, textColor=colors.HexColor("#163F67"), spaceBefore=8, spaceAfter=4)
+    body = ParagraphStyle("body_ko", parent=styles["BodyText"], fontName=font, fontSize=8.7, leading=14, textColor=colors.HexColor("#263E53"))
+    small = ParagraphStyle("small_ko", parent=body, fontSize=7.6, leading=11, textColor=colors.HexColor("#587187"))
+    story = [Paragraph("감·수·성 교육필요 분석 및 교육계획", title)]
+    story += [Paragraph("교정공무원 인권적 직무판단 자기성찰 설문 - 교육자용 집단 분석", body), Spacer(1, 4 * mm)]
+    filter_text = " · ".join(f"{DEMOGRAPHICS[key]}: {value}" for key, value in filters.items() if value != "전체") or "인구학적 필터 없음"
+    story += [pdf_paragraph(f"분석 기간: {start_date:%Y-%m-%d} ~ {end_date:%Y-%m-%d} | 분석 인원: {len(records)}명", body), pdf_paragraph(f"적용 조건: {filter_text}", small)]
+    story += [pdf_paragraph("본 결과는 집단의 응답 경향을 교육 설계에 연결하기 위한 자료입니다. 개인의 능력·도덕성·직무수행을 평가하거나 인사자료로 활용하지 않습니다.", small), Spacer(1, 3 * mm)]
+
+    story.append(Paragraph("1. 감·수·성 영역별 응답 경향", h1))
+    factors = factor_stats(records)
+    factor_data = [[pdf_paragraph("영역", body), pdf_paragraph("문항 평균(4점)", body), pdf_paragraph("낮은 응답(1~2점)", body)]]
+    for row in factors:
+        factor_data.append([pdf_paragraph(row["영역"], body), pdf_paragraph(f"{row['평균']:.2f}", body), pdf_paragraph(f"{row['낮은 응답(1~2) 비율']:.1f}%", body)])
+    factor_table = Table(factor_data, colWidths=[35 * mm, 55 * mm, 65 * mm])
+    factor_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#DDF1FC")), ("GRID", (0, 0), (-1, -1), .35, colors.HexColor("#B9DDEF")), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+    story += [factor_table, Spacer(1, 3 * mm)]
+
+    stats = item_stats(records)
+    high = sorted(stats, key=lambda row: (-row["평균"], row["낮은 응답(1~2) 비율"], row["번호"]))[:3]
+    low = sorted(stats, key=lambda row: (row["평균"], -row["낮은 응답(1~2) 비율"], row["번호"]))[:3]
+    story.append(Paragraph("2. 상대적으로 높은 응답과 우선 성찰 지점", h1))
+    for heading, rows, lead in [("상대적으로 높은 응답 경향", high, "이 집단이 비교적 익숙하게 보고한 교육 자원"), ("더 우선적으로 다뤄 볼 응답 경향", low, "다음 교육에서 사례·실습과 연결할 우선 성찰 지점")]:
+        story.append(pdf_paragraph(f"{heading} - {lead}", h2))
+        for row in rows:
+            story.append(pdf_paragraph(f"Q{row['번호']} | {row['영역']}·{row['하위영역']} | 평균 {row['평균']:.2f}: {row['문항']}", body))
+
+    story.append(Paragraph("3. 인구학적 구성", h1))
+    demo_data = [[pdf_paragraph("항목", body), pdf_paragraph("범주", body), pdf_paragraph("인원", body), pdf_paragraph("비율", body)]]
+    for row in demographic_distribution(records):
+        demo_data.append([pdf_paragraph(row["항목"], small), pdf_paragraph(row["범주"], small), pdf_paragraph(f"{row['인원']}명", small), pdf_paragraph(f"{row['비율']:.1f}%", small)])
+    demo_table = Table(demo_data, colWidths=[45 * mm, 65 * mm, 22 * mm, 23 * mm], repeatRows=1)
+    demo_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#DDF1FC")), ("GRID", (0, 0), (-1, -1), .3, colors.HexColor("#C8E4F3")), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+    story += [demo_table, PageBreak()]
+
+    priorities = priority_topics(records)
+    story.append(Paragraph("4. 분석 결과에 따른 우선 교육 주제", h1))
+    for index, priority in enumerate(priorities, 1):
+        guide = GUIDES[priority["영역"]]
+        story.append(Paragraph(f"{index}. {priority['영역']} - {priority['하위영역']} (Q{priority['번호']}, 평균 {priority['평균']:.2f})", h2))
+        story.append(pdf_paragraph(f"문항: {priority['문항']}", body))
+        story.append(pdf_paragraph(f"교육목표: {guide['goal']}", body))
+        story.append(pdf_paragraph(f"교육 이론·판단 틀: {THEORY_AND_METHOD[priority['영역']]}", body))
+        story.append(pdf_paragraph(f"사례활동: {guide['case']} / {guide['activity']}", body))
+        story.append(pdf_paragraph(f"토의질문: {guide['discussion']}", body))
+        story.append(pdf_paragraph(f"실천과제: {guide['practice']}", body))
+        story.append(Spacer(1, 2 * mm))
+
+    factors_order, blocks = course_blocks(priorities, course_option)
+    story.append(Paragraph("5. 권장 교육과정 운영안", h1))
+    story.append(pdf_paragraph(f"과정 유형: {course_option} / 중심 영역: {' · '.join(factors_order)}", body))
+    course_data = [[pdf_paragraph("시간", body), pdf_paragraph("교육 내용", body), pdf_paragraph("운영 방법", body)]]
+    for duration, topic, content in blocks:
+        course_data.append([pdf_paragraph(duration, body), pdf_paragraph(topic, body), pdf_paragraph(content, body)])
+    course_table = Table(course_data, colWidths=[22 * mm, 52 * mm, 81 * mm], repeatRows=1)
+    course_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#DDF1FC")), ("GRID", (0, 0), (-1, -1), .35, colors.HexColor("#B9DDEF")), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+    story += [course_table, Spacer(1, 3 * mm), Paragraph("교육 운영 시 참여자의 심리적 안전과 발언 선택권을 보장하고, 성찰을 강요하지 않습니다. 결과는 교육 주제 선정의 보조자료로 한정합니다.", small)]
+    doc.build(story)
+    return buffer.getvalue()
 
 
 def start():
@@ -389,7 +490,22 @@ def start():
 
     st.subheader("분석 결과를 반영한 교육과정 구성")
     st.caption("헌법적 비례성·절차 판단, 경험학습, 사례기반 학습, 성찰저널과 동료 피드백을 결합한 선택형 운영안입니다.")
-    render_course_plan(priorities)
+    course_option = render_course_plan(priorities)
+
+    st.subheader("교육계획 PDF 내려받기")
+    st.caption("현재 선택한 응답기간과 인구학적 조건, 분석 결과 및 교육계획을 한글 PDF로 정리합니다.")
+    try:
+        pdf_bytes = build_pdf_report(selected, filters, start_date, end_date, course_option)
+        st.download_button(
+            "교육필요 분석 및 교육계획 PDF 다운로드",
+            data=pdf_bytes,
+            file_name=f"감수성_교육필요_분석_{start_date:%Y%m%d}-{end_date:%Y%m%d}.pdf",
+            mime="application/pdf",
+            type="primary",
+            use_container_width=True,
+        )
+    except RuntimeError as error:
+        st.error(f"PDF를 만들지 못했습니다: {error}")
 
     st.subheader("문항별 교육필요 확인")
     rows = item_stats(selected)
