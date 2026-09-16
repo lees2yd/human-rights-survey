@@ -244,9 +244,17 @@ def factor_by_demographic(records, column):
 
 def priority_topics(records):
     stats = item_stats(records)
-    # 평균이 낮고 1~2점 응답 비율이 높은 문항을 우선 제시한다. 절대적 결함 판정은 하지 않는다.
-    ordered = sorted(stats, key=lambda x: (x["평균"], -x["낮은 응답(1~2) 비율"], x["번호"]))[:PRIORITY_COUNT]
-    return ordered
+    # 감·수·성 세 영역에서 각각 하나씩 선택한다. 같은 영역의 낮은 문항이 여러 개여도
+    # 다른 영역의 다음 낮은 문항을 우선하여 교육계획이 세 판단영역을 함께 다루게 한다.
+    ordered = sorted(stats, key=lambda x: (x["평균"], -x["낮은 응답(1~2) 비율"], x["번호"]))
+    selected, used_factors = [], set()
+    for row in ordered:
+        if row["영역"] not in used_factors:
+            selected.append(row)
+            used_factors.add(row["영역"])
+        if len(selected) == PRIORITY_COUNT:
+            break
+    return selected
 
 
 def render_learning_plan(priority):
@@ -481,7 +489,7 @@ def start():
     render_profile_summary(selected)
 
     st.subheader("이번 강의의 우선 교육 주제")
-    st.caption("선정 방식: 선택 집단에서 문항 평균이 상대적으로 낮고 1~2점 응답 비율이 높은 세 문항을 우선 제시합니다. 교육자는 현장 맥락을 확인한 뒤 최종 선택합니다.")
+    st.caption("선정 방식: 감·수·성 각 영역에서 평균이 가장 낮고 1~2점 응답 비율이 높은 문항을 하나씩 제시합니다. 한 영역의 낮은 문항이 여러 개여도 다른 영역의 다음 낮은 문항을 우선해, 세 판단영역을 함께 다룹니다.")
     priorities = priority_topics(selected)
     for index, priority in enumerate(priorities, 1):
         st.markdown(f"### {index}. {priority['영역']} - {priority['하위영역']}")
