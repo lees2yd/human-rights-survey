@@ -61,6 +61,16 @@ DEMOGRAPHICS = {
     "교정경력": "교정 경력", "인권교육경험": "최근 3년간 인권교육 경험", "정신건강교육경험": "정신건강 관련 교육 경험",
 }
 
+DEMOGRAPHIC_CATEGORY_ORDER = {
+    "성별": ["남성", "여성", "응답하지 않음"],
+    "연령대": ["20대", "30대", "40대", "50대 이상", "응답하지 않음"],
+    "직급": ["9급", "8급", "7급", "6급", "5급 이상", "응답하지 않음"],
+    "근무기관유형": ["교도소", "구치소", "소년교도소·소년시설", "기타 교정기관", "응답하지 않음"],
+    "교정경력": ["5년 미만", "5~10년 미만", "10~20년 미만", "20년 이상", "응답하지 않음"],
+    "인권교육경험": ["없음", "1회", "2~3회", "4회 이상", "응답하지 않음"],
+    "정신건강교육경험": ["없음", "1회", "2회 이상", "응답하지 않음"],
+}
+
 # 두 논문에서 제안한 감정 인식-헌법적 기준 적용-성찰의 훈련 구조를 교육안으로 구체화한다.
 GUIDES = {
     "감": {
@@ -224,10 +234,14 @@ def factor_score_map(records):
 def demographic_distribution(records):
     """현재 선택 집단의 기본정보 분포를 표와 막대그래프에 쓸 형태로 만든다."""
     rows = []
-    for column, label in DEMOGRAPHICS.items():
+    for group_index, (column, label) in enumerate(DEMOGRAPHICS.items()):
         counts = Counter(str(row.get(column, "미응답")) or "미응답" for row in records)
-        for category, count in sorted(counts.items(), key=lambda item: (-item[1], item[0])):
-            rows.append({"항목": label, "범주": category, "인원": count, "비율": round(count / len(records) * 100, 1)})
+        configured = DEMOGRAPHIC_CATEGORY_ORDER[column]
+        categories = [category for category in configured if category in counts]
+        categories += sorted(category for category in counts if category not in configured)
+        for category in categories:
+            count = counts[category]
+            rows.append({"항목": label, "범주": category, "인원": count, "비율": round(count / len(records) * 100, 1), "묶음순서": group_index})
     return rows
 
 
@@ -271,11 +285,15 @@ def render_chart(stats):
 
 
 def render_demographic_chart(rows):
+    group_colors = ["#1976AD", "#75C4E9"]
+    colors_by_bar = [group_colors[row["묶음순서"] % 2] for row in rows]
     fig = go.Figure(go.Bar(
-        x=[f"{row['항목']} · {row['범주']}" for row in rows], y=[row["인원"] for row in rows],
-        marker_color="#58afe0", text=[f"{row['인원']}명<br>{row['비율']:.1f}%" for row in rows], textposition="outside",
+        x=[[row["항목"] for row in rows], [row["범주"] for row in rows]], y=[row["인원"] for row in rows],
+        marker_color=colors_by_bar, text=[f"{row['인원']}명<br>{row['비율']:.1f}%" for row in rows], textposition="outside",
+        hovertemplate="%{x[0]} · %{x[1]}<br>%{y}명<extra></extra>",
     ))
-    fig.update_layout(height=400, xaxis_tickangle=-35, yaxis_title="인원", margin=dict(l=20, r=20, t=25, b=120), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_layout(height=430, showlegend=False, yaxis_title="인원", margin=dict(l=20, r=20, t=25, b=78), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_xaxes(tickfont=dict(size=10), showgrid=False)
     return fig
 
 
@@ -469,11 +487,12 @@ def start():
 
     st.subheader("한눈에 보는 인구학적 구성")
     demo_rows = demographic_distribution(selected)
+    demo_display_rows = [{key: value for key, value in row.items() if key != "묶음순서"} for row in demo_rows]
     demo_left, demo_right = st.columns([1.12, .88])
     with demo_left:
         st.plotly_chart(render_demographic_chart(demo_rows), use_container_width=True)
     with demo_right:
-        st.dataframe(demo_rows, use_container_width=True, hide_index=True, column_config={"비율": st.column_config.NumberColumn(format="%.1f%%")})
+        st.dataframe(demo_display_rows, use_container_width=True, hide_index=True, column_config={"비율": st.column_config.NumberColumn(format="%.1f%%")})
 
     st.subheader("인구학적 집단별 감·수·성 비교")
     chosen_column = st.selectbox("비교할 인구학적 항목", list(DEMOGRAPHICS), format_func=lambda column: DEMOGRAPHICS[column])
