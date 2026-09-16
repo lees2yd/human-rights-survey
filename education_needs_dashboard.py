@@ -291,12 +291,14 @@ def render_demographic_chart(rows):
     group_colors = ["#1976AD", "#75C4E9"]
     colors_by_bar = [group_colors[row["묶음순서"] % 2] for row in rows]
     fig = go.Figure(go.Bar(
-        x=[[row["그래프항목"] for row in rows], [row["범주"] for row in rows]], y=[row["인원"] for row in rows],
+        x=[row["인원"] for row in rows], y=[[row["그래프항목"] for row in rows], [row["범주"] for row in rows]],
+        orientation="h",
         marker_color=colors_by_bar, text=[f"{row['인원']}명<br>{row['비율']:.1f}%" for row in rows], textposition="outside",
-        hovertemplate="%{x[0]} · %{x[1]}<br>%{y}명<extra></extra>",
+        hovertemplate="%{y[0]} · %{y[1]}<br>%{x}명<extra></extra>",
     ))
-    fig.update_layout(height=430, showlegend=False, yaxis_title="인원", margin=dict(l=20, r=20, t=25, b=78), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
-    fig.update_xaxes(tickfont=dict(size=10), showgrid=False)
+    fig.update_layout(height=max(520, len(rows) * 39 + 135), showlegend=False, xaxis_title="인원", margin=dict(l=170, r=95, t=25, b=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_xaxes(showgrid=True, gridcolor="#D8ECF7", zeroline=False, dtick=1)
+    fig.update_yaxes(autorange="reversed", tickfont=dict(size=12), showgrid=False)
     return fig
 
 
