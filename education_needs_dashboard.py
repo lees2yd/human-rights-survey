@@ -27,6 +27,7 @@ st.set_page_config(page_title="감·수·성 교육필요 대시보드", page_ic
 WORKSHEET_NAME = "responses"
 PRIORITY_COUNT = 3
 FONT_PATH = Path(__file__).parent / "fonts" / "NanumGothicCoding.ttf"
+LOGO_PATH = Path(__file__).with_name("gam_su_seong_logo.png")
 
 ITEMS = [
     (1, "감", "공감적 이해", "수용자가 소란을 피울 때, 그 안에 두려움이나 불안이 있을 수 있다고 생각한다."),
@@ -141,8 +142,21 @@ def apply_style():
     .notice{padding:1rem 1.15rem;background:#fff;border-left:5px solid #4aa9df;border-radius:12px;color:#315b7c}
     .guide{padding:1rem 1.1rem;border:1px solid #d1eafa;border-radius:15px;background:rgba(255,255,255,.86);margin:.6rem 0}
     .guide h4{color:#217fb7;margin:.1rem 0 .55rem}.tag{color:#4a789a;font-size:.88rem;font-weight:700}
+    .brand-head{padding:.75rem 0 .9rem;border-bottom:1px solid #cfe8f6;margin-bottom:1rem}
+    .brand-name{font-size:1.85rem;font-weight:800;color:#163f67;line-height:1.3;margin:.05rem 0}.brand-sub{color:#4b87ad;font-size:.95rem;margin-top:.2rem}
+    .rights{margin-top:2.4rem;padding:1rem;text-align:center;border-top:1px solid #cfe8f6;color:#567890;font-size:.83rem;line-height:1.7}
     @media(max-width:520px){.block-container{padding:.9rem .7rem 2.5rem}.guide{padding:.85rem}.stMarkdown p,.stMarkdown li{font-size:.95rem}}
     </style>""", unsafe_allow_html=True)
+
+
+def render_brand_header():
+    """상단에는 출처를, 하단에는 권리 상태를 절제된 방식으로 표시한다."""
+    logo_col, text_col = st.columns([.8, 8.2], vertical_alignment="center")
+    with logo_col:
+        if LOGO_PATH.exists():
+            st.image(str(LOGO_PATH), width=68)
+    with text_col:
+        st.markdown("<div class='brand-head'><div class='brand-name'>감·수·성 교육필요 분석 대시보드</div><div class='brand-sub'>교정공무원 인권적 직무판단 자기성찰 설문 - 교육자용 집단 분석</div></div>", unsafe_allow_html=True)
 
 
 def google_sheet():
@@ -436,8 +450,7 @@ def build_pdf_report(records, filters, start_date, end_date, course_option):
 
 def start():
     apply_style()
-    st.title("감·수·성 교육필요 분석 대시보드")
-    st.caption("교정공무원 인권적 직무판단 자기성찰 설문 - 교육자용 집단 분석 화면")
+    render_brand_header()
     st.markdown("<div class='notice'>이 화면은 개인의 인권감수성을 평가하거나 인사자료로 활용하기 위한 것이 아닙니다. 익명 응답의 <b>집단 수준 경향</b>을 바탕으로 강의의 교육 필요와 실습 주제를 설계하기 위한 도구입니다. 소수 응답의 비교는 변동이 클 수 있으므로, 수치와 현장 맥락을 함께 해석하십시오.</div>", unsafe_allow_html=True)
     require_dashboard_login()
 
@@ -546,6 +559,11 @@ def start():
     st.subheader("교육 운영 원칙")
     st.markdown("**권장 흐름:** 사례 제시 → 관찰·감정 언어 추출 → 비례성·절차 대안 비교 → 권위·편견·피로 성찰 → 한 가지 실천 약속.  \n공감이나 성찰을 강요하지 말고, 참여자의 심리적 안전·자율성·발언 선택권을 보장하십시오. 이 결과는 교육 주제 선정의 보조 자료이며, 진단·등급화·인사평가·기관 간 비교의 근거로 사용하지 않습니다.")
     st.caption(f"생성 시각: {datetime.now().strftime('%Y-%m-%d %H:%M')} | 데이터는 읽기 전용으로 조회됩니다.")
+    st.markdown(
+        "<div class='rights'>© 2026 이성덕. All rights reserved.<br>"
+        "감·수·성 로고 상표출원(심사 중)</div>",
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":
