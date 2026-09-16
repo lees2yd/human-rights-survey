@@ -16,7 +16,6 @@ from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="감·수·성 교육필요 대시보드", page_icon="📘", layout="wide")
 
 WORKSHEET_NAME = "responses"
-MIN_GROUP_N = 10  # 소규모 집단의 재식별 방지를 위한 표시 최소 인원
 PRIORITY_COUNT = 3
 
 ITEMS = [
@@ -78,6 +77,30 @@ GUIDES = {
         "practice": "다음 주 한 번, 강한 감정이 든 업무 상황에서 ‘사실과 해석을 분리했는가, 설명할 수 있는 근거가 있는가’를 확인하고 대안 한 가지를 기록한다.",
         "case": "동료들이 특정 수용자를 ‘늘 문제를 일으키는 사람’이라고 부르며 강한 말투로 지시한다. 담당자도 피로가 누적된 상태에서 같은 방식으로 대응하려 한다.",
     },
+}
+
+THEORY_AND_METHOD = {
+    "감": "경험학습 관점: 구체적 사건에서 관찰한 정서 신호를 감정 명명과 확인 질문으로 전환한다.",
+    "수": "사례·문제기반 학습 관점: 헌법 제10조의 인간 존엄과 제37조 제2항의 비례성 원리를 직무 대안 비교에 적용한다.",
+    "성": "성찰학습 관점: Schön의 행동 중·행동 후 성찰과 비판적 성찰을 활용해 편견·권위·관행의 영향을 점검한다.",
+}
+
+EDUCATION_VARIANTS = {
+    "감": [
+        ("정서 신호 탐지 실습", "사례 문장에서 관찰 사실과 정서 단어를 분리한 뒤, 불안·수치·고통·분노가 권리침해의 신호가 될 수 있는 맥락을 토의한다."),
+        ("감정 명명-욕구 연결", "강한 반응이 있었던 직무 상황을 ‘감정-욕구-확인 질문’으로 재서술하고, 비난 언어를 공감적 언어로 바꾼다."),
+        ("취약성 대응 역할연습", "정신건강·자극 과부하·불안 가능성이 있는 상황에서 짧고 명료한 지시, 자극 조절, 확인 질문을 역할연습한다."),
+    ],
+    "수": [
+        ("비례성 4단계 판정", "하나의 통제 상황에 대해 목적의 정당성, 수단의 적합성, 침해 최소성, 법익 균형을 적용하여 세 가지 대응안을 비교한다."),
+        ("절차·설명·기록 점검", "조치 전·중·후에 필요한 고지, 보고, 기록, 검토를 배열하고 ‘설명 가능한 대응’인지 점검한다."),
+        ("전문가 협력 시뮬레이션", "자해·환청·급성 불안 사례에서 교정직원, 의료·심리 전문가, 관리자 사이의 정보공유와 역할 분담을 설계한다."),
+    ],
+    "성": [
+        ("권한 행사 성찰 저널", "사실-감정-자동 생각-권위·관행의 영향-대안 행동의 다섯 칸으로 사건을 되짚는다."),
+        ("동료 압력 대안 토의", "‘원래 이렇게 한다’는 관행이 등장하는 사례에서 동료와 관계를 해치지 않으면서 다른 판단을 제안하는 문장을 연습한다."),
+        ("피로와 판단 조정", "피로·스트레스가 과잉반응에 미칠 수 있는 지점을 확인하고, 도움 요청·교대·재확인 같은 현실적 조정 행동을 정한다."),
+    ],
 }
 
 SUBDOMAIN_GUIDES = {
@@ -184,6 +207,31 @@ def factor_stats(records):
     return result
 
 
+def factor_score_map(records):
+    return {row["영역"]: row["평균"] for row in factor_stats(records)}
+
+
+def demographic_distribution(records):
+    """현재 선택 집단의 기본정보 분포를 표와 막대그래프에 쓸 형태로 만든다."""
+    rows = []
+    for column, label in DEMOGRAPHICS.items():
+        counts = Counter(str(row.get(column, "미응답")) or "미응답" for row in records)
+        for category, count in sorted(counts.items(), key=lambda item: (-item[1], item[0])):
+            rows.append({"항목": label, "범주": category, "인원": count, "비율": round(count / len(records) * 100, 1)})
+    return rows
+
+
+def factor_by_demographic(records, column):
+    groups = defaultdict(list)
+    for row in records:
+        groups[str(row.get(column, "미응답")) or "미응답"].append(row)
+    rows = []
+    for category, group in sorted(groups.items(), key=lambda item: (-len(item[1]), item[0])):
+        scores = factor_score_map(group)
+        rows.append({"범주": category, "인원": len(group), "감": scores["감"], "수": scores["수"], "성": scores["성"]})
+    return rows
+
+
 def priority_topics(records):
     stats = item_stats(records)
     # 평균이 낮고 1~2점 응답 비율이 높은 문항을 우선 제시한다. 절대적 결함 판정은 하지 않는다.
@@ -194,7 +242,8 @@ def priority_topics(records):
 def render_learning_plan(priority):
     factor = priority["영역"]
     guide = GUIDES[factor]
-    st.markdown(f"<div class='guide'><h4>{guide['title']}</h4><p><span class='tag'>선정 근거</span><br>Q{priority['번호']} · {priority['하위영역']} · 평균 {priority['평균']:.2f} / 4점, 낮은 응답(1~2점) {priority['낮은 응답(1~2) 비율']:.1f}%</p><p><span class='tag'>교육목표</span><br>{guide['goal']}</p><p><span class='tag'>사례활동</span><br><b>사례:</b> {guide['case']}<br>{guide['activity']}</p><p><span class='tag'>토의질문</span><br>{guide['discussion']}</p><p><span class='tag'>실천과제</span><br>{guide['practice']}</p><p><span class='tag'>세부 주제</span><br>{SUBDOMAIN_GUIDES[priority['하위영역']]}</p></div>", unsafe_allow_html=True)
+    variants = "<br>".join(f"- <b>{name}</b>: {method}" for name, method in EDUCATION_VARIANTS[factor])
+    st.markdown(f"<div class='guide'><h4>{guide['title']}</h4><p><span class='tag'>선정 근거</span><br>Q{priority['번호']} · {priority['하위영역']} · 평균 {priority['평균']:.2f} / 4점, 낮은 응답(1~2점) {priority['낮은 응답(1~2) 비율']:.1f}%</p><p><span class='tag'>교육목표</span><br>{guide['goal']}</p><p><span class='tag'>교육 이론·판단 틀</span><br>{THEORY_AND_METHOD[factor]}</p><p><span class='tag'>핵심 사례활동</span><br><b>사례:</b> {guide['case']}<br>{guide['activity']}</p><p><span class='tag'>선택 가능한 확장 활동</span><br>{variants}</p><p><span class='tag'>토의질문</span><br>{guide['discussion']}</p><p><span class='tag'>실천과제</span><br>{guide['practice']}</p><p><span class='tag'>세부 주제</span><br>{SUBDOMAIN_GUIDES[priority['하위영역']]}</p></div>", unsafe_allow_html=True)
 
 
 def render_chart(stats):
@@ -203,11 +252,61 @@ def render_chart(stats):
     return fig
 
 
+def render_demographic_chart(rows):
+    fig = go.Figure(go.Bar(
+        x=[f"{row['항목']} · {row['범주']}" for row in rows], y=[row["인원"] for row in rows],
+        marker_color="#58afe0", text=[f"{row['인원']}명<br>{row['비율']:.1f}%" for row in rows], textposition="outside",
+    ))
+    fig.update_layout(height=400, xaxis_tickangle=-35, yaxis_title="인원", margin=dict(l=20, r=20, t=25, b=120), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    return fig
+
+
+def render_group_comparison(rows, label):
+    fig = go.Figure()
+    colors = {"감": "#58afe0", "수": "#2c83bd", "성": "#175b91"}
+    for factor in ("감", "수", "성"):
+        fig.add_trace(go.Bar(name=factor, x=[f"{row['범주']}\n(n={row['인원']})" for row in rows], y=[row[factor] for row in rows], marker_color=colors[factor], text=[f"{row[factor]:.2f}" for row in rows], textposition="outside"))
+    fig.update_layout(barmode="group", height=410, yaxis=dict(range=[1, 4.25], title="문항 평균(1~4점)"), xaxis_title=label, margin=dict(l=20, r=20, t=25, b=85), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    return fig
+
+
+def render_profile_summary(records):
+    stats = item_stats(records)
+    high = sorted(stats, key=lambda row: (-row["평균"], row["낮은 응답(1~2) 비율"], row["번호"]))[:3]
+    low = sorted(stats, key=lambda row: (row["평균"], -row["낮은 응답(1~2) 비율"], row["번호"]))[:3]
+    left, right = st.columns(2)
+    with left:
+        st.success("### 상대적으로 높은 응답 경향")
+        st.caption("이 집단이 비교적 익숙하게 보고한 판단·성찰 지점입니다. 우열이나 성취 판정이 아닙니다.")
+        for row in high:
+            st.markdown(f"**Q{row['번호']} · {row['영역']} / {row['하위영역']} - {row['평균']:.2f}점**  \n{row['문항']}")
+    with right:
+        st.info("### 더 우선적으로 다뤄 볼 응답 경향")
+        st.caption("이 집단의 다음 교육에서 사례와 실습을 연결해 볼 지점입니다. 개인이나 집단의 결함을 뜻하지 않습니다.")
+        for row in low:
+            st.markdown(f"**Q{row['번호']} · {row['영역']} / {row['하위영역']} - {row['평균']:.2f}점**  \n{row['문항']}")
+
+
+def render_course_plan(priorities):
+    option = st.radio("강의 시간", ["2시간 핵심 과정", "4시간 심화 과정"], horizontal=True)
+    factor_sequence = []
+    for item in priorities:
+        if item["영역"] not in factor_sequence:
+            factor_sequence.append(item["영역"])
+    if option == "2시간 핵심 과정":
+        blocks = [("15분", "집단 응답 경향 읽기", "세 판단영역은 개인 평가가 아니라 직무 판단의 성찰 지점임을 확인"), ("60분", "우선 주제 사례 실습", "선정된 세 주제의 관찰-판단-성찰 미니 실습"), ("30분", "통합 직무사례 토의", "감정 신호, 비례·절차, 권한 성찰을 한 사례에 연결"), ("15분", "행동계획", "다음 근무에서 실천할 한 가지와 동료 피드백 약속")]
+    else:
+        blocks = [("25분", "집단 응답 경향과 인권적 직무판단", "교육의 목적·한계·성찰 원칙을 공유"), ("135분", "영역별 심화 모듈", "감-수-성 우선 주제를 각각 사례, 역할연습, 토의로 운영"), ("55분", "통합 시뮬레이션", "교정 현장 상황에서 감정 인식-비례성·절차-성찰을 연결해 대응안 비교"), ("25분", "성찰 저널과 사후 실천", "사실·감정·판단 근거·동료·관행·대안을 기록하고 실행계획 작성")]
+    st.markdown(f"**이번 분석에서 반영할 중심 영역:** {' · '.join(factor_sequence)}")
+    for duration, title, content in blocks:
+        st.markdown(f"<div class='guide'><h4>{duration} | {title}</h4><p>{content}</p></div>", unsafe_allow_html=True)
+
+
 def start():
     apply_style()
     st.title("감·수·성 교육필요 분석 대시보드")
     st.caption("교정공무원 인권적 직무판단 자기성찰 설문 - 교육자용 집단 분석 화면")
-    st.markdown("<div class='notice'>이 화면은 개인의 인권감수성을 평가하거나 인사자료로 활용하기 위한 것이 아닙니다. 익명 응답의 <b>집단 수준 경향</b>을 바탕으로 강의의 교육 필요와 실습 주제를 설계하기 위한 도구입니다. 소규모 집단은 표시하지 않습니다.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='notice'>이 화면은 개인의 인권감수성을 평가하거나 인사자료로 활용하기 위한 것이 아닙니다. 익명 응답의 <b>집단 수준 경향</b>을 바탕으로 강의의 교육 필요와 실습 주제를 설계하기 위한 도구입니다. 소수 응답의 비교는 변동이 클 수 있으므로, 수치와 현장 맥락을 함께 해석하십시오.</div>", unsafe_allow_html=True)
     require_dashboard_login()
 
     with st.sidebar:
@@ -237,17 +336,16 @@ def start():
         for column, label in DEMOGRAPHICS.items():
             options = sorted({str(row.get(column, "미응답")) or "미응답" for row in records})
             filters[column] = st.selectbox(label, ["전체"] + options)
-        st.caption(f"소집단 분석 표시 기준: {MIN_GROUP_N}명 이상")
 
     selected = filtered_records(records, filters, start_date, end_date)
     st.subheader("분석 대상")
     c1, c2, c3 = st.columns(3)
     c1.metric("전체 유효 응답", len(records))
     c2.metric("현재 선택 집단", len(selected))
-    c3.metric("분석 가능 여부", "가능" if len(selected) >= MIN_GROUP_N else "보호 기준 미충족")
+    c3.metric("분석 상태", "분석 가능")
     st.caption(f"적용된 응답 기간: {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}")
-    if len(selected) < MIN_GROUP_N:
-        st.warning(f"현재 선택 집단은 {len(selected)}명입니다. {MIN_GROUP_N}명 미만의 결과는 개인 또는 소수 집단을 추정할 위험이 있어 표시하지 않습니다. 필터를 완화해 주세요.")
+    if len(selected) == 0:
+        st.warning("선택 조건에 맞는 응답이 없습니다. 기간 또는 인구학적 필터를 조정해 주세요.")
         st.stop()
 
     factors = factor_stats(selected)
@@ -257,8 +355,29 @@ def start():
         st.plotly_chart(render_chart(factors), use_container_width=True)
     with right:
         st.subheader("해석 원칙")
-        st.markdown("- 평균이 낮다는 것은 해당 집단에서 **더 우선적으로 다뤄 볼 교육 주제**라는 뜻입니다.\n- 개인이나 집단의 능력·도덕성·직무수행 우열을 뜻하지 않습니다.\n- 단일 문항보다 영역, 하위영역 및 현장 사례를 함께 검토해 교육안을 확정하십시오.")
+        st.markdown("- 높은 응답은 이 집단이 비교적 익숙하게 보고한 **자원**입니다.\n- 낮은 응답은 다음 교육에서 더 구체적으로 연습해 볼 **우선 성찰 지점**입니다.\n- 개인이나 집단의 능력·도덕성·직무수행 우열을 뜻하지 않습니다.\n- 소수 응답의 수치는 변동이 크므로, 단일 문항보다 영역·하위영역·현장 사례를 함께 검토하십시오.")
         st.dataframe(factors, use_container_width=True, hide_index=True)
+
+    st.subheader("한눈에 보는 인구학적 구성")
+    demo_rows = demographic_distribution(selected)
+    demo_left, demo_right = st.columns([1.12, .88])
+    with demo_left:
+        st.plotly_chart(render_demographic_chart(demo_rows), use_container_width=True)
+    with demo_right:
+        st.dataframe(demo_rows, use_container_width=True, hide_index=True, column_config={"비율": st.column_config.NumberColumn(format="%.1f%%")})
+
+    st.subheader("인구학적 집단별 감·수·성 비교")
+    chosen_column = st.selectbox("비교할 인구학적 항목", list(DEMOGRAPHICS), format_func=lambda column: DEMOGRAPHICS[column])
+    comparison_rows = factor_by_demographic(selected, chosen_column)
+    compare_left, compare_right = st.columns([1.18, .82])
+    with compare_left:
+        st.plotly_chart(render_group_comparison(comparison_rows, DEMOGRAPHICS[chosen_column]), use_container_width=True)
+    with compare_right:
+        st.caption("범주별 평균은 해당 범주 안에서의 감·수·성 문항 평균입니다.")
+        st.dataframe(comparison_rows, use_container_width=True, hide_index=True, column_config={"감": st.column_config.NumberColumn(format="%.2f"), "수": st.column_config.NumberColumn(format="%.2f"), "성": st.column_config.NumberColumn(format="%.2f")})
+
+    st.subheader("높은 응답과 우선 성찰 지점")
+    render_profile_summary(selected)
 
     st.subheader("이번 강의의 우선 교육 주제")
     st.caption("선정 방식: 선택 집단에서 문항 평균이 상대적으로 낮고 1~2점 응답 비율이 높은 세 문항을 우선 제시합니다. 교육자는 현장 맥락을 확인한 뒤 최종 선택합니다.")
@@ -268,12 +387,16 @@ def start():
         st.write(f"**Q{priority['번호']}.** {priority['문항']}")
         render_learning_plan(priority)
 
+    st.subheader("분석 결과를 반영한 교육과정 구성")
+    st.caption("헌법적 비례성·절차 판단, 경험학습, 사례기반 학습, 성찰저널과 동료 피드백을 결합한 선택형 운영안입니다.")
+    render_course_plan(priorities)
+
     st.subheader("문항별 교육필요 확인")
     rows = item_stats(selected)
     st.dataframe(sorted(rows, key=lambda x: (x["평균"], -x["낮은 응답(1~2) 비율"])), use_container_width=True, hide_index=True, column_config={"평균": st.column_config.NumberColumn(format="%.2f"), "낮은 응답(1~2) 비율": st.column_config.NumberColumn(format="%.1f%%")})
 
-    st.subheader("교육 운영 제안")
-    st.markdown("**권장 흐름(영역별 25~35분):** 사례 제시 → 관찰·감정 언어 추출 → 비례성·절차 대안 비교 → 권위·편견·피로 성찰 → 한 가지 실천 약속.  \n두 논문에서 제안한 감정 인식-헌법적 기준 적용-성찰의 통합 훈련 구조를 반영했습니다. 공감이나 성찰을 강요하지 말고, 참여자의 심리적 안전·자율성·발언 선택권을 보장해 운영하십시오.")
+    st.subheader("교육 운영 원칙")
+    st.markdown("**권장 흐름:** 사례 제시 → 관찰·감정 언어 추출 → 비례성·절차 대안 비교 → 권위·편견·피로 성찰 → 한 가지 실천 약속.  \n공감이나 성찰을 강요하지 말고, 참여자의 심리적 안전·자율성·발언 선택권을 보장하십시오. 이 결과는 교육 주제 선정의 보조 자료이며, 진단·등급화·인사평가·기관 간 비교의 근거로 사용하지 않습니다.")
     st.caption(f"생성 시각: {datetime.now().strftime('%Y-%m-%d %H:%M')} | 데이터는 읽기 전용으로 조회됩니다.")
 
 
