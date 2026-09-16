@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 import gspread
+import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 from google.oauth2.service_account import Credentials
@@ -20,6 +21,12 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+try:
+    from semopy import Model, calc_stats
+    SEMOPY_AVAILABLE = True
+except ImportError:
+    SEMOPY_AVAILABLE = False
 
 
 st.set_page_config(page_title="감·수·성 교육필요 대시보드", page_icon="📘", layout="wide")
@@ -56,6 +63,13 @@ ITEMS = [
     (24, "성", "권위·관행 성찰", "동료들이 정신건강 문제가 있는 수용자에게 강하게 말할 때, 나도 그 분위기에 휩쓸린 적이 없는지 다시 생각해 본다."),
     (25, "성", "편견 성찰", "나는 정신건강 문제가 있는 수용자를 문제 수용자로 단정하지 않으려고 노력한다."),
 ]
+
+# 현재 교육용 설문의 25개 문항을 기준으로 구성한 사전 지정 3요인 측정모형이다.
+FACTOR_ITEMS = {
+    factor: [f"Q{number}" for number, item_factor, _, _ in ITEMS if item_factor == factor]
+    for factor in ("감", "수", "성")
+}
+LATENT_NAMES = {"감": "GAM", "수": "SU", "성": "SEONG"}
 
 DEMOGRAPHICS = {
     "성별": "성별", "연령대": "연령대", "직급": "직급", "근무기관유형": "근무기관 유형",
@@ -448,6 +462,195 @@ def build_pdf_report(records, filters, start_date, end_date, course_option):
     return buffer.getvalue()
 
 
+def cronbach_alpha(data):
+    """문항 행렬의 내적 일관성 계수. 문항 수가 1개이거나 분산이 없으면 계산하지 않는다."""
+    matrix = np.asarray(data, dtype=float)
+    if matrix.ndim != 2 or matrix.shape[1] < 2 or matrix.shape[0] < 2:
+        return None
+    item_variances = matrix.var(axis=0, ddof=1)
+    total_variance = matrix.sum(axis=1).var(ddof=1)
+    if total_variance <= 0:
+        return None
+    k = matrix.shape[1]
+    return float((k / (k - 1)) * (1 - item_variances.sum() / total_variance))
+
+
+def cfa_stage(n):
+    """표본 수로 분석을 막지 않고, 결과의 해석 수준만 구분한다."""
+    if n < 30:
+        return "현황 확인", "문항 분포·신뢰도 중심으로 확인하는 단계입니다. CFA 모수 추정값은 매우 불안정할 수 있습니다."
+    if n < 150:
+        return "예비 CFA", "적합도와 부하량은 탐색적 경향으로만 읽어야 하며, 척도 검증의 결론으로 사용할 수 없습니다."
+    if n < 300:
+        return "중간 규모 CFA", "모형의 재현 가능성을 점검할 수 있으나, 독립표본 검증 결과는 신중히 해석해야 합니다."
+    if n < 400:
+        return "검증 준비 CFA", "독립표본 3요인 모형의 적합도·신뢰도·판별타당도를 종합 검토할 수 있는 규모입니다."
+    return "목표 표본 CFA", "독립표본 CFA와 수렴·판별타당도 검토에 비교적 적절한 규모입니다. 집단별 분석은 각 범주의 인원도 함께 확인해야 합니다."
+
+
+def cfa_data_matrix(records):
+    """CFA에 사용할 문항 데이터와 문항별 기술통계를 만든다."""
+    columns = [f"Q{number}" for number, _, _, _ in ITEMS]
+    data = np.array([[row[column] for column in columns] for row in records], dtype=float)
+    summaries = []
+    for index, (number, factor, subdomain, text) in enumerate(ITEMS):
+        values = data[:, index]
+        summaries.append({
+            "문항": f"Q{number}", "영역": factor, "하위영역": subdomain,
+            "평균": float(np.mean(values)), "표준편차": float(np.std(values, ddof=1)) if len(values) > 1 else 0.0,
+            "1~2점 비율": float(np.mean(values <= 2) * 100), "문항내용": text,
+        })
+    return columns, data, summaries
+
+
+def cfa_model_syntax():
+    """semopy에서 쓰는 상관된 3요인 CFA 모형 문법."""
+    lines = []
+    for factor in ("감", "수", "성"):
+        lines.append(f"{LATENT_NAMES[factor]} =~ " + " + ".join(FACTOR_ITEMS[factor]))
+    lines += ["GAM ~~ SU", "GAM ~~ SEONG", "SU ~~ SEONG"]
+    return "\n".join(lines)
+
+
+def value_from_stats(stats, *labels):
+    """semopy 버전에 따라 약간 달라지는 적합도 표 이름을 안전하게 읽는다."""
+    for label in labels:
+        if label in stats.columns:
+            value = stats[label].iloc[0]
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def htmt_table(data):
+    """관측문항 상관을 이용한 HTMT 근사값. 최종 보고에서는 WLSMV 산출값과 함께 재확인한다."""
+    correlations = np.corrcoef(data, rowvar=False)
+    rows = []
+    item_indices = {factor: [index for index, (_, item_factor, _, _) in enumerate(ITEMS) if item_factor == factor] for factor in ("감", "수", "성")}
+    for left_index, left in enumerate(("감", "수", "성")):
+        for right in ("감", "수", "성")[left_index + 1:]:
+            a, b = item_indices[left], item_indices[right]
+            hetero = np.abs(correlations[np.ix_(a, b)]).mean()
+            mono_a = np.abs(correlations[np.ix_(a, a)][np.triu_indices(len(a), 1)]).mean()
+            mono_b = np.abs(correlations[np.ix_(b, b)][np.triu_indices(len(b), 1)]).mean()
+            denominator = np.sqrt(mono_a * mono_b)
+            rows.append({"영역 쌍": f"{left} - {right}", "HTMT": float(hetero / denominator) if denominator > 0 else None})
+    return rows
+
+
+def run_preliminary_cfa(records):
+    """실시간 확인용 ML-CFA. 4점 서열형 최종 분석은 Mplus/R의 WLSMV로 재검증해야 한다."""
+    if not SEMOPY_AVAILABLE:
+        return None, "semopy 패키지가 설치되어 있지 않습니다. requirements.txt에 semopy>=2.3.11을 추가해 주세요."
+    if len(records) < 30:
+        return None, "현재 응답 수에서는 CFA 모수 추정 자체가 지나치게 불안정할 수 있어 실행하지 않습니다. 문항 현황과 신뢰도는 아래에서 계속 확인할 수 있습니다."
+    try:
+        import pandas as pd
+
+        columns, data, _ = cfa_data_matrix(records)
+        if np.any(np.std(data, axis=0) == 0):
+            fixed = [columns[index] for index, value in enumerate(np.std(data, axis=0)) if value == 0]
+            return None, f"응답이 모두 같은 문항이 있어 CFA를 추정할 수 없습니다: {', '.join(fixed)}"
+        model = Model(cfa_model_syntax())
+        model.fit(pd.DataFrame(data, columns=columns))
+        fit = calc_stats(model)
+        estimates = model.inspect(std_est=True)
+        return {
+            "fit": {
+                "χ²": value_from_stats(fit, "chi2"), "자유도": value_from_stats(fit, "DoF"),
+                "CFI": value_from_stats(fit, "CFI"), "TLI": value_from_stats(fit, "TLI"),
+                "RMSEA": value_from_stats(fit, "RMSEA"), "AIC": value_from_stats(fit, "AIC"), "BIC": value_from_stats(fit, "BIC"),
+            },
+            "estimates": estimates,
+        }, ""
+    except Exception as error:
+        return None, f"실시간 예비 CFA를 계산하지 못했습니다: {error}"
+
+
+def cfa_loadings_and_validity(estimates, data):
+    """표준화 부하량·CR·AVE를 CFA 결과에서 정리한다."""
+    loading_rows, validity_rows = [], []
+    for factor in ("감", "수", "성"):
+        latent = LATENT_NAMES[factor]
+        subset = estimates[(estimates["op"] == "~") & (estimates["rval"] == latent)].copy()
+        standardized_column = "Est. Std" if "Est. Std" in subset.columns else "Estimate"
+        loadings = []
+        for _, row in subset.iterrows():
+            loading = float(row[standardized_column])
+            loadings.append(loading)
+            loading_rows.append({"영역": factor, "문항": row["lval"], "표준화 부하량": loading, "해석": "점검 필요" if abs(loading) < .40 else "확인"})
+        if loadings:
+            squared = np.square(loadings)
+            cr = (np.sum(loadings) ** 2) / ((np.sum(loadings) ** 2) + np.sum(1 - squared))
+            validity_rows.append({"영역": factor, "CR": float(cr), "AVE": float(np.mean(squared)), "판별타당도 확인": "AVE .50 이상 여부와 HTMT를 함께 확인"})
+    return loading_rows, validity_rows, htmt_table(data)
+
+
+def render_cfa_dashboard(records):
+    """응답 축적에 따라 자동 갱신되는 척도 검증 전용 화면."""
+    st.divider()
+    st.subheader("감·수·성 척도 검증(CFA) 분석")
+    st.caption("사전 지정 모형: 감(9문항) · 수(8문항) · 성(8문항)의 상관된 3요인 구조. 현재 선택된 기간·집단의 응답이 바뀌면 아래 값도 자동 갱신됩니다.")
+
+    stage, stage_text = cfa_stage(len(records))
+    a, b, c = st.columns(3)
+    a.metric("CFA 분석 대상", f"{len(records)}명")
+    b.metric("현재 해석 단계", stage)
+    c.metric("사전 지정 모형", "3요인 · 25문항")
+    st.info(stage_text)
+    st.markdown("<div class='notice'><b>중요:</b> 이 화면의 실시간 CFA는 응답 변화에 따른 모형 적합도의 <b>예비 확인</b>입니다. 4점 서열형 응답의 최종 학술 분석은 독립표본에서 WLSMV 추정, 수렴·판별·준거타당도 검토를 거쳐야 합니다. 현재 값은 개인 평가나 인사자료로 사용할 수 없습니다.</div>", unsafe_allow_html=True)
+
+    columns, data, summaries = cfa_data_matrix(records)
+    alpha_rows = []
+    for factor in ("감", "수", "성"):
+        indices = [columns.index(item) for item in FACTOR_ITEMS[factor]]
+        alpha_rows.append({"영역": factor, "문항 수": len(indices), "Cronbach α": cronbach_alpha(data[:, indices])})
+    alpha_rows.append({"영역": "전체", "문항 수": len(columns), "Cronbach α": cronbach_alpha(data)})
+
+    left, right = st.columns([.9, 1.1])
+    with left:
+        st.markdown("#### 실시간 신뢰도·문항 현황")
+        st.dataframe(alpha_rows, use_container_width=True, hide_index=True, column_config={"Cronbach α": st.column_config.NumberColumn(format="%.3f")})
+    with right:
+        st.markdown("#### CFA 모형 명세")
+        st.code(cfa_model_syntax(), language="text")
+
+    result, message = run_preliminary_cfa(records)
+    if result is None:
+        st.warning(message)
+    else:
+        st.markdown("#### 실시간 예비 CFA 적합도")
+        fit = result["fit"]
+        fit_display = [{"지표": name, "값": value, "참고": note} for name, value, note in [
+            ("χ²", fit["χ²"], "표본 수에 민감"), ("자유도", fit["자유도"], "모형 복잡도 반영"),
+            ("CFI", fit["CFI"], ".90 이상은 참고적, .95 이상은 양호의 관행적 기준"),
+            ("TLI", fit["TLI"], ".90 이상은 참고적, .95 이상은 양호의 관행적 기준"),
+            ("RMSEA", fit["RMSEA"], ".08 이하 참고, .06 이하 양호의 관행적 기준"),
+            ("AIC", fit["AIC"], "같은 자료의 대안모형 비교용"), ("BIC", fit["BIC"], "같은 자료의 대안모형 비교용"),
+        ]]
+        st.dataframe(fit_display, use_container_width=True, hide_index=True, column_config={"값": st.column_config.NumberColumn(format="%.3f")})
+
+        loading_rows, validity_rows, htmt_rows = cfa_loadings_and_validity(result["estimates"], data)
+        first, second, third = st.columns([1.15, .85, .8])
+        with first:
+            st.markdown("#### 문항별 표준화 부하량")
+            st.dataframe(sorted(loading_rows, key=lambda row: (row["영역"], row["문항"])), use_container_width=True, hide_index=True, column_config={"표준화 부하량": st.column_config.NumberColumn(format="%.3f")})
+        with second:
+            st.markdown("#### 수렴타당도 지표")
+            st.dataframe(validity_rows, use_container_width=True, hide_index=True, column_config={"CR": st.column_config.NumberColumn(format="%.3f"), "AVE": st.column_config.NumberColumn(format="%.3f")})
+        with third:
+            st.markdown("#### HTMT 근사값")
+            st.dataframe(htmt_rows, use_container_width=True, hide_index=True, column_config={"HTMT": st.column_config.NumberColumn(format="%.3f")})
+
+    st.markdown("#### 문항 응답 분포와 점검 지점")
+    st.caption("표준편차가 매우 작거나 1~2점 비율이 한쪽으로 치우친 문항은 표본이 축적된 뒤 문항내용·분포·부하량을 함께 검토합니다. 낮은 부하량만으로 즉시 문항을 삭제하지 않습니다.")
+    st.dataframe(summaries, use_container_width=True, hide_index=True, column_config={
+        "평균": st.column_config.NumberColumn(format="%.2f"), "표준편차": st.column_config.NumberColumn(format="%.2f"), "1~2점 비율": st.column_config.NumberColumn(format="%.1f%%"),
+    })
+
+
 def start():
     apply_style()
     render_brand_header()
@@ -492,6 +695,8 @@ def start():
     if len(selected) == 0:
         st.warning("선택 조건에 맞는 응답이 없습니다. 기간 또는 인구학적 필터를 조정해 주세요.")
         st.stop()
+
+    render_cfa_dashboard(selected)
 
     factors = factor_stats(selected)
     left, right = st.columns([1.05, .95])
