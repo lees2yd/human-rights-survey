@@ -606,24 +606,38 @@ def render_cfa_dashboard(records):
     alpha_rows = []
     for factor in ("감", "수", "성"):
         indices = [columns.index(item) for item in FACTOR_ITEMS[factor]]
-        alpha_rows.append({"영역": factor, "문항 수": len(indices), "Cronbach α": cronbach_alpha(data[:, indices])})
-    alpha_rows.append({"영역": "전체", "문항 수": len(columns), "Cronbach α": cronbach_alpha(data)})
+        value = cronbach_alpha(data[:, indices])
+        alpha_rows.append({"영역": factor, "문항 수": len(indices), "Cronbach α": f"{value:.3f}" if value is not None else "계산불가", "상태": "계산값" if value is not None else "최소 2명 및 총점 분산 필요"})
+    value = cronbach_alpha(data)
+    alpha_rows.append({"영역": "전체", "문항 수": len(columns), "Cronbach α": f"{value:.3f}" if value is not None else "계산불가", "상태": "계산값" if value is not None else "최소 2명 및 총점 분산 필요"})
 
     left, right = st.columns([.9, 1.1])
     with left:
         st.markdown("#### 실시간 신뢰도·문항 현황")
-        st.dataframe(alpha_rows, use_container_width=True, hide_index=True, column_config={"Cronbach α": st.column_config.NumberColumn(format="%.3f")})
+        st.dataframe(alpha_rows, use_container_width=True, hide_index=True)
     with right:
         st.markdown("#### CFA 모형 명세")
         st.code(cfa_model_syntax(), language="text")
 
     result, message = run_preliminary_cfa(records)
+    st.markdown("#### 실시간 예비 CFA 적합도")
     if result is None:
         st.warning(message)
+        fit_display = [{"지표": name, "값": "계산불가", "현재 상태": message, "참고": note} for name, note in [
+            ("χ²", "표본 수에 민감"), ("자유도", "모형 복잡도 반영"),
+            ("CFI", ".90 이상은 참고적, .95 이상은 양호의 관행적 기준"),
+            ("TLI", ".90 이상은 참고적, .95 이상은 양호의 관행적 기준"),
+            ("RMSEA", ".08 이하 참고, .06 이하 양호의 관행적 기준"),
+            ("AIC", "같은 자료의 대안모형 비교용"), ("BIC", "같은 자료의 대안모형 비교용"),
+        ]]
+        st.dataframe(fit_display, use_container_width=True, hide_index=True)
+
+        loading_rows = [{"영역": factor, "문항": f"Q{number}", "표준화 부하량": "계산불가", "상태": "CFA 추정 후 자동 표시"} for number, factor, _, _ in ITEMS]
+        validity_rows = [{"영역": factor, "CR": "계산불가", "AVE": "계산불가", "상태": "CFA 추정 후 자동 표시"} for factor in ("감", "수", "성")]
+        htmt_rows = [{"영역 쌍": pair, "HTMT": "계산불가", "상태": "문항 간 상관 및 CFA 추정 후 자동 표시"} for pair in ("감 - 수", "감 - 성", "수 - 성")]
     else:
-        st.markdown("#### 실시간 예비 CFA 적합도")
         fit = result["fit"]
-        fit_display = [{"지표": name, "값": value, "참고": note} for name, value, note in [
+        fit_display = [{"지표": name, "값": value, "현재 상태": "계산값(예비 CFA)", "참고": note} for name, value, note in [
             ("χ²", fit["χ²"], "표본 수에 민감"), ("자유도", fit["자유도"], "모형 복잡도 반영"),
             ("CFI", fit["CFI"], ".90 이상은 참고적, .95 이상은 양호의 관행적 기준"),
             ("TLI", fit["TLI"], ".90 이상은 참고적, .95 이상은 양호의 관행적 기준"),
@@ -633,16 +647,17 @@ def render_cfa_dashboard(records):
         st.dataframe(fit_display, use_container_width=True, hide_index=True, column_config={"값": st.column_config.NumberColumn(format="%.3f")})
 
         loading_rows, validity_rows, htmt_rows = cfa_loadings_and_validity(result["estimates"], data)
-        first, second, third = st.columns([1.15, .85, .8])
-        with first:
-            st.markdown("#### 문항별 표준화 부하량")
-            st.dataframe(sorted(loading_rows, key=lambda row: (row["영역"], row["문항"])), use_container_width=True, hide_index=True, column_config={"표준화 부하량": st.column_config.NumberColumn(format="%.3f")})
-        with second:
-            st.markdown("#### 수렴타당도 지표")
-            st.dataframe(validity_rows, use_container_width=True, hide_index=True, column_config={"CR": st.column_config.NumberColumn(format="%.3f"), "AVE": st.column_config.NumberColumn(format="%.3f")})
-        with third:
-            st.markdown("#### HTMT 근사값")
-            st.dataframe(htmt_rows, use_container_width=True, hide_index=True, column_config={"HTMT": st.column_config.NumberColumn(format="%.3f")})
+
+    first, second, third = st.columns([1.15, .85, .8])
+    with first:
+        st.markdown("#### 문항별 표준화 부하량")
+        st.dataframe(sorted(loading_rows, key=lambda row: (row["영역"], row["문항"])), use_container_width=True, hide_index=True, column_config={"표준화 부하량": st.column_config.NumberColumn(format="%.3f")} if result else None)
+    with second:
+        st.markdown("#### 수렴타당도 지표")
+        st.dataframe(validity_rows, use_container_width=True, hide_index=True, column_config={"CR": st.column_config.NumberColumn(format="%.3f"), "AVE": st.column_config.NumberColumn(format="%.3f")} if result else None)
+    with third:
+        st.markdown("#### HTMT 근사값")
+        st.dataframe(htmt_rows, use_container_width=True, hide_index=True, column_config={"HTMT": st.column_config.NumberColumn(format="%.3f")} if result else None)
 
     st.markdown("#### 문항 응답 분포와 점검 지점")
     st.caption("표준편차가 매우 작거나 1~2점 비율이 한쪽으로 치우친 문항은 표본이 축적된 뒤 문항내용·분포·부하량을 함께 검토합니다. 낮은 부하량만으로 즉시 문항을 삭제하지 않습니다.")
@@ -695,8 +710,6 @@ def start():
     if len(selected) == 0:
         st.warning("선택 조건에 맞는 응답이 없습니다. 기간 또는 인구학적 필터를 조정해 주세요.")
         st.stop()
-
-    render_cfa_dashboard(selected)
 
     factors = factor_stats(selected)
     left, right = st.columns([1.05, .95])
@@ -763,6 +776,10 @@ def start():
 
     st.subheader("교육 운영 원칙")
     st.markdown("**권장 흐름:** 사례 제시 → 관찰·감정 언어 추출 → 비례성·절차 대안 비교 → 권위·편견·피로 성찰 → 한 가지 실천 약속.  \n공감이나 성찰을 강요하지 말고, 참여자의 심리적 안전·자율성·발언 선택권을 보장하십시오. 이 결과는 교육 주제 선정의 보조 자료이며, 진단·등급화·인사평가·기관 간 비교의 근거로 사용하지 않습니다.")
+
+    # 교육필요 분석을 모두 확인한 뒤, 연구자용 척도 검증 화면을 마지막에 둔다.
+    render_cfa_dashboard(selected)
+
     st.caption(f"생성 시각: {datetime.now().strftime('%Y-%m-%d %H:%M')} | 데이터는 읽기 전용으로 조회됩니다.")
     st.markdown(
         "<div class='rights'>© 2026 이성덕. All rights reserved.<br>"
