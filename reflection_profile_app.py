@@ -416,7 +416,8 @@ def save_research_response(answers, demographics):
 
 def find_korean_font():
     candidates = [
-        "fonts/NanumGothicCoding.ttf",
+        Path(__file__).parent / "fonts" / "NanumGothicCoding.ttf",
+        Path(__file__).parent / "fonts" / "NotoSansKR-Regular.ttf",
         "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -466,22 +467,76 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
             pass
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("KTitle", parent=styles["Title"], fontName=font_name, fontSize=18, leading=24, textColor=HexColor("#294b7a"), spaceAfter=12)
-    h_style = ParagraphStyle("KH", parent=styles["Heading2"], fontName=font_name, fontSize=13, leading=18, textColor=HexColor("#294b7a"), spaceBefore=10, spaceAfter=6)
-    body_style = ParagraphStyle("KBody", parent=styles["BodyText"], fontName=font_name, fontSize=9.5, leading=15, wordWrap="CJK", spaceAfter=5)
-    small_style = ParagraphStyle("KSmall", parent=body_style, fontSize=8, leading=12, textColor=HexColor("#59636e"))
+    navy = HexColor("#164b79")
+    sky = HexColor("#43a7dd")
+    pale_sky = HexColor("#eaf7ff")
+    line_blue = HexColor("#b9dff3")
+    ink = HexColor("#25445d")
+    muted = HexColor("#607589")
+    title_style = ParagraphStyle("KTitle", parent=styles["Title"], fontName=font_name, fontSize=19, leading=25, textColor=navy, alignment=1, spaceAfter=3)
+    subtitle_style = ParagraphStyle("KSubtitle", parent=styles["BodyText"], fontName=font_name, fontSize=8.5, leading=12, textColor=muted, alignment=1, spaceAfter=10)
+    h_style = ParagraphStyle("KH", parent=styles["Heading2"], fontName=font_name, fontSize=13, leading=18, textColor=navy, spaceBefore=10, spaceAfter=6)
+    body_style = ParagraphStyle("KBody", parent=styles["BodyText"], fontName=font_name, fontSize=9.5, leading=15, wordWrap="CJK", textColor=ink, spaceAfter=5)
+    small_style = ParagraphStyle("KSmall", parent=body_style, fontSize=8, leading=12, textColor=muted)
+    centered_body = ParagraphStyle("KCentered", parent=body_style, alignment=1, spaceAfter=0)
 
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=18*mm, bottomMargin=18*mm)
+    def draw_report_background(pdf_canvas, pdf_doc):
+        """설문 첫 화면의 하늘색·산 실루엣 분위기를 PDF에도 일관되게 적용한다."""
+        width, height = A4
+        pdf_canvas.saveState()
+        pdf_canvas.setFillColor(HexColor("#f7fcff"))
+        pdf_canvas.rect(0, 0, width, height, stroke=0, fill=1)
+        # 상단의 옅은 하늘빛 띠와 하단의 산 실루엣
+        pdf_canvas.setFillColor(HexColor("#edf8fe"))
+        pdf_canvas.rect(0, height - 30*mm, width, 30*mm, stroke=0, fill=1)
+        pdf_canvas.setFillColor(HexColor("#dff1fb"))
+        mountain = pdf_canvas.beginPath()
+        mountain.moveTo(0, 0)
+        mountain.curveTo(35*mm, 22*mm, 54*mm, 13*mm, 81*mm, 26*mm)
+        mountain.curveTo(112*mm, 42*mm, 144*mm, 13*mm, width, 30*mm)
+        mountain.lineTo(width, 0)
+        mountain.close()
+        pdf_canvas.drawPath(mountain, stroke=0, fill=1)
+        pdf_canvas.setFillColor(HexColor("#cce8f8"))
+        ridge = pdf_canvas.beginPath()
+        ridge.moveTo(0, 0)
+        ridge.curveTo(48*mm, 11*mm, 83*mm, 6*mm, 117*mm, 18*mm)
+        ridge.curveTo(150*mm, 30*mm, 177*mm, 8*mm, width, 15*mm)
+        ridge.lineTo(width, 0)
+        ridge.close()
+        pdf_canvas.drawPath(ridge, stroke=0, fill=1)
+        pdf_canvas.setStrokeColor(HexColor("#75c0e8"))
+        pdf_canvas.setLineWidth(0.6)
+        pdf_canvas.line(18*mm, height - 17*mm, 48*mm, height - 17*mm)
+        pdf_canvas.setFillColor(HexColor("#4d87ad"))
+        pdf_canvas.setFont(font_name, 7.5)
+        pdf_canvas.drawRightString(width - 18*mm, 12*mm, f"감·수·성 자기성찰 프로파일  |  {pdf_doc.page}")
+        pdf_canvas.restoreState()
+
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=23*mm, bottomMargin=22*mm)
+    header = Table([[Paragraph("감·수·성", ParagraphStyle("KBrand", parent=body_style, fontSize=10, leading=13, textColor=sky, alignment=1, spaceAfter=0))]], colWidths=[174*mm])
+    header.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), pale_sky), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
     story = [
-        Paragraph("감·수·성 인권적 직무판단 자기성찰 프로파일", title_style),
-        Paragraph(f"작성 시각: {datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M')}", small_style),
-        Paragraph("이 결과는 개인의 인권 수준이나 직무역량을 판정하는 검사가 아니라, 자신의 응답 안에서 상대적으로 익숙하게 활용하는 판단영역과 더 성찰해 볼 영역을 찾기 위한 자료입니다.", body_style),
+        header,
         Spacer(1, 4*mm),
+        Paragraph("인권적 직무판단 자기성찰 프로파일", title_style),
+        Paragraph(f"개인 결과지 · 작성 시각 {datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M')}", subtitle_style),
     ]
 
-    score_data = [["영역", "문항평균", "핵심 질문"], ["감(感)", f"{scores['감']:.2f}", FACTOR_META['감']['question']], ["수(受)", f"{scores['수']:.2f}", FACTOR_META['수']['question']], ["성(性)", f"{scores['성']:.2f}", FACTOR_META['성']['question']]]
-    table = Table(score_data, colWidths=[32*mm, 28*mm, 95*mm])
-    table.setStyle(TableStyle([("FONTNAME",(0,0),(-1,-1),font_name),("FONTSIZE",(0,0),(-1,-1),9),("BACKGROUND",(0,0),(-1,0),HexColor("#dfe9f7")),("GRID",(0,0),(-1,-1),0.5,HexColor("#aeb8c5")),("VALIGN",(0,0),(-1,-1),"MIDDLE"),("TOPPADDING",(0,0),(-1,-1),6),("BOTTOMPADDING",(0,0),(-1,-1),6)]))
+    notice = Table([[Paragraph("이 결과는 인권 수준이나 직무역량을 판정하는 검사가 아닙니다. 최근의 응답 경향을 바탕으로, 상대적으로 익숙한 판단영역과 더 성찰해 볼 지점을 살펴보기 위한 교육용 자료입니다.", body_style)]], colWidths=[174*mm])
+    notice.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), HexColor("#ffffff")), ("BOX", (0, 0), (-1, -1), 0.7, line_blue), ("LINEBEFORE", (0, 0), (0, -1), 3, sky), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
+    story += [notice, Spacer(1, 5*mm), Paragraph("나의 세 영역 한눈에 보기", h_style)]
+
+    score_data = [["영역", "문항평균", "스스로 던져 볼 핵심 질문"], ["감(感)", f"{scores['감']:.2f}", FACTOR_META['감']['question']], ["수(受)", f"{scores['수']:.2f}", FACTOR_META['수']['question']], ["성(性)", f"{scores['성']:.2f}", FACTOR_META['성']['question']]]
+    table = Table(score_data, colWidths=[32*mm, 30*mm, 112*mm])
+    table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, -1), font_name), ("FONTSIZE", (0, 0), (-1, 0), 9), ("FONTSIZE", (0, 1), (-1, -1), 9.2),
+        ("BACKGROUND", (0, 0), (-1, 0), navy), ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#ffffff")),
+        ("BACKGROUND", (0, 1), (-1, 1), HexColor("#f4fbff")), ("BACKGROUND", (0, 2), (-1, 2), HexColor("#eaf7ff")), ("BACKGROUND", (0, 3), (-1, 3), HexColor("#f4fbff")),
+        ("GRID", (0, 0), (-1, -1), 0.45, line_blue), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (1, -1), "CENTER"), ("TEXTCOLOR", (0, 1), (0, -1), navy),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+    ]))
     story += [table, Spacer(1, 5*mm)]
 
     summary = profile_summary(scores)
@@ -508,9 +563,11 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
     else:
         story.append(Paragraph("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 임의로 제시하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 성찰해 보십시오.", body_style))
 
-    story += [Paragraph("나의 한 가지 행동계획", h_style), Paragraph(action_plan.strip() if action_plan.strip() else "아직 작성하지 않았습니다.", body_style), Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style)]
+    action_card = Table([[Paragraph(action_plan.strip() if action_plan.strip() else "아직 작성하지 않았습니다.", body_style)]], colWidths=[174*mm])
+    action_card.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), HexColor("#f7fcff")), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
+    story += [Paragraph("나의 한 가지 행동계획", h_style), action_card, Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style), Spacer(1, 4*mm), Paragraph("© 2026 이성덕. All rights reserved.  |  감·수·성 로고 상표출원(심사 중)", ParagraphStyle("KRights", parent=small_style, alignment=1, textColor=HexColor("#4d87ad")))]
 
-    doc.build(story)
+    doc.build(story, onFirstPage=draw_report_background, onLaterPages=draw_report_background)
     buffer.seek(0)
     return buffer.getvalue()
 
