@@ -590,7 +590,7 @@ if st.session_state.page == "intro":
     st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
     st.markdown('<div class="intro-title">감·수·성<br>인권적 직무판단<br>자기성찰 프로파일</div>', unsafe_allow_html=True)
     st.markdown('<div class="developer-credit">연구도구·문항 구성 및 화면 개발: 이성덕</div>', unsafe_allow_html=True)
-    st.markdown('<div class="intro-lead">교정현장에서 마주하는 상황을 떠올리며, 나의 감정 인식·대응 기준·성찰 습관을 살펴보는 교육용 자기점검입니다.<br>정답이나 등급은 없으며, 인사평가나 개인 비교에 사용하지 않습니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-lead">이 프로그램은 교도관이 자신의 감·수·성 인권적 직무판단 프로파일을 확인하고 성찰할 수 있도록 돕는 자기점검 도구입니다.<br>응답자는 결과를 바로 확인하고 PDF로 내려받을 수 있으며, 연구 참여에 동의한 익명 응답은 향후 척도와 교육프로그램을 보완하기 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
     factor_cols = st.columns(3)
     factor_intro = [
         ("감(感)", "정서와 취약성 알아차리기"),
@@ -601,9 +601,9 @@ if st.session_state.page == "intro":
         with col:
             st.markdown(f'<div class="factor-card"><b>{label}</b><span>{description}</span></div>', unsafe_allow_html=True)
     st.write("")
-    st.markdown('<div class="notice"><b>참여 안내:</b> 최근 6개월의 근무 경험을 떠올려 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 5~7분입니다.<br><br>이름·직원번호·정확한 소속기관은 수집하지 않습니다. 응답은 교육용 자기성찰에 활용되며, 연구 참여에 동의한 경우에만 익명화된 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="notice"><b>참여 안내:</b> 최근 6개월의 근무 경험을 떠올려 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 5~7분입니다.<br><br>정답이나 등급은 없으며, 이름·직원번호·정확한 소속기관 등 개인을 직접 식별하는 정보는 수집하지 않습니다. 응답 후에는 나의 감·수·성 프로파일 결과를 바로 확인하고 PDF로 내려받을 수 있습니다. 연구 참여에 동의한 응답은 개인을 식별할 수 없도록 처리하여 향후 척도와 교육프로그램을 보완하기 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
     st.write("")
-    if st.button("자기성찰 시작", type="primary", use_container_width=True):
+    if st.button("프로파일 확인 및 연구참여 안내 보기", type="primary", use_container_width=True):
         st.session_state.page = "consent"
         st.rerun()
     st.stop()
