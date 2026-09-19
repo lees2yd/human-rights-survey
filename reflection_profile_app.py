@@ -72,6 +72,8 @@ st.markdown(
   .factor-gam,.factor-su,.factor-seong {color:#278bcb;}
   .result-card {padding:1rem 1.1rem; border:1px solid #d7ecf9; border-radius:14px; background:rgba(255,255,255,.88); margin:.5rem 0;}
   .small {font-size:.9rem; color:#59738a;}
+  .developer-credit {margin:.05rem 0 1rem; color:#59738a; font-size:.82rem; text-align:center; line-height:1.55;}
+  .rights-footer {margin:1.7rem 0 .35rem; padding-top:.9rem; border-top:1px solid #cfe8f8; color:#59738a; font-size:.78rem; line-height:1.65; text-align:center;}
   div[data-testid="stRadio"] > div {gap:1.1rem;}
   div[data-testid="stButton"] > button {border:0; border-radius:13px; background:linear-gradient(135deg,#48a9e1,#2589c8); color:white; font-weight:700; min-height:3.1rem; box-shadow:0 7px 16px rgba(37,137,200,.22);}
   div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#2589c8,#176fae); color:white;}
@@ -90,6 +92,8 @@ st.markdown(
     .factor-card b{font-size:1.08rem;}
     .factor-card span{font-size:.85rem;}
     .question{font-size:1rem; line-height:1.62; padding:.88rem .9rem; word-break:keep-all; overflow-wrap:normal;}
+    .developer-credit{font-size:.76rem; margin:.05rem 0 .8rem;}
+    .rights-footer{font-size:.72rem; margin-top:1.35rem;}
     div[data-testid="stRadio"] label p{font-size:.94rem; line-height:1.55; word-break:keep-all; overflow-wrap:normal;}
   }
 </style>
@@ -585,6 +589,7 @@ if st.session_state.page == "intro":
     st.markdown(logo_html("intro-logo"), unsafe_allow_html=True)
     st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
     st.markdown('<div class="intro-title">감·수·성<br>인권적 직무판단<br>자기성찰 프로파일</div>', unsafe_allow_html=True)
+    st.markdown('<div class="developer-credit">연구도구·문항 구성 및 화면 개발: 이성덕</div>', unsafe_allow_html=True)
     st.markdown('<div class="intro-lead">교정현장에서 마주하는 상황을 떠올리며, 나의 감정 인식·대응 기준·성찰 습관을 살펴보는 교육용 자기점검입니다.<br>정답이나 등급은 없으며, 인사평가나 개인 비교에 사용하지 않습니다.</div>', unsafe_allow_html=True)
     factor_cols = st.columns(3)
     factor_intro = [
@@ -619,7 +624,7 @@ if st.session_state.page == "consent":
 ### 참여 내용
 
 - 감·수·성 자기보고 25문항과 최소한의 배경정보 7문항에 응답합니다.
-- 예상 소요시간은 약 6~8분입니다.
+- 예상 소요시간은 약 5~7분입니다.
 - 이름, 직원번호, 휴대전화 번호, 정확한 소속기관명은 수집하지 않습니다.
 - 성별·연령대·직급·근무기관 유형·경력·교육경험을 범주형으로 수집합니다.
 
@@ -829,3 +834,8 @@ if st.session_state.page == "result":
 - [이성덕 연구자 Google Scholar 프로필](https://scholar.google.com/citations?hl=ko&user=rcMXEpAAAAAJ)
 """
         )
+
+    st.markdown(
+        '<div class="rights-footer">© 2026 이성덕. All rights reserved.<br>감·수·성 로고 상표출원(심사 중)</div>',
+        unsafe_allow_html=True,
+    )
