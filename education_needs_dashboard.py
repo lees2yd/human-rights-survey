@@ -310,8 +310,8 @@ def render_learning_plan(priority):
 
 
 def render_chart(stats):
-    fig = go.Figure(go.Bar(x=[row["영역"] for row in stats], y=[row["평균"] for row in stats], marker_color=["#58afe0", "#2c83bd", "#175b91"], text=[f"{row['평균']:.2f}" for row in stats], textposition="outside"))
-    fig.update_layout(yaxis=dict(range=[1, 4.25], title="문항 평균(1~4점)"), xaxis_title="", height=360, margin=dict(l=20, r=20, t=30, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig = go.Figure(go.Bar(x=[row["영역"] for row in stats], y=[row["평균"] for row in stats], marker_color=["#58afe0", "#2c83bd", "#175b91"], text=[f"{row['평균']:.2f}" for row in stats], textposition="outside", cliponaxis=False))
+    fig.update_layout(yaxis=dict(range=[1, 4.35], title="문항 평균(1~4점)"), xaxis_title="", height=360, margin=dict(l=20, r=25, t=42, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", uniformtext=dict(minsize=10, mode="hide"))
     return fig
 
 
@@ -341,11 +341,11 @@ def render_priority_ladder(stats):
     labels = [f"{kind} · Q{row['번호']} · {row['영역']}" for kind, row, _ in selected]
     fig = go.Figure(go.Bar(
         x=[row["평균"] for _, row, _ in selected], y=labels, orientation="h",
-        marker_color=[color for _, _, color in selected], text=[f"{row['평균']:.2f}" for _, row, _ in selected], textposition="outside",
+        marker_color=[color for _, _, color in selected], text=[f"{row['평균']:.2f}" for _, row, _ in selected], textposition="inside", insidetextanchor="end",
         customdata=[[row["하위영역"], row["낮은 응답(1~2) 비율"], row["문항"]] for _, row, _ in selected],
         hovertemplate="%{y}<br>하위영역: %{customdata[0]}<br>평균: %{x:.2f}/4점<br>낮은 응답(1~2점): %{customdata[1]:.1f}%<br>%{customdata[2]}<extra></extra>",
     ))
-    fig.update_layout(height=320, margin=dict(l=145, r=45, t=18, b=28), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_layout(height=340, margin=dict(l=155, r=25, t=18, b=34), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", uniformtext=dict(minsize=10, mode="hide"))
     fig.update_xaxes(range=[1, 4.25], title="문항 평균(1~4점)", gridcolor="#d8ecf7")
     fig.update_yaxes(autorange="reversed", showgrid=False)
     return fig
@@ -359,8 +359,8 @@ def render_priority_map(priorities):
         rows = [row for row in priorities if row["영역"] == factor]
         if rows:
             fig.add_trace(go.Scatter(
-                x=[row["평균"] for row in rows], y=[row["낮은 응답(1~2) 비율"] for row in rows], mode="markers+text",
-                text=[f"Q{row['번호']}\n{row['하위영역']}" for row in rows], textposition="top center", name=factor,
+                x=[row["평균"] for row in rows], y=[row["낮은 응답(1~2) 비율"] for row in rows], mode="markers",
+                name=factor,
                 marker=dict(size=17, color=colors[factor], line=dict(color="#ffffff", width=1.5)),
                 customdata=[row["문항"] for row in rows],
                 hovertemplate=f"{factor}<br>평균: %{{x:.2f}}/4점<br>낮은 응답(1~2점): %{{y:.1f}}%<br>%{{customdata}}<extra></extra>",
@@ -377,11 +377,11 @@ def render_item_overview(stats):
     colors = {"감": "#58afe0", "수": "#2c83bd", "성": "#175b91"}
     fig = go.Figure(go.Bar(
         x=[row["평균"] for row in rows], y=[f"Q{row['번호']} · {row['영역']} · {row['하위영역']}" for row in rows], orientation="h",
-        marker_color=[colors[row["영역"]] for row in rows], text=[f"{row['평균']:.2f}" for row in rows], textposition="outside",
+        marker_color=[colors[row["영역"]] for row in rows], text=[f"{row['평균']:.2f}" for row in rows], textposition="inside", insidetextanchor="end",
         customdata=[[row["낮은 응답(1~2) 비율"], row["문항"]] for row in rows],
         hovertemplate="%{y}<br>평균: %{x:.2f}/4점<br>낮은 응답(1~2점): %{customdata[0]:.1f}%<br>%{customdata[1]}<extra></extra>",
     ))
-    fig.update_layout(height=max(720, len(rows) * 31 + 80), margin=dict(l=190, r=45, t=18, b=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_layout(height=max(790, len(rows) * 34 + 80), margin=dict(l=205, r=25, t=18, b=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", uniformtext=dict(minsize=9, mode="hide"))
     fig.update_xaxes(range=[1, 4.25], title="문항 평균(1~4점)", gridcolor="#d8ecf7")
     fig.update_yaxes(autorange="reversed", showgrid=False)
     return fig
@@ -393,10 +393,10 @@ def render_demographic_chart(rows):
     fig = go.Figure(go.Bar(
         x=[row["인원"] for row in rows], y=[[row["그래프항목"] for row in rows], [row["범주"] for row in rows]],
         orientation="h",
-        marker_color=colors_by_bar, text=[f"{row['인원']}명<br>{row['비율']:.1f}%" for row in rows], textposition="outside",
+        marker_color=colors_by_bar, text=[f"{row['인원']}명 · {row['비율']:.1f}%" for row in rows], textposition="outside", cliponaxis=False,
         hovertemplate="%{y[0]} · %{y[1]}<br>%{x}명<extra></extra>",
     ))
-    fig.update_layout(height=max(520, len(rows) * 39 + 135), showlegend=False, xaxis_title="인원", margin=dict(l=170, r=95, t=25, b=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_layout(height=max(520, len(rows) * 34 + 145), showlegend=False, xaxis_title="인원", margin=dict(l=170, r=115, t=25, b=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", uniformtext=dict(minsize=10, mode="hide"))
     fig.update_xaxes(showgrid=True, gridcolor="#D8ECF7", zeroline=False, dtick=1)
     fig.update_yaxes(autorange="reversed", tickfont=dict(size=12), showgrid=False)
     return fig
@@ -406,8 +406,9 @@ def render_group_comparison(rows, label):
     fig = go.Figure()
     colors = {"감": "#58afe0", "수": "#2c83bd", "성": "#175b91"}
     for factor in ("감", "수", "성"):
-        fig.add_trace(go.Bar(name=factor, x=[f"{row['범주']}\n(n={row['인원']})" for row in rows], y=[row[factor] for row in rows], marker_color=colors[factor], text=[f"{row[factor]:.2f}" for row in rows], textposition="outside"))
-    fig.update_layout(barmode="group", height=410, yaxis=dict(range=[1, 4.25], title="문항 평균(1~4점)"), xaxis_title=label, margin=dict(l=20, r=20, t=25, b=85), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+        fig.add_trace(go.Bar(name=factor, x=[f"{row['범주']}\n(n={row['인원']})" for row in rows], y=[row[factor] for row in rows], marker_color=colors[factor], hovertemplate=f"{factor}<br>%{{x}}<br>평균: %{{y:.2f}}/4점<extra></extra>"))
+    fig.update_layout(barmode="group", height=445, yaxis=dict(range=[1, 4.25], title="문항 평균(1~4점)"), xaxis_title=label, margin=dict(l=20, r=20, t=30, b=115), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_xaxes(tickangle=-28, tickfont=dict(size=10), automargin=True)
     return fig
 
 
@@ -700,11 +701,11 @@ def render_loading_chart(rows):
     colors = {"감": "#58afe0", "수": "#2c83bd", "성": "#175b91"}
     fig = go.Figure(go.Bar(
         x=[row["표준화 부하량"] for row in numeric], y=[f"{row['문항']} · {row['영역']}" for row in numeric], orientation="h",
-        marker_color=[colors[row["영역"]] for row in numeric], text=[f"{row['표준화 부하량']:.2f}" for row in numeric], textposition="outside",
+        marker_color=[colors[row["영역"]] for row in numeric],
         hovertemplate="%{y}<br>표준화 부하량: %{x:.3f}<extra></extra>",
     ))
     fig.add_vline(x=.40, line_dash="dot", line_color="#7393a7", annotation_text=".40 점검선", annotation_position="top")
-    fig.update_layout(height=max(520, len(numeric) * 27 + 80), margin=dict(l=100, r=45, t=25, b=25), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_layout(height=max(580, len(numeric) * 30 + 85), margin=dict(l=105, r=25, t=25, b=25), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
     fig.update_xaxes(range=[0, 1.05], title="표준화 부하량", gridcolor="#d8ecf7")
     fig.update_yaxes(autorange="reversed", showgrid=False)
     return fig
@@ -713,8 +714,8 @@ def render_loading_chart(rows):
 def render_validity_chart(rows):
     numeric = [row for row in rows if isinstance(row.get("CR"), (int, float, np.floating)) and isinstance(row.get("AVE"), (int, float, np.floating))]
     fig = go.Figure()
-    fig.add_trace(go.Bar(name="CR", x=[row["영역"] for row in numeric], y=[row["CR"] for row in numeric], marker_color="#2c83bd", text=[f"{row['CR']:.2f}" for row in numeric], textposition="outside"))
-    fig.add_trace(go.Bar(name="AVE", x=[row["영역"] for row in numeric], y=[row["AVE"] for row in numeric], marker_color="#83caea", text=[f"{row['AVE']:.2f}" for row in numeric], textposition="outside"))
+    fig.add_trace(go.Bar(name="CR", x=[row["영역"] for row in numeric], y=[row["CR"] for row in numeric], marker_color="#2c83bd", text=[f"{row['CR']:.2f}" for row in numeric], textposition="inside", insidetextanchor="end"))
+    fig.add_trace(go.Bar(name="AVE", x=[row["영역"] for row in numeric], y=[row["AVE"] for row in numeric], marker_color="#83caea", text=[f"{row['AVE']:.2f}" for row in numeric], textposition="inside", insidetextanchor="end"))
     fig.add_hline(y=.70, line_dash="dot", line_color="#2c83bd", annotation_text="CR .70", annotation_position="top left")
     fig.add_hline(y=.50, line_dash="dot", line_color="#75a6c2", annotation_text="AVE .50", annotation_position="bottom left")
     fig.update_layout(barmode="group", height=310, margin=dict(l=20, r=20, t=25, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", legend=dict(orientation="h", y=1.08))
@@ -726,7 +727,7 @@ def render_htmt_chart(rows):
     numeric = [row for row in rows if isinstance(row.get("HTMT"), (int, float, np.floating))]
     fig = go.Figure(go.Bar(
         x=[row["영역 쌍"] for row in numeric], y=[row["HTMT"] for row in numeric], marker_color="#58afe0",
-        text=[f"{row['HTMT']:.2f}" for row in numeric], textposition="outside",
+        text=[f"{row['HTMT']:.2f}" for row in numeric], textposition="inside", insidetextanchor="end",
         hovertemplate="%{x}<br>HTMT: %{y:.3f}<extra></extra>",
     ))
     fig.add_hline(y=.85, line_dash="dot", line_color="#7393a7", annotation_text=".85 참고선", annotation_position="top left")
