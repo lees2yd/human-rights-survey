@@ -17,7 +17,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
 st.set_page_config(
@@ -33,7 +33,7 @@ PRINCIPAL_INVESTIGATOR = "이성덕"
 RESEARCH_CONTACT = "010-9619-4652, mindscaper2013@naver.com"
 DATA_RETENTION = "연구 종료 후 3년"
 WORKSHEET_NAME = "responses"
-SCALE_PAPER_URL = "http://krscs.or.kr/html/sub6_01.html"
+SCALE_PAPER_URL = "https://doi.org/10.14819/krscs.2026.36.2.1.3"
 LOGO_PATH = Path(__file__).with_name("gam_su_seong_logo.png")
 BACKGROUND_PATH = Path(__file__).with_name("human_rights_background.png")
 HERO_DESKTOP_PATH = Path(__file__).with_name("hero_background_desktop.png")
@@ -514,8 +514,16 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
         pdf_canvas.restoreState()
 
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=23*mm, bottomMargin=22*mm)
-    header = Table([[Paragraph("감·수·성", ParagraphStyle("KBrand", parent=body_style, fontSize=10, leading=13, textColor=sky, alignment=1, spaceAfter=0))]], colWidths=[174*mm])
-    header.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), pale_sky), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+    brand_style = ParagraphStyle("KBrand", parent=body_style, fontSize=10, leading=13, textColor=sky, alignment=0, spaceAfter=0)
+    if LOGO_PATH.exists():
+        logo = RLImage(str(LOGO_PATH), width=15*mm, height=15*mm, kind="proportional")
+        header_data = [[logo, Paragraph("감·수·성", brand_style)]]
+        header_widths = [25*mm, 149*mm]
+    else:
+        header_data = [[Paragraph("감·수·성", ParagraphStyle("KBrandCentered", parent=brand_style, alignment=1))]]
+        header_widths = [174*mm]
+    header = Table(header_data, colWidths=header_widths)
+    header.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), pale_sky), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (0, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
     story = [
         header,
         Spacer(1, 4*mm),
@@ -882,7 +890,7 @@ if st.session_state.page == "result":
 
 - [**이성덕. 「감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토」**]({SCALE_PAPER_URL})
   - 이 프로그램에서 사용하는 최종 25문항과 3요인 구조의 직접적인 근거 논문입니다.
-  - 논문 제목을 누르면 한국교정학회 「교정연구」 자료실로 이동합니다. 해당 논문의 **원문보기**를 선택할 수 있습니다.
+  - 논문 제목을 누르면 DOI 원문 페이지로 바로 이동합니다.
 
 ### 감·수·성 모델 관련 연구
 
