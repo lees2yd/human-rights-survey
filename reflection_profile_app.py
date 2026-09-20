@@ -17,7 +17,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image as RLImage, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
 st.set_page_config(
@@ -440,15 +440,23 @@ def radar_png(scores):
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     values += values[:1]
     angles += angles[:1]
-    fig = plt.figure(figsize=(4.5, 4.5))
+    fig = plt.figure(figsize=(3.2, 3.2), facecolor="#f8fcff")
     ax = fig.add_subplot(111, polar=True)
-    ax.plot(angles, values, color="#4f6fad", linewidth=2)
-    ax.fill(angles, values, color="#8ea6d5", alpha=0.35)
+    ax.set_facecolor("#f8fcff")
+    ax.plot(angles, values, color="#2589c8", linewidth=2.3, marker="o", markersize=4)
+    ax.fill(angles, values, color="#75c0e8", alpha=0.34)
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels)
+    tick_labels = ax.set_xticklabels([f"{label}\n{scores[label]:.2f}" for label in labels], color="#164b79", fontweight="bold")
+    if KOREAN_FONT_PATH:
+        font_prop = font_manager.FontProperties(fname=KOREAN_FONT_PATH)
+        for label in tick_labels:
+            label.set_fontproperties(font_prop)
     ax.set_ylim(1, 4)
     ax.set_yticks([1, 2, 3, 4])
-    ax.grid(color="#d7dde6")
+    ax.set_yticklabels(["1", "2", "3", "4"], color="#7d9aae", fontsize=7)
+    ax.grid(color="#cfe8f8", linewidth=0.8)
+    ax.spines["polar"].set_color("#9fd3ef")
+    ax.spines["polar"].set_linewidth(1)
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=160, bbox_inches="tight", transparent=False)
     plt.close(fig)
@@ -510,6 +518,7 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
         pdf_canvas.line(18*mm, height - 17*mm, 48*mm, height - 17*mm)
         pdf_canvas.setFillColor(HexColor("#4d87ad"))
         pdf_canvas.setFont(font_name, 7.5)
+        pdf_canvas.drawCentredString(width / 2, 18*mm, "© 2026 이성덕. All rights reserved.  |  감·수·성 로고 상표출원(심사 중)")
         pdf_canvas.drawRightString(width - 18*mm, 12*mm, f"감·수·성 자기성찰 프로파일  |  {pdf_doc.page}")
         pdf_canvas.restoreState()
 
@@ -545,15 +554,29 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
         ("ALIGN", (0, 0), (1, -1), "CENTER"), ("TEXTCOLOR", (0, 1), (0, -1), navy),
         ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
     ]))
-    story += [table, Spacer(1, 5*mm)]
+    story += [table, Spacer(1, 4*mm)]
 
     summary = profile_summary(scores)
-    story += [Paragraph("나의 프로파일 읽기", h_style), Paragraph(f"<b>{summary['label']}</b> — {summary['lead']} {summary['detail']}", body_style)]
+    triangle_chart = RLImage(radar_png(scores), width=52*mm, height=52*mm, kind="proportional")
+    profile_card = Table(
+        [[triangle_chart, Paragraph(f"<b>{summary['label']}</b><br/><br/>{summary['lead']}<br/>{summary['detail']}", body_style)]],
+        colWidths=[62*mm, 112*mm],
+    )
+    profile_card.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), HexColor("#f7fcff")), ("BOX", (0, 0), (-1, -1), 0.6, line_blue),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 9), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story += [Paragraph("나의 삼각형 프로파일", h_style), profile_card]
     for factor in ["감", "수", "성"]:
         meta = FACTOR_META[factor]
-        story += [Paragraph(meta["title"], h_style), Paragraph(meta["meaning"], body_style), Paragraph(f"실천 제안: {meta['practice']}", body_style)]
+        story.append(KeepTogether([
+            Paragraph(meta["title"], h_style),
+            Paragraph(meta["meaning"], body_style),
+            Paragraph(f"실천 제안: {meta['practice']}", body_style),
+        ]))
 
-    story += [PageBreak(), Paragraph("한 사례를 감·수·성으로 다시 보기", h_style), Paragraph(INTEGRATED_PRACTICE, body_style)]
+    story += [Paragraph("한 사례를 감·수·성으로 다시 보기", h_style), Paragraph(INTEGRATED_PRACTICE, body_style)]
     story += [Paragraph("결과에 연결한 연습주제", h_style)]
     topics = practice_topics(answers)
     if topics:
@@ -573,7 +596,7 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
 
     action_card = Table([[Paragraph(action_plan.strip() if action_plan.strip() else "아직 작성하지 않았습니다.", body_style)]], colWidths=[174*mm])
     action_card.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), HexColor("#f7fcff")), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
-    story += [Paragraph("나의 한 가지 행동계획", h_style), action_card, Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style), Spacer(1, 4*mm), Paragraph("© 2026 이성덕. All rights reserved.  |  감·수·성 로고 상표출원(심사 중)", ParagraphStyle("KRights", parent=small_style, alignment=1, textColor=HexColor("#4d87ad")))]
+    story += [Paragraph("나의 한 가지 행동계획", h_style), action_card, Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style)]
 
     doc.build(story, onFirstPage=draw_report_background, onLaterPages=draw_report_background)
     buffer.seek(0)
