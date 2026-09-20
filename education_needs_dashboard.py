@@ -315,6 +315,78 @@ def render_chart(stats):
     return fig
 
 
+def render_factor_triangle(stats):
+    """세 영역의 상대적 응답 경향을 한눈에 읽는 삼각형 프로파일이다."""
+    scores = {row["영역"]: row["평균"] for row in stats}
+    labels = ["감", "수", "성"]
+    values = [scores[label] for label in labels]
+    fig = go.Figure(go.Scatterpolar(
+        r=values + values[:1], theta=labels + labels[:1], fill="toself",
+        line=dict(color="#2589c8", width=3), fillcolor="rgba(88,175,224,.30)",
+        marker=dict(color="#175b91", size=7), hovertemplate="%{theta}: %{r:.2f}점<extra></extra>",
+    ))
+    fig.update_layout(
+        height=360, margin=dict(l=25, r=25, t=28, b=18), showlegend=False,
+        paper_bgcolor="rgba(0,0,0,0)",
+        polar=dict(bgcolor="rgba(255,255,255,.58)", radialaxis=dict(range=[1, 4], tickvals=[1, 2, 3, 4], gridcolor="#d8ecf7", linecolor="#b9dff3"), angularaxis=dict(gridcolor="#d8ecf7", linecolor="#b9dff3")),
+    )
+    return fig
+
+
+def render_priority_ladder(stats):
+    """높은 응답과 우선 성찰 문항을 같은 눈금에서 비교한다."""
+    high = sorted(stats, key=lambda row: (-row["평균"], row["낮은 응답(1~2) 비율"], row["번호"]))[:3]
+    low = sorted(stats, key=lambda row: (row["평균"], -row["낮은 응답(1~2) 비율"], row["번호"]))[:3]
+    selected = [("우선 성찰", row, "#2589c8") for row in low] + [("교육 자원", row, "#83caea") for row in high]
+    labels = [f"{kind} · Q{row['번호']} · {row['영역']}" for kind, row, _ in selected]
+    fig = go.Figure(go.Bar(
+        x=[row["평균"] for _, row, _ in selected], y=labels, orientation="h",
+        marker_color=[color for _, _, color in selected], text=[f"{row['평균']:.2f}" for _, row, _ in selected], textposition="outside",
+        customdata=[[row["하위영역"], row["낮은 응답(1~2) 비율"], row["문항"]] for _, row, _ in selected],
+        hovertemplate="%{y}<br>하위영역: %{customdata[0]}<br>평균: %{x:.2f}/4점<br>낮은 응답(1~2점): %{customdata[1]:.1f}%<br>%{customdata[2]}<extra></extra>",
+    ))
+    fig.update_layout(height=320, margin=dict(l=145, r=45, t=18, b=28), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_xaxes(range=[1, 4.25], title="문항 평균(1~4점)", gridcolor="#d8ecf7")
+    fig.update_yaxes(autorange="reversed", showgrid=False)
+    return fig
+
+
+def render_priority_map(priorities):
+    """왼쪽 위일수록 평균은 낮고 낮은 응답 비율은 높은 교육 우선 지점이다."""
+    colors = {"감": "#58afe0", "수": "#2c83bd", "성": "#175b91"}
+    fig = go.Figure()
+    for factor in ("감", "수", "성"):
+        rows = [row for row in priorities if row["영역"] == factor]
+        if rows:
+            fig.add_trace(go.Scatter(
+                x=[row["평균"] for row in rows], y=[row["낮은 응답(1~2) 비율"] for row in rows], mode="markers+text",
+                text=[f"Q{row['번호']}\n{row['하위영역']}" for row in rows], textposition="top center", name=factor,
+                marker=dict(size=17, color=colors[factor], line=dict(color="#ffffff", width=1.5)),
+                customdata=[row["문항"] for row in rows],
+                hovertemplate=f"{factor}<br>평균: %{{x:.2f}}/4점<br>낮은 응답(1~2점): %{{y:.1f}}%<br>%{{customdata}}<extra></extra>",
+            ))
+    fig.update_layout(height=340, margin=dict(l=40, r=25, t=18, b=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", legend_title="영역")
+    fig.update_xaxes(range=[1, 4], title="문항 평균 - 왼쪽일수록 다음 교육에서 더 살펴볼 지점", gridcolor="#d8ecf7")
+    fig.update_yaxes(title="낮은 응답(1~2점) 비율", ticksuffix="%", gridcolor="#d8ecf7")
+    return fig
+
+
+def render_item_overview(stats):
+    """25개 문항을 평균이 낮은 순서로 정렬해 교육 설계자가 바로 읽을 수 있게 한다."""
+    rows = sorted(stats, key=lambda row: (row["평균"], -row["낮은 응답(1~2) 비율"], row["번호"]))
+    colors = {"감": "#58afe0", "수": "#2c83bd", "성": "#175b91"}
+    fig = go.Figure(go.Bar(
+        x=[row["평균"] for row in rows], y=[f"Q{row['번호']} · {row['영역']} · {row['하위영역']}" for row in rows], orientation="h",
+        marker_color=[colors[row["영역"]] for row in rows], text=[f"{row['평균']:.2f}" for row in rows], textposition="outside",
+        customdata=[[row["낮은 응답(1~2) 비율"], row["문항"]] for row in rows],
+        hovertemplate="%{y}<br>평균: %{x:.2f}/4점<br>낮은 응답(1~2점): %{customdata[0]:.1f}%<br>%{customdata[1]}<extra></extra>",
+    ))
+    fig.update_layout(height=max(720, len(rows) * 31 + 80), margin=dict(l=190, r=45, t=18, b=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_xaxes(range=[1, 4.25], title="문항 평균(1~4점)", gridcolor="#d8ecf7")
+    fig.update_yaxes(autorange="reversed", showgrid=False)
+    return fig
+
+
 def render_demographic_chart(rows):
     group_colors = ["#1976AD", "#75C4E9"]
     colors_by_bar = [group_colors[row["묶음순서"] % 2] for row in rows]
@@ -336,6 +408,21 @@ def render_group_comparison(rows, label):
     for factor in ("감", "수", "성"):
         fig.add_trace(go.Bar(name=factor, x=[f"{row['범주']}\n(n={row['인원']})" for row in rows], y=[row[factor] for row in rows], marker_color=colors[factor], text=[f"{row[factor]:.2f}" for row in rows], textposition="outside"))
     fig.update_layout(barmode="group", height=410, yaxis=dict(range=[1, 4.25], title="문항 평균(1~4점)"), xaxis_title=label, margin=dict(l=20, r=20, t=25, b=85), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    return fig
+
+
+def render_group_heatmap(rows, label):
+    """막대그래프의 수치를 색 농도로도 읽는 보조 비교표다."""
+    factors = ["감", "수", "성"]
+    fig = go.Figure(go.Heatmap(
+        z=[[row[factor] for factor in factors] for row in rows], x=factors,
+        y=[f"{row['범주']} (n={row['인원']})" for row in rows], zmin=1, zmax=4,
+        colorscale=[[0, "#eef8fd"], [.5, "#75c4e9"], [1, "#175b91"]],
+        text=[[f"{row[factor]:.2f}" for factor in factors] for row in rows], texttemplate="%{text}", textfont=dict(color="#163f67"),
+        colorbar=dict(title="평균", tickvals=[1, 2, 3, 4]), hovertemplate=f"{label}: %{{y}}<br>영역: %{{x}}<br>평균: %{{z:.2f}}/4점<extra></extra>",
+    ))
+    fig.update_layout(height=max(300, len(rows) * 48 + 100), margin=dict(l=125, r=35, t=18, b=38), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_yaxes(autorange="reversed")
     return fig
 
 
@@ -588,6 +675,66 @@ def cfa_loadings_and_validity(estimates, data):
     return loading_rows, validity_rows, htmt_table(data)
 
 
+def render_reliability_chart(alpha_rows):
+    rows = []
+    for row in alpha_rows:
+        try:
+            value = float(row["Cronbach α"])
+        except (TypeError, ValueError):
+            continue
+        rows.append((row["영역"], value))
+    fig = go.Figure(go.Bar(
+        x=[name for name, _ in rows], y=[value for _, value in rows],
+        marker_color=["#58afe0", "#2c83bd", "#175b91", "#4c7698"][:len(rows)],
+        text=[f"{value:.3f}" for _, value in rows], textposition="outside",
+        hovertemplate="%{x}<br>Cronbach α: %{y:.3f}<extra></extra>",
+    ))
+    fig.add_hline(y=.70, line_dash="dot", line_color="#7393a7", annotation_text=".70 참고선", annotation_position="top left")
+    fig.update_layout(height=275, margin=dict(l=20, r=20, t=25, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", showlegend=False)
+    fig.update_yaxes(range=[0, 1.08], title="신뢰도", gridcolor="#d8ecf7")
+    return fig
+
+
+def render_loading_chart(rows):
+    numeric = [row for row in rows if isinstance(row.get("표준화 부하량"), (int, float, np.floating))]
+    colors = {"감": "#58afe0", "수": "#2c83bd", "성": "#175b91"}
+    fig = go.Figure(go.Bar(
+        x=[row["표준화 부하량"] for row in numeric], y=[f"{row['문항']} · {row['영역']}" for row in numeric], orientation="h",
+        marker_color=[colors[row["영역"]] for row in numeric], text=[f"{row['표준화 부하량']:.2f}" for row in numeric], textposition="outside",
+        hovertemplate="%{y}<br>표준화 부하량: %{x:.3f}<extra></extra>",
+    ))
+    fig.add_vline(x=.40, line_dash="dot", line_color="#7393a7", annotation_text=".40 점검선", annotation_position="top")
+    fig.update_layout(height=max(520, len(numeric) * 27 + 80), margin=dict(l=100, r=45, t=25, b=25), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)")
+    fig.update_xaxes(range=[0, 1.05], title="표준화 부하량", gridcolor="#d8ecf7")
+    fig.update_yaxes(autorange="reversed", showgrid=False)
+    return fig
+
+
+def render_validity_chart(rows):
+    numeric = [row for row in rows if isinstance(row.get("CR"), (int, float, np.floating)) and isinstance(row.get("AVE"), (int, float, np.floating))]
+    fig = go.Figure()
+    fig.add_trace(go.Bar(name="CR", x=[row["영역"] for row in numeric], y=[row["CR"] for row in numeric], marker_color="#2c83bd", text=[f"{row['CR']:.2f}" for row in numeric], textposition="outside"))
+    fig.add_trace(go.Bar(name="AVE", x=[row["영역"] for row in numeric], y=[row["AVE"] for row in numeric], marker_color="#83caea", text=[f"{row['AVE']:.2f}" for row in numeric], textposition="outside"))
+    fig.add_hline(y=.70, line_dash="dot", line_color="#2c83bd", annotation_text="CR .70", annotation_position="top left")
+    fig.add_hline(y=.50, line_dash="dot", line_color="#75a6c2", annotation_text="AVE .50", annotation_position="bottom left")
+    fig.update_layout(barmode="group", height=310, margin=dict(l=20, r=20, t=25, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", legend=dict(orientation="h", y=1.08))
+    fig.update_yaxes(range=[0, 1.08], gridcolor="#d8ecf7")
+    return fig
+
+
+def render_htmt_chart(rows):
+    numeric = [row for row in rows if isinstance(row.get("HTMT"), (int, float, np.floating))]
+    fig = go.Figure(go.Bar(
+        x=[row["영역 쌍"] for row in numeric], y=[row["HTMT"] for row in numeric], marker_color="#58afe0",
+        text=[f"{row['HTMT']:.2f}" for row in numeric], textposition="outside",
+        hovertemplate="%{x}<br>HTMT: %{y:.3f}<extra></extra>",
+    ))
+    fig.add_hline(y=.85, line_dash="dot", line_color="#7393a7", annotation_text=".85 참고선", annotation_position="top left")
+    fig.update_layout(height=310, margin=dict(l=20, r=20, t=25, b=30), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.58)", showlegend=False)
+    fig.update_yaxes(range=[0, 1.05], gridcolor="#d8ecf7")
+    return fig
+
+
 def render_cfa_dashboard(records):
     """응답 축적에 따라 자동 갱신되는 척도 검증 전용 화면."""
     st.divider()
@@ -615,6 +762,7 @@ def render_cfa_dashboard(records):
     with left:
         st.markdown("#### 실시간 신뢰도·문항 현황")
         st.dataframe(alpha_rows, use_container_width=True, hide_index=True)
+        st.plotly_chart(render_reliability_chart(alpha_rows), use_container_width=True)
     with right:
         st.markdown("#### CFA 모형 명세")
         st.code(cfa_model_syntax(), language="text")
@@ -658,6 +806,17 @@ def render_cfa_dashboard(records):
     with third:
         st.markdown("#### HTMT 근사값")
         st.dataframe(htmt_rows, use_container_width=True, hide_index=True, column_config={"HTMT": st.column_config.NumberColumn(format="%.3f")} if result else None)
+
+    if result is not None:
+        st.markdown("#### CFA 결과 시각 요약")
+        st.caption("점선은 해석을 돕는 관행적 참고선일 뿐, 현재의 실시간 ML-CFA만으로 척도의 최종 타당성을 판정하지 않습니다.")
+        loading_col, validity_col, htmt_col = st.columns([1.25, .9, .85])
+        with loading_col:
+            st.plotly_chart(render_loading_chart(loading_rows), use_container_width=True)
+        with validity_col:
+            st.plotly_chart(render_validity_chart(validity_rows), use_container_width=True)
+        with htmt_col:
+            st.plotly_chart(render_htmt_chart(htmt_rows), use_container_width=True)
 
     st.markdown("#### 문항 응답 분포와 점검 지점")
     st.caption("표준편차가 매우 작거나 1~2점 비율이 한쪽으로 치우친 문항은 표본이 축적된 뒤 문항내용·분포·부하량을 함께 검토합니다. 낮은 부하량만으로 즉시 문항을 삭제하지 않습니다.")
@@ -712,10 +871,13 @@ def start():
         st.stop()
 
     factors = factor_stats(selected)
-    left, right = st.columns([1.05, .95])
+    left, middle, right = st.columns([.75, .45, .8])
     with left:
         st.subheader("영역별 응답 경향")
         st.plotly_chart(render_chart(factors), use_container_width=True)
+    with middle:
+        st.subheader("세 영역 프로파일")
+        st.plotly_chart(render_factor_triangle(factors), use_container_width=True)
     with right:
         st.subheader("해석 원칙")
         st.markdown("- 높은 응답은 이 집단이 비교적 익숙하게 보고한 **자원**입니다.\n- 낮은 응답은 다음 교육에서 더 구체적으로 연습해 볼 **우선 성찰 지점**입니다.\n- 개인이나 집단의 능력·도덕성·직무수행 우열을 뜻하지 않습니다.\n- 소수 응답의 수치는 변동이 크므로, 단일 문항보다 영역·하위영역·현장 사례를 함께 검토하십시오.")
@@ -733,19 +895,24 @@ def start():
     st.subheader("인구학적 집단별 감·수·성 비교")
     chosen_column = st.selectbox("비교할 인구학적 항목", list(DEMOGRAPHICS), format_func=lambda column: DEMOGRAPHICS[column])
     comparison_rows = factor_by_demographic(selected, chosen_column)
-    compare_left, compare_right = st.columns([1.18, .82])
+    compare_left, compare_right = st.columns([1.05, .95])
     with compare_left:
         st.plotly_chart(render_group_comparison(comparison_rows, DEMOGRAPHICS[chosen_column]), use_container_width=True)
     with compare_right:
-        st.caption("범주별 평균은 해당 범주 안에서의 감·수·성 문항 평균입니다.")
+        st.caption("같은 수치를 색 농도로도 볼 수 있습니다. 범주별 평균은 해당 범주 안에서의 감·수·성 문항 평균입니다.")
+        st.plotly_chart(render_group_heatmap(comparison_rows, DEMOGRAPHICS[chosen_column]), use_container_width=True)
         st.dataframe(comparison_rows, use_container_width=True, hide_index=True, column_config={"감": st.column_config.NumberColumn(format="%.2f"), "수": st.column_config.NumberColumn(format="%.2f"), "성": st.column_config.NumberColumn(format="%.2f")})
 
     st.subheader("높은 응답과 우선 성찰 지점")
+    st.caption("막대가 짧은 문항은 다음 교육에서 더 구체적인 사례·실습으로 연결해 볼 지점이며, 막대가 긴 문항은 집단이 비교적 익숙하게 보고한 교육 자원입니다.")
+    st.plotly_chart(render_priority_ladder(item_stats(selected)), use_container_width=True)
     render_profile_summary(selected)
 
     st.subheader("이번 강의의 우선 교육 주제")
     st.caption("선정 방식: 감·수·성 각 영역에서 평균이 가장 낮고 1~2점 응답 비율이 높은 문항을 하나씩 제시합니다. 한 영역의 낮은 문항이 여러 개여도 다른 영역의 다음 낮은 문항을 우선해, 세 판단영역을 함께 다룹니다.")
     priorities = priority_topics(selected)
+    st.caption("왼쪽 위에 있을수록 평균은 낮고 1~2점 응답은 많은, 즉 다음 교육에서 우선적으로 살펴볼 지점입니다.")
+    st.plotly_chart(render_priority_map(priorities), use_container_width=True)
     for index, priority in enumerate(priorities, 1):
         st.markdown(f"### {index}. {priority['영역']} - {priority['하위영역']}")
         st.write(f"**Q{priority['번호']}.** {priority['문항']}")
@@ -772,6 +939,8 @@ def start():
 
     st.subheader("문항별 교육필요 확인")
     rows = item_stats(selected)
+    st.caption("25개 문항을 평균이 낮은 순서로 배열했습니다. 색은 감·수·성 영역을 뜻하며, 막대를 누르거나 올리면 문항 전문과 낮은 응답 비율을 확인할 수 있습니다.")
+    st.plotly_chart(render_item_overview(rows), use_container_width=True)
     st.dataframe(sorted(rows, key=lambda x: (x["평균"], -x["낮은 응답(1~2) 비율"])), use_container_width=True, hide_index=True, column_config={"평균": st.column_config.NumberColumn(format="%.2f"), "낮은 응답(1~2) 비율": st.column_config.NumberColumn(format="%.1f%%")})
 
     st.subheader("교육 운영 원칙")
