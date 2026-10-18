@@ -31,6 +31,9 @@ BAT_ITEMS = [
 (23, '정서적 조절 손상', '직장에서 나는 뜻하지 않게 과하게 반응하곤 한다.'),
 ]
 BAT_FACTORS = list(dict.fromkeys(f for _, f, _ in BAT_ITEMS))
+BAT_REFERENCE = {'탈진': (2.84, .77), '심적거리': (2.32, .79),
+                 '인지적 조절 손상': (2.13, .69), '정서적 조절 손상': (2.31, .74)}
+
 BAT_COLUMNS = [f'BAT{i}' for i, _, _ in BAT_ITEMS]
 # 논문은 1/5점 양끝만 명시. 중간 응답 문구는 운영용으로 명시적으로 지정.
 BAT_LABELS = {1: '전혀 아니다', 2: '드물게 그렇다', 3: '때때로 그렇다', 4: '자주 그렇다', 5: '항상 그렇다'}
@@ -44,6 +47,22 @@ def bat_scores(row):
     if any(v not in (1, 2, 3, 4, 5) for v in values.values()):
         return None
     return {f: float(np.mean([values[f'BAT{i}'] for i, factor, _ in BAT_ITEMS if factor == f])) for f in BAT_FACTORS}
+
+def bat_reference_explanation(factor, value):
+    reference, sd = BAT_REFERENCE[factor]
+    lower, upper = reference-sd, reference+sd
+    if value < lower-1e-9:
+        position = "연구의 참고범위보다 아래에 있습니다"
+    elif value > upper+1e-9:
+        position = "연구의 참고범위보다 위에 있습니다"
+    else:
+        position = "연구의 참고범위 안에 있습니다"
+    if abs(value-reference)<.005:
+        difference = "참고 연구의 평균과 비슷합니다"
+    else:
+        difference = f"참고 연구 평균 {reference:.2f}점보다 {abs(value-reference):.2f}점 {'높습니다' if value>reference else '낮습니다'}"
+    return f"나의 점수는 {value:.2f}점으로, {difference}. {position}."
+
 
 def scale_percent(value):
     return (value - 1) / 4 * 100
@@ -65,9 +84,12 @@ def render_bat_personal(row):
     fig = go.Figure(go.Bar(x=list(scores.values()), y=BAT_FACTORS, orientation='h', text=[f'{v:.2f}' for v in scores.values()], textposition='auto'))
     fig.update_layout(xaxis=dict(range=[0, 5], title='문항평균 (1~5점)'), yaxis=dict(autorange='reversed'), margin=dict(l=10, r=20, t=20, b=40), height=330)
     st.plotly_chart(fig, use_container_width=True)
-    rows = [{'영역': f, '평균(1~5)': round(v, 3), '척도범위 환산(%)': round(scale_percent(v), 1)} for f, v in scores.items()]
+    rows = [{'영역': f, '나의 점수': round(v, 3), '연구 참고평균': BAT_REFERENCE[f][0], '연구 참고범위': f'{BAT_REFERENCE[f][0]-BAT_REFERENCE[f][1]:.2f} ~ {BAT_REFERENCE[f][0]+BAT_REFERENCE[f][1]:.2f}'} for f, v in scores.items()]
     st.dataframe(rows, hide_index=True, use_container_width=True)
-    st.caption('환산율=(평균−1)÷4×100. 척도 범위에서의 위치이며 소진 확률이나 백분위가 아닙니다. 이 개인 결과는 집단 자료를 조회하지 않습니다.')
+    st.caption('참고평균·범위는 공기업 사무직 345명의 K-BAT 예비연구 표 5를 바탕으로 했습니다. 범위는 평균을 중심으로 점수의 퍼짐을 반영한 비교용 구간(평균 ± 1표준편차)이며, 교도관의 정상범위나 위험 기준이 아닙니다. 다른 참여자의 응답은 조회하지 않습니다.')
+    for factor, value in scores.items():
+        st.markdown(f'**{factor}**')
+        st.write(bat_reference_explanation(factor, value))
     st.download_button('나의 소진 결과 CSV', csv_bytes(rows), 'my_burnout.csv', 'text/csv', key='bat_personal_csv')
 
 def render_bat_dashboard(records, items=None):

@@ -1,4 +1,4 @@
-from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_LABELS, bat_scores, render_bat_personal
+from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_LABELS, BAT_REFERENCE, bat_reference_explanation, bat_scores, render_bat_personal
 import base64
 import io
 from datetime import datetime
@@ -626,39 +626,50 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
             "인지적 조절 손상": ("집중·기억·명료한 사고의 어려움", "집중이 흐려지는 상황을 점검하고, 확인표·중요 업무 재확인·방해요인 줄이기를 활용해 보십시오."),
             "정서적 조절 손상": ("감정 인식·조절의 어려움과 과도한 반응", "감정 변화의 신호를 알아차리고 잠시 멈추기·감정 이름 붙이기·도움 요청을 연습해 보십시오."),
         }
-        data = [[Paragraph(x, centered_body) for x in ["영역", "문항 수", "평균<br/>(1~5점)", "척도범위<br/>환산율"]]]
+        data = [[Paragraph(x, centered_body) for x in ["영역", "나의 평균", "참고 평균", "연구 참고범위", "차이<br/>(나 - 참고)"]]]
         for factor, value in burnout.items():
-            count = sum(f == factor for _, f, _ in BAT_ITEMS)
-            data.append([Paragraph(factor, bat_body), str(count), f"{value:.2f}", f"{(value-1)/4*100:.1f}%"])
-        bat_table = Table(data, colWidths=[72*mm, 25*mm, 37*mm, 40*mm])
+            reference, sd = BAT_REFERENCE[factor]
+            data.append([Paragraph(factor, bat_body), f"{value:.2f}", f"{reference:.2f}", f"{reference-sd:.2f} ~ {reference+sd:.2f}", f"{value-reference:+.2f}"])
+        bat_table = Table(data, colWidths=[44*mm, 27*mm, 27*mm, 46*mm, 30*mm])
         bat_table.setStyle(TableStyle([
             ("FONTNAME", (0, 0), (-1, -1), font_name), ("FONTSIZE", (0, 0), (-1, -1), 9),
             ("BACKGROUND", (0, 0), (-1, 0), pale_sky), ("GRID", (0, 0), (-1, -1), .4, line_blue),
             ("ALIGN", (1, 1), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ]))
         story += [Spacer(1, 4*mm), bat_table, Spacer(1, 3*mm),
-                  Paragraph("환산율 = (영역평균 - 1) ÷ 4 × 100. 척도 범위에서의 위치이며 소진 확률·위험군 비율·백분위가 아닙니다.", bat_small)]
-        chart = Drawing(174*mm, 49*mm)
+                  Paragraph("참고 연구는 공기업 사무직 345명의 결과입니다. 참고범위는 연구 평균을 중심으로 점수의 퍼짐을 반영해 계산했습니다(평균 ± 1표준편차). 논문이 정한 정상범위나 위험 기준이 아닙니다. 교도관과 직무·응답지침이 다르므로 참고로만 보십시오.", bat_small)]
+        chart = Drawing(174*mm, 42*mm)
         left, bar_width = 65*mm, 95*mm
         for tick in range(6):
             x = left + bar_width*tick/5
-            chart.add(Line(x, 9*mm, x, 46*mm, strokeColor=line_blue, strokeWidth=.4))
+            chart.add(Line(x, 9*mm, x, 40*mm, strokeColor=line_blue, strokeWidth=.4))
             chart.add(String(x, 4*mm, str(tick), fontName=font_name, fontSize=8, textAnchor="middle", fillColor=muted))
         for index, (factor, value) in enumerate(burnout.items()):
-            y = (39-index*9)*mm
+            y = (33-index*8)*mm
             chart.add(String(0, y+2*mm, factor, fontName=font_name, fontSize=8.5, fillColor=ink))
             chart.add(Rect(left, y, bar_width*value/5, 7*mm, fillColor=sky, strokeColor=None))
+            reference_x = left + bar_width*BAT_REFERENCE[factor][0]/5
+            chart.add(Line(reference_x, y-1*mm, reference_x, y+8*mm, strokeColor=navy, strokeWidth=1.8))
             chart.add(String(left+bar_width+3*mm, y+2*mm, f"{value:.2f}", fontName=font_name, fontSize=9, fillColor=navy))
         story += [Paragraph("네 영역의 문항평균", bat_heading), chart,
-                  Paragraph("막대의 축은 0~5점으로 표시하며 실제 응답·평균 범위는 1~5점입니다. 영역 간 작은 차이만으로 의미 있는 차이를 단정할 수 없습니다.", bat_small),
-                  Paragraph("영역별 의미와 돌아볼 점", bat_heading)]
+                  Paragraph("파란 막대: 나의 점수 / 짙은 세로선: 선행연구 평균. 응답·평균 범위는 1~5점(축은 0~5점)입니다. 참고 평균이나 범위 위·아래라는 사실만으로 정상·위험을 판정하지 않습니다.", bat_small),
+                  PageBreak(), Paragraph("소진 점수, 이렇게 읽어보세요", title_style),
+                  Paragraph("점수는 나의 자질을 평가하는 성적표가 아닙니다. 어떤 근무 경험을 보고했는지 살펴보고, 회복과 지원이 필요한 부분을 돌아보는 참고자료입니다.", bat_body)]
         for factor in burnout:
             meaning, practice = meanings[factor]
-            story.append(KeepTogether([Paragraph(f"<b>{factor}</b> · {meaning}", bat_body), Paragraph(practice, bat_small)]))
+            story.append(KeepTogether([
+                Paragraph(f"<b>{factor}</b> · {meaning}", bat_heading),
+                Paragraph(bat_reference_explanation(factor, burnout[factor]), bat_body),
+                Paragraph(f"돌아볼 점: {practice}", bat_body),
+            ]))
         story += [Paragraph("결과를 활용하는 방법", bat_heading),
                   Paragraph("이 결과는 자기보고에 근거한 교육용 피드백입니다. 총점·정상/위험 등급·의학적 진단을 산출하지 않으며 개인의 자질이나 직무 적합성을 판단하지 않습니다. 소진 경험은 개인의 대처뿐 아니라 근무강도·교대근무·조직의 지원 여건과 함께 살펴볼 필요가 있습니다. 어려움이 지속되어 생활이나 업무에 지장이 있다면 이용 가능한 상담·보건 지원을 검토해 보십시오.", bat_small),
-                  Paragraph("문항 근거: 「한국판 직무소진평가척도(K-BAT) 타당화를 위한 예비연구」 표 3. 원문 9번을 제외한 22문항, 탈진 8·심적거리 4·인지적 조절 손상 5·정서적 조절 손상 5문항.", bat_small)]
+                  Paragraph("참고 연구와 설명의 근거", bat_heading),
+                  Paragraph('조수현(2020). 한국판 직무소진평가척도(K-BAT) 타당화를 위한 예비연구. 표 3·5. <link href="https://doi.org/10.24230/kjiop.v33i4.461-499" color="#164b79">논문 보기</link>', bat_small),
+                  Paragraph('Schaufeli, Desart, De Witte(2020). BAT 개발·타당도·신뢰도 연구. <link href="https://doi.org/10.3390/ijerph17249495" color="#164b79">논문 보기</link>', bat_small),
+                  Paragraph('Schaufeli, De Witte, Desart. BAT 사용자 안내서, 버전 2.0(2020년 7월판). <link href="https://burnoutassessmenttool.be/wp-content/uploads/2020/08/User-Manual-BAT-version-2.0.pdf" color="#164b79">안내서 보기</link>', bat_small),
+                  Paragraph("참고범위와 위치 설명은 한국판 논문의 평균·표준편차를 이용해 이 프로그램에서 구성했습니다. 실천 안내는 교육적 제안이며 논문에서 개인별 효과가 검증된 처방은 아닙니다. 범위 안이나 아래에 있어도 생활·업무의 어려움이 있다면 함께 살펴볼 필요가 있습니다.", bat_small)]
     else:
         story += [Paragraph("직무소진 결과", bat_heading), Paragraph("직무소진 22문항의 완전응답이 없어 소진 점수는 산출하지 않았습니다.", bat_body)]
 
@@ -944,7 +955,6 @@ if st.session_state.page == "demographics":
 if st.session_state.page == "result":
     render_brand_bar()
     answers = st.session_state.answers
-    render_bat_personal(st.session_state.get("burnout_answers", {}))
     scores = factor_means(answers)
     sub_scores = subdomain_means(answers)
     mh_scores = mental_factor_means(answers)
@@ -1023,6 +1033,8 @@ if st.session_state.page == "result":
     )
 
     st.warning("영역 간 작은 차이는 측정오차를 넘어서는 의미 있는 차이라고 단정할 수 없습니다. 결과를 타인·기관 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단 또는 인권침해 가능성 예측에 사용하지 마십시오.")
+
+    render_bat_personal(st.session_state.get("burnout_answers", {}))
 
     pdf_bytes = make_result_pdf(scores, sub_scores, answers, action_plan, st.session_state.get("burnout_answers", {}))
     st.download_button("감·수·성 + 직무소진 통합 결과지 PDF 내려받기", data=pdf_bytes, file_name="감수성_직무소진_통합결과.pdf", mime="application/pdf", use_container_width=True)

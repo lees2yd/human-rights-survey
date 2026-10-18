@@ -2,12 +2,9 @@
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
-from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_FACTORS, bat_scores, csv_bytes
+from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_FACTORS, BAT_REFERENCE, bat_scores, csv_bytes
 
-REFERENCE = {
-    '탈진': (2.84, .77), '심적거리': (2.32, .79),
-    '인지적 조절 손상': (2.13, .69), '정서적 조절 손상': (2.31, .74),
-}
+REFERENCE = BAT_REFERENCE
 REFERENCE_URL = 'https://burnoutassessmenttool.be/wp-content/uploads/2022/01/2020.11.30-Validation-of-K-BAT-_Korean-Industrial-and-Organizational-Psy..pdf'
 
 
