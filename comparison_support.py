@@ -119,7 +119,7 @@ def test_domains(groups):
     return results
 
 
-def plot_summary(rows, domains, title):
+def plot_summary(rows, domains, title, chart_key):
     fig=go.Figure()
     labels=list(dict.fromkeys(r['집단'] for r in rows))
     for label in labels:
@@ -133,7 +133,7 @@ def plot_summary(rows, domains, title):
     fig.update_layout(title=title,barmode='group',height=410,
                       yaxis=dict(title='문항평균',range=[0,4 if domains[0]=='감' else 5]),
                       legend=dict(orientation='h',y=-.3),margin=dict(t=55,b=100))
-    st.plotly_chart(fig,use_container_width=True)
+    st.plotly_chart(fig,use_container_width=True,key=chart_key)
 
 
 def show_results(groups, key, allow_tests=False):
@@ -141,9 +141,9 @@ def show_results(groups, key, allow_tests=False):
     if not rows:
         st.info('표시 가능한 자료가 없습니다. 영역별로 각 집단의 유효응답이 5명 이상 필요합니다.')
         return
-    plot_summary(rows,DOMAINS[:3],'감·수·성 · 1~4점')
+    plot_summary(rows,DOMAINS[:3],'감·수·성 · 1~4점',f'{key}_gam_chart')
     if any(r['영역'] in BAT_FACTORS for r in rows):
-        plot_summary(rows,BAT_FACTORS,'직무소진 네 영역 · 1~5점')
+        plot_summary(rows,BAT_FACTORS,'직무소진 네 영역 · 1~5점',f'{key}_burnout_chart')
     st.caption('오차막대는 응답자 간 표준편차입니다. 표의 평균 95% 신뢰구간과 구분합니다. 감·수·성은 높을수록 해당 판단 경향을, 소진은 높을수록 해당 소진 경험을 많이 보고한 것입니다.')
     st.dataframe(rows,hide_index=True,use_container_width=True)
     st.download_button('집단별 기술통계 CSV',csv_bytes(rows),f'{key}_summary.csv','text/csv',key=f'{key}_summary')
