@@ -48,20 +48,36 @@ def bat_scores(row):
         return None
     return {f: float(np.mean([values[f'BAT{i}'] for i, factor, _ in BAT_ITEMS if factor == f])) for f in BAT_FACTORS}
 
+BAT_PLAIN_MEANINGS = {
+    '탈진': '몸과 마음의 에너지가 많이 소모되고, 일을 마친 뒤에도 기운을 회복하기 어려운 경험입니다.',
+    '심적거리': '일에 대한 관심이나 의미가 줄고, 업무에서 마음이 멀어지는 경험입니다. 동료와 사이가 나쁘다는 뜻은 아닙니다.',
+    '인지적 조절 손상': '집중하거나 또렷하게 생각하기 어렵고, 깜빡하거나 실수하는 경험입니다. 지능이나 업무능력이 낮다는 판정이 아닙니다.',
+    '정서적 조절 손상': '일하면서 짜증·슬픔이 생기거나, 감정을 알아차리고 반응을 조절하기 어려운 경험입니다. 성격이나 정신질환을 판정하는 말이 아닙니다.',
+}
+BAT_EXPERIENCE_WORDS = {
+    '탈진':'피로와 회복의 어려움', '심적거리':'일에 대한 무관심·거리감',
+    '인지적 조절 손상':'집중·기억·명료한 사고의 어려움',
+    '정서적 조절 손상':'감정을 알아차리고 반응을 조절하는 어려움',
+}
+
+
 def bat_reference_explanation(factor, value):
     reference, sd = BAT_REFERENCE[factor]
     lower, upper = reference-sd, reference+sd
     if value < lower-1e-9:
-        position = "연구의 참고범위보다 아래에 있습니다"
+        position = "연구의 참고범위보다 아래에 있습니다."
     elif value > upper+1e-9:
-        position = "연구의 참고범위보다 위에 있습니다"
+        position = "연구의 참고범위보다 위에 있습니다."
     else:
-        position = "연구의 참고범위 안에 있습니다"
+        position = "연구의 참고범위 안에 있습니다."
+    experience = BAT_EXPERIENCE_WORDS[factor]
     if abs(value-reference)<.005:
-        difference = "참고 연구의 평균과 비슷합니다"
+        comparison = f"참고 연구 평균 {reference:.2f}점과 비슷합니다. 비교상 {experience}을 보고한 정도가 연구 평균과 비슷한 응답입니다."
+    elif value>reference:
+        comparison = f"참고 연구 평균 {reference:.2f}점보다 {value-reference:.2f}점 높습니다. 비교상 {experience}을 더 많이 보고한 응답입니다."
     else:
-        difference = f"참고 연구 평균 {reference:.2f}점보다 {abs(value-reference):.2f}점 {'높습니다' if value>reference else '낮습니다'}"
-    return f"나의 점수는 {value:.2f}점으로, {difference}. {position}."
+        comparison = f"참고 연구 평균 {reference:.2f}점보다 {reference-value:.2f}점 낮습니다. 비교상 {experience}을 덜 보고한 응답이며, 어려움이 전혀 없다는 뜻은 아닙니다."
+    return f"나의 점수는 {value:.2f}점입니다. {comparison} {position}"
 
 
 def scale_percent(value):
@@ -89,7 +105,9 @@ def render_bat_personal(row):
     st.caption('참고평균·범위는 공기업 사무직 345명의 K-BAT 예비연구 표 5를 바탕으로 했습니다. 범위는 평균을 중심으로 점수의 퍼짐을 반영한 비교용 구간(평균 ± 1표준편차)이며, 교도관의 정상범위나 위험 기준이 아닙니다. 다른 참여자의 응답은 조회하지 않습니다.')
     for factor, value in scores.items():
         st.markdown(f'**{factor}**')
+        st.write(BAT_PLAIN_MEANINGS[factor])
         st.write(bat_reference_explanation(factor, value))
+    st.caption('높고 낮다는 말은 인격·능력의 좋고 나쁨이 아니라 해당 경험을 보고한 정도입니다. 참고 평균과의 작은 차이를 의미 있는 차이로 단정하지 않습니다. 참고범위 안·밖은 정상·위험 등급이 아닙니다. 근무조건과 실제 어려움을 함께 살펴보세요.')
     st.download_button('나의 소진 결과 CSV', csv_bytes(rows), 'my_burnout.csv', 'text/csv', key='bat_personal_csv')
 
 def render_bat_dashboard(records, items=None):

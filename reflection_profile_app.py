@@ -1,4 +1,4 @@
-from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_LABELS, BAT_REFERENCE, bat_reference_explanation, bat_scores, render_bat_personal
+from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_LABELS, BAT_REFERENCE, BAT_PLAIN_MEANINGS, bat_reference_explanation, bat_scores, render_bat_personal
 import base64
 import io
 from datetime import datetime
@@ -659,7 +659,8 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
         for factor in burnout:
             meaning, practice = meanings[factor]
             story.append(KeepTogether([
-                Paragraph(f"<b>{factor}</b> · {meaning}", bat_heading),
+                Paragraph(f"<b>{factor}</b>", bat_heading),
+                Paragraph(BAT_PLAIN_MEANINGS[factor], bat_body),
                 Paragraph(bat_reference_explanation(factor, burnout[factor]), bat_body),
                 Paragraph(f"돌아볼 점: {practice}", bat_body),
             ]))
@@ -669,7 +670,7 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
                   Paragraph('조수현(2020). 한국판 직무소진평가척도(K-BAT) 타당화를 위한 예비연구. 표 3·5. <link href="https://doi.org/10.24230/kjiop.v33i4.461-499" color="#164b79">논문 보기</link>', bat_small),
                   Paragraph('Schaufeli, Desart, De Witte(2020). BAT 개발·타당도·신뢰도 연구. <link href="https://doi.org/10.3390/ijerph17249495" color="#164b79">논문 보기</link>', bat_small),
                   Paragraph('Schaufeli, De Witte, Desart. BAT 사용자 안내서, 버전 2.0(2020년 7월판). <link href="https://burnoutassessmenttool.be/wp-content/uploads/2020/08/User-Manual-BAT-version-2.0.pdf" color="#164b79">안내서 보기</link>', bat_small),
-                  Paragraph("참고범위와 위치 설명은 한국판 논문의 평균·표준편차를 이용해 이 프로그램에서 구성했습니다. 실천 안내는 교육적 제안이며 논문에서 개인별 효과가 검증된 처방은 아닙니다. 범위 안이나 아래에 있어도 생활·업무의 어려움이 있다면 함께 살펴볼 필요가 있습니다.", bat_small)]
+                  Paragraph("참고범위는 한국판 논문의 평균·표준편차로 계산한 비교용 구간입니다. 점수의 높고 낮음은 좋고 나쁨이나 정상·위험을 뜻하지 않으며, 작은 차이를 의미 있는 차이로 단정하지 않습니다. 실천 안내는 교육적 제안입니다. 범위 안이나 아래라도 실제 어려움은 함께 살펴보십시오.", bat_small)]
     else:
         story += [Paragraph("직무소진 결과", bat_heading), Paragraph("직무소진 22문항의 완전응답이 없어 소진 점수는 산출하지 않았습니다.", bat_body)]
 
@@ -851,9 +852,9 @@ if st.session_state.page == "survey":
         with st.expander("‘정신건강 문제가 있는 수용자’의 의미", expanded=False):
             st.write("진단 여부와 관계없이 환청·망상, 심한 불안이나 흥분, 현저한 기능 저하 또는 자·타해 위험 등으로 인해 상황에 맞는 의사소통과 절차적·전문적 대응이 필요한 수용자를 의미합니다.")
 
-    factor_class = {"감": "factor-gam", "수": "factor-su", "성": "factor-seong"}[factor]
+    factor_class = "factor-gam"
     st.markdown(
-        f'<div class="question"><span class="{factor_class}">{number}. [{factor}]</span> {question_text}</div>',
+        f'<div class="question"><span class="{factor_class}">{number}.</span> {question_text}</div>',
         unsafe_allow_html=True,
     )
     st.radio(
@@ -901,7 +902,7 @@ div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#3
     answered = sum(st.session_state.burnout_answers.get(c) in (1, 2, 3, 4, 5) for c in BAT_COLUMNS)
     st.progress(answered / len(BAT_ITEMS), text=f"문항 {current + 1} / {len(BAT_ITEMS)} · 응답 완료 {answered} / {len(BAT_ITEMS)}")
     st.caption("1 전혀 아니다 · 2 드물게 그렇다 · 3 때때로 그렇다 · 4 자주 그렇다 · 5 항상 그렇다")
-    st.markdown(f'<div class="question">{current + 1}. [{factor}] {question}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="question">{current + 1}. {question}</div>', unsafe_allow_html=True)
     key = f"bat_question_{original}"
     saved = st.session_state.burnout_answers.get(f"BAT{original}")
     # 재방문 시 사전에 보관한 응답으로 위젯을 복원한다.
