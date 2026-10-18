@@ -7,3 +7,4 @@ numpy
 plotly
 reportlab
 semopy>=2.3.11
+scipy
