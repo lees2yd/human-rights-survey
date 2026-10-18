@@ -77,8 +77,12 @@ def render_bat_dashboard(records):
     n = len(valid)
     st.write(f'선택 집단 {len(records)}명 중 소진 완전응답 {n}명 · 미수집/불완전 {len(records)-n}명')
     st.caption('기존 25문항 자료는 감·수·성 분석에 유지됩니다. 소진 분석은 22문항 모두 1~5점으로 응답한 자료만 사용하며 결측을 0점으로 처리하지 않습니다.')
+    if n == 0:
+        st.info('소진 22문항 완전응답이 아직 없습니다.')
+        return
+    render_bat_anonymous_detail(valid)
     if n < 5:
-        st.info('소진 유효응답 5명 이상일 때 집단 및 개인 비교를 표시합니다. 작은 집단의 재식별 가능성을 줄이기 위한 운영 기준입니다.')
+        st.info('개별 점수는 위에서 확인할 수 있습니다. 집단 비율·실시일 및 인구학적 통계비교는 유효응답 5명 이상인 경우에 제공합니다.')
         return
     matrix = np.array([[s[f] for f in BAT_FACTORS] for _, s in valid])
     avg = matrix.mean(axis=0)
@@ -103,32 +107,69 @@ def render_bat_dashboard(records):
     dist.update_layout(barmode='stack', yaxis=dict(range=[0, 100], title='응답 비율 (%)'), height=380, margin=dict(t=25, b=65))
     st.plotly_chart(dist, use_container_width=True)
     st.caption('응답분포의 분모는 영역별 응답자 수×문항 수입니다. 위의 사람 기준 비율과 구분합니다.')
-    if st.checkbox('교육자 전용 · 임시 익명번호별 개인 비교 표시', value=False):
-        st.caption('번호와 순서는 이 세션의 현재 필터 결과 안에서만 유지됩니다. 시간·성별·연령·직급은 표시하거나 내려받지 않습니다. 번호는 추적용 식별자가 아니며 필터 변경 시 다시 배정됩니다. 소규모 집단과 반복 필터 비교를 통한 추정 가능성까지 제거하지는 못합니다.')
-        signature = tuple(tuple(float(r[c]) for c in BAT_COLUMNS) for r, _ in valid)
-        if st.session_state.get('_bat_signature') != signature:
-            order = list(range(n))
-            secrets.SystemRandom().shuffle(order)
-            st.session_state['_bat_order'] = order
-            st.session_state['_bat_signature'] = signature
-        anon = matrix[st.session_state['_bat_order']]
-        ids = [f'익명 {i+1:03d}' for i in range(n)]
-        heat = go.Figure(go.Heatmap(z=anon, x=BAT_FACTORS, y=ids, zmin=1, zmax=5, colorscale='YlOrRd', colorbar=dict(title='평균'), hovertemplate='%{y}<br>%{x}: %{z:.2f}<extra></extra>'))
-        heat.update_layout(height=min(1200, max(400, n*23)), margin=dict(t=25, b=65), yaxis=dict(autorange='reversed'))
-        st.plotly_chart(heat, use_container_width=True)
-        chosen = st.selectbox('비교할 임시 익명번호', ids)
-        k = ids.index(chosen)
-        comparison = []
-        for j, f in enumerate(BAT_FACTORS):
-            v = anon[k, j]
-            # 본인 제외, 동점은 절반 반영. 임상 규준이 아닌 선택 표본 내 상대 위치.
-            peers = np.delete(anon[:, j], k)
-            percentile = (np.sum(peers < v) + .5*np.sum(peers == v))/len(peers)*100
-            comparison.append({'영역': f, '개인평균': round(v, 3), '집단평균(본인포함)': round(avg[j], 3), '집단과 차이': round(v-avg[j], 3), '표본 내 상대위치(%)': round(float(percentile), 1)})
-        chart = go.Figure()
-        chart.add_bar(name=chosen, x=BAT_FACTORS, y=anon[k])
-        chart.add_bar(name='집단평균(본인포함)', x=BAT_FACTORS, y=avg)
-        chart.update_layout(barmode='group', yaxis=dict(range=[0, 5]), height=380, margin=dict(t=30, b=65))
-        st.plotly_chart(chart, use_container_width=True)
-        st.dataframe(comparison, hide_index=True, use_container_width=True)
-        st.caption('상대위치=(본인보다 낮은 동료 수+동점 동료 수×0.5)÷본인을 제외한 동료 수×100. 현재 선택 표본에 한정되며 전국 교도관 규준이나 소진 확률이 아닙니다.')
+
+
+def anonymous_item_rows(record):
+    if bat_scores(record) is None:
+        return []
+    return [{'설문순서': j, '원문번호': original, '영역': factor, '문항': text,
+             '점수': int(float(record[f'BAT{original}']))}
+            for j, (original, factor, text) in enumerate(BAT_ITEMS, 1)]
+
+
+def render_bat_anonymous_detail(valid):
+    """교육자 전용: 1명부터 영역·문항별 점수. 개인정보는 결합하지 않는다."""
+    n = len(valid)
+    if not n:
+        return
+    st.markdown('#### 임시 익명번호별 영역·문항 점수')
+    st.caption('이 영역은 로그인한 교육자용입니다. 번호는 현재 세션·선택 자료 안에서만 유지되며 추적용 식별자가 아닙니다. 제출시각·성별·연령·직급은 함께 표시하지 않습니다.')
+    if n < 5:
+        st.warning('소수 응답의 개별 점수입니다. 특히 1명일 때는 임시번호를 사용해도 참여 상황을 아는 사람이 응답자를 추정할 수 있습니다. 공개 화면이나 교육생 전체에게 공유할 때 유의하십시오.')
+    signature = tuple(tuple(float(r[c]) for c in BAT_COLUMNS) for r, _ in valid)
+    if st.session_state.get('_bat_signature') != signature:
+        order = list(range(n))
+        secrets.SystemRandom().shuffle(order)
+        st.session_state['_bat_order'] = order
+        st.session_state['_bat_signature'] = signature
+    ordered = [valid[i] for i in st.session_state['_bat_order']]
+    matrix = np.array([[scores[f] for f in BAT_FACTORS] for _, scores in ordered])
+    ids = [f'익명 {i+1:03d}' for i in range(n)]
+    if n > 1:
+        heat = go.Figure(go.Heatmap(z=matrix, x=BAT_FACTORS, y=ids, zmin=1, zmax=5,
+                                   colorscale='YlGn', colorbar=dict(title='평균'),
+                                   hovertemplate='%{y}<br>%{x}: %{z:.2f}<extra></extra>'))
+        heat.update_layout(height=min(1200,max(340,n*23)),margin=dict(t=20,b=65),yaxis=dict(autorange='reversed'))
+        st.plotly_chart(heat,use_container_width=True)
+    chosen = st.selectbox('확인할 임시 익명번호',ids,key='bat_detail_id')
+    index = ids.index(chosen)
+    record, scores = ordered[index]
+    area_rows = [{'영역':f,'문항수':sum(factor==f for _,factor,_ in BAT_ITEMS),'개인평균(1~5)':round(v,3)} for f,v in scores.items()]
+    st.dataframe(area_rows,hide_index=True,use_container_width=True)
+    chart=go.Figure(go.Bar(x=BAT_FACTORS,y=[scores[f] for f in BAT_FACTORS],
+                           marker_color='#369566',text=[f'{scores[f]:.2f}' for f in BAT_FACTORS],textposition='auto'))
+    chart.update_layout(height=350,yaxis=dict(range=[0,5],title='영역 문항평균'),margin=dict(t=20,b=65))
+    st.plotly_chart(chart,use_container_width=True)
+    items = anonymous_item_rows(record)
+    st.markdown('**22문항별 응답 점수**')
+    st.dataframe(items,hide_index=True,use_container_width=True,column_config={'문항':st.column_config.TextColumn(width='large')})
+    chart=go.Figure(go.Bar(x=[row['점수'] for row in items],y=[f"{row['설문순서']}. {row['영역']}" for row in items],
+                           orientation='h',marker_color='#369566',customdata=[row['문항'] for row in items],
+                           text=[str(row['점수']) for row in items],textposition='auto',
+                           hovertemplate='%{customdata}<br>점수: %{x}<extra></extra>'))
+    chart.update_layout(height=760,xaxis=dict(range=[0,5],dtick=1,title='응답 점수 (1~5점)'),
+                         yaxis=dict(autorange='reversed'),margin=dict(l=10,r=20,t=20,b=45))
+    st.plotly_chart(chart,use_container_width=True)
+    st.caption('설문순서는 소진 설문 안의 1~22번입니다. 원문번호는 9번을 제외한 척도 문항 번호입니다. 높은 점수는 해당 경험을 많이 보고했음을 뜻하며 임상적 위험 판정은 아닙니다.')
+    if n >= 5:
+        average=matrix.mean(axis=0)
+        compare=[]
+        for j,f in enumerate(BAT_FACTORS):
+            peers=np.delete(matrix[:,j],index)
+            value=matrix[index,j]
+            percentile=(np.sum(peers<value)+.5*np.sum(peers==value))/len(peers)*100
+            compare.append({'영역':f,'개인평균':round(value,3),'집단평균(본인포함)':round(average[j],3),
+                            '집단과 차이':round(value-average[j],3),'표본 내 상대위치(%)':round(float(percentile),1)})
+        st.markdown('**선택 집단과의 비교**')
+        st.dataframe(compare,hide_index=True,use_container_width=True)
+        st.caption('상대위치=(본인보다 낮은 동료 수+동점 동료 수×0.5)÷본인 제외 동료 수×100. 현재 표본 내 상대위치이며 규준·소진 확률이 아닙니다. 1~4명일 때에는 이 비교를 표시하지 않습니다.')
