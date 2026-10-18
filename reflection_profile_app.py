@@ -23,7 +23,7 @@ from reportlab.platypus import PageBreak, Image as RLImage, KeepTogether, Paragr
 
 
 st.set_page_config(
-    page_title="감·수·성 인권적 직무판단 자기성찰 프로파일",
+    page_title="감·수·성 자기성찰 프로파일 및 직무소진 평가",
     page_icon="🫶",
     layout="centered",
 )
@@ -533,7 +533,7 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
         pdf_canvas.setFillColor(HexColor("#4d87ad"))
         pdf_canvas.setFont(font_name, 7.5)
         pdf_canvas.drawCentredString(width / 2, 18*mm, "© 2026 이성덕. All rights reserved.  |  감·수·성 로고 상표출원(심사 중)")
-        pdf_canvas.drawRightString(width - 18*mm, 12*mm, f"감·수·성 자기성찰 프로파일  |  {pdf_doc.page}")
+        pdf_canvas.drawRightString(width - 18*mm, 12*mm, f"감·수·성 프로파일 · 직무소진 평가  |  {pdf_doc.page}")
         pdf_canvas.restoreState()
 
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=23*mm, bottomMargin=22*mm)
@@ -550,7 +550,7 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
     story = [
         header,
         Spacer(1, 4*mm),
-        Paragraph("인권적 직무판단 자기성찰 프로파일", title_style),
+        Paragraph("감·수·성 자기성찰 프로파일<br/>및 직무소진 평가", title_style),
         Paragraph(f"개인 결과지 · 작성 시각 {datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M')}", subtitle_style),
     ]
 
@@ -733,7 +733,7 @@ def logo_html(css_class):
 
 def render_brand_bar():
     st.markdown(logo_html("page-logo"), unsafe_allow_html=True)
-    st.markdown('<div class="brand-bar"><b>감·수·성</b> · 인권적 직무판단 자기성찰 프로파일</div>', unsafe_allow_html=True)
+    st.markdown('<div class="brand-bar"><b>감·수·성 자기성찰 프로파일</b> · 직무소진 평가</div>', unsafe_allow_html=True)
 
 
 init_state()
@@ -742,9 +742,9 @@ if st.session_state.page == "intro":
     apply_intro_background()
     st.markdown(logo_html("intro-logo"), unsafe_allow_html=True)
     st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
-    st.markdown('<div class="intro-title">감·수·성<br>인권적 직무판단<br>자기성찰 프로파일</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-title">감·수·성 자기성찰 프로파일<br>및 직무소진 평가</div>', unsafe_allow_html=True)
     st.markdown('<div class="developer-credit">연구도구·문항 구성 및 화면 개발: 이성덕</div>', unsafe_allow_html=True)
-    st.markdown('<div class="intro-lead">교정현장에서의 인권적 직무판단 경향을 감·수·성의 세 영역으로 살펴보는 25문항 자기점검과 직무소진 22문항 설문입니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-lead">교정현장에서의 인권적 직무판단 경향과 직무소진 경험을 함께 살펴봅니다.<br>감·수·성 25문항 · 직무소진 22문항<br>응답 후 두 영역의 개인 결과와 통합 PDF 결과지를 확인할 수 있습니다.</div>', unsafe_allow_html=True)
     factor_cols = st.columns(3)
     factor_intro = [
         ("감(感)", "정서와 취약성 알아차리기"),
@@ -755,9 +755,9 @@ if st.session_state.page == "intro":
         with col:
             st.markdown(f'<div class="factor-card"><b>{label}</b><span>{description}</span></div>', unsafe_allow_html=True)
     st.write("")
-    st.markdown('<div class="notice"><b>참여 안내:</b> 최근 6개월의 근무 경험을 떠올려 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 10~15분입니다.<br><br>정답이나 등급은 없으며, 이름·직원번호·정확한 소속기관 등 개인을 직접 식별하는 정보는 수집하지 않습니다. 응답 후에는 나의 감·수·성 프로파일 결과를 바로 확인하고 PDF로 내려받을 수 있습니다. 연구 참여에 동의한 응답은 개인을 식별할 수 없도록 처리하여 향후 척도와 교육프로그램 보완을 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="notice"><b>참여 안내:</b> 감·수·성 문항은 최근 6개월의 근무 경험을, 직무소진 문항은 해당 화면의 안내를 기준으로 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 10~15분입니다.<br><br>정답이나 등급은 없으며, 이름·직원번호·정확한 소속기관 등 개인을 직접 식별하는 정보는 수집하지 않습니다. 응답 후에는 나의 감·수·성 프로파일과 직무소진 네 영역의 결과를 확인하고 하나의 PDF로 내려받을 수 있습니다. 직무소진 평가는 의학적 진단이나 인사평가를 위한 검사가 아닙니다. 연구 참여에 동의한 응답은 개인을 식별할 수 없도록 처리하여 향후 척도와 교육프로그램 보완을 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
     st.write("")
-    if st.button("프로파일 확인 및 연구참여 안내 보기", type="primary", use_container_width=True):
+    if st.button("설문 소개 및 연구참여 안내 보기", type="primary", use_container_width=True):
         st.session_state.page = "consent"
         st.rerun()
     st.stop()
@@ -908,7 +908,7 @@ if st.session_state.page == "result":
     mh_scores = mental_factor_means(answers)
     summary = profile_summary(scores)
 
-    st.title("나의 자기성찰 프로파일")
+    st.title("나의 감·수·성 프로파일 및 직무소진 결과")
     if st.session_state.research_saved:
         st.success("익명 연구자료가 정상적으로 제출되었습니다.")
     st.markdown(
