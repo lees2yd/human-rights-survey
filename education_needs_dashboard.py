@@ -4,6 +4,7 @@
 개별 응답자 평가가 아니라, 강의 집단의 교육 우선순위와 교육안을 제시하기 위한 파일이다.
 """
 
+from burnout_support import render_bat_dashboard
 import io
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -223,7 +224,7 @@ def load_records():
             cleaned.append(parsed)
         except (KeyError, TypeError, ValueError):
             continue
-    return cleaned, ""
+    return (cleaned, "") if cleaned else ([], "유효한 25문항 응답이 없습니다.")
 
 
 def mean(values):
@@ -870,6 +871,8 @@ def start():
     if len(selected) == 0:
         st.warning("선택 조건에 맞는 응답이 없습니다. 기간 또는 인구학적 필터를 조정해 주세요.")
         st.stop()
+
+    render_bat_dashboard(selected)
 
     factors = factor_stats(selected)
     left, middle, right = st.columns([.75, .45, .8])
