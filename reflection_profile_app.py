@@ -1,3 +1,4 @@
+from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_LABELS, bat_scores, render_bat_personal
 import base64
 import io
 from datetime import datetime
@@ -17,7 +18,8 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image as RLImage, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.graphics.shapes import Drawing, Rect, String, Line
+from reportlab.platypus import PageBreak, Image as RLImage, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
 st.set_page_config(
@@ -400,6 +402,11 @@ def research_row(answers, demographics):
     for name in SUBDOMAIN_FEEDBACK:
         headers.append(name)
         values.append(sub_scores[name])
+    burnout = st.session_state.get("burnout_answers", {})
+    if bat_scores(burnout) is None:
+        raise ValueError("직무소진 22문항을 모두 응답해 주세요.")
+    headers += BAT_COLUMNS + ["소진설문버전"]
+    values += [burnout[c] for c in BAT_COLUMNS] + ["K-BAT22-table3-v1"]
     return headers, values
 
 
@@ -408,9 +415,16 @@ def save_research_response(answers, demographics):
     headers, values = research_row(answers, demographics)
     existing_headers = sheet.row_values(1)
     if not existing_headers:
+        if sheet.col_count < len(headers):
+            sheet.resize(cols=len(headers))
         sheet.append_row(headers, value_input_option="RAW")
     elif existing_headers != headers:
-        raise ValueError("Google Sheets의 첫 행 열 제목이 현재 프로그램과 다릅니다.")
+        # 기존 헤더가 정확한 접두부일 때에만 뒤에 확장한다. 기존 자료는 이동하지 않는다.
+        if existing_headers != headers[:len(existing_headers)]:
+            raise ValueError("기존 응답 시트의 열 순서가 다릅니다. 관리자에게 문의하십시오.")
+        if sheet.col_count < len(headers):
+            sheet.resize(cols=len(headers))
+        sheet.update(range_name="A1", values=[headers], value_input_option="RAW")
     sheet.append_row(values, value_input_option="RAW")
 
 
@@ -464,7 +478,7 @@ def radar_png(scores):
     return buf
 
 
-def make_result_pdf(scores, sub_scores, answers, action_plan):
+def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=None):
     buffer = io.BytesIO()
     font_name = "Helvetica"
     if KOREAN_FONT_PATH:
@@ -598,12 +612,64 @@ def make_result_pdf(scores, sub_scores, answers, action_plan):
     action_card.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), HexColor("#f7fcff")), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
     story += [Paragraph("나의 한 가지 행동계획", h_style), action_card, Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style)]
 
+    burnout = bat_scores(burnout_answers or {})
+    bat_body = ParagraphStyle("BATBody", parent=body_style, fontSize=9, leading=13, spaceAfter=3)
+    bat_small = ParagraphStyle("BATSmall", parent=small_style, fontSize=7.8, leading=10.5, spaceAfter=3)
+    bat_heading = ParagraphStyle("BATHeading", parent=h_style, fontSize=11.5, leading=15, spaceBefore=7, spaceAfter=4)
+    if burnout is not None:
+        story += [PageBreak(), Paragraph("나의 직무소진 자기점검", title_style),
+                  Paragraph("K-BAT 22문항 · 네 영역별 개인 결과", subtitle_style),
+                  Paragraph("앞의 감·수·성 결과와 함께 자신의 근무 경험을 돌아보기 위한 자료입니다. 소진은 1~5점 척도이며, 점수가 높을수록 해당 경험을 많이 보고한 것입니다. 감·수·성의 4점 점수와 직접 비교하지 않습니다.", bat_body)]
+        meanings = {
+            "탈진": ("정신적·신체적 에너지 고갈과 회복의 어려움", "근무 후 회복시간과 수면을 점검하고, 피로가 누적될 때 업무량·휴식 여건의 조정을 상의해 보십시오."),
+            "심적거리": ("업무에 대한 무관심·냉소와 심리적 거리", "업무에서 부담을 느낀 상황을 살피고, 동료와의 지지·역할 조정 등 활용 가능한 자원을 확인해 보십시오."),
+            "인지적 조절 손상": ("집중·기억·명료한 사고의 어려움", "집중이 흐려지는 상황을 점검하고, 확인표·중요 업무 재확인·방해요인 줄이기를 활용해 보십시오."),
+            "정서적 조절 손상": ("감정 인식·조절의 어려움과 과도한 반응", "감정 변화의 신호를 알아차리고 잠시 멈추기·감정 이름 붙이기·도움 요청을 연습해 보십시오."),
+        }
+        data = [[Paragraph(x, centered_body) for x in ["영역", "문항 수", "평균<br/>(1~5점)", "척도범위<br/>환산율"]]]
+        for factor, value in burnout.items():
+            count = sum(f == factor for _, f, _ in BAT_ITEMS)
+            data.append([Paragraph(factor, bat_body), str(count), f"{value:.2f}", f"{(value-1)/4*100:.1f}%"])
+        bat_table = Table(data, colWidths=[72*mm, 25*mm, 37*mm, 40*mm])
+        bat_table.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (-1, -1), font_name), ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("BACKGROUND", (0, 0), (-1, 0), pale_sky), ("GRID", (0, 0), (-1, -1), .4, line_blue),
+            ("ALIGN", (1, 1), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ]))
+        story += [Spacer(1, 4*mm), bat_table, Spacer(1, 3*mm),
+                  Paragraph("환산율 = (영역평균 - 1) ÷ 4 × 100. 척도 범위에서의 위치이며 소진 확률·위험군 비율·백분위가 아닙니다.", bat_small)]
+        chart = Drawing(174*mm, 49*mm)
+        left, bar_width = 65*mm, 95*mm
+        for tick in range(6):
+            x = left + bar_width*tick/5
+            chart.add(Line(x, 9*mm, x, 46*mm, strokeColor=line_blue, strokeWidth=.4))
+            chart.add(String(x, 4*mm, str(tick), fontName=font_name, fontSize=8, textAnchor="middle", fillColor=muted))
+        for index, (factor, value) in enumerate(burnout.items()):
+            y = (39-index*9)*mm
+            chart.add(String(0, y+2*mm, factor, fontName=font_name, fontSize=8.5, fillColor=ink))
+            chart.add(Rect(left, y, bar_width*value/5, 7*mm, fillColor=sky, strokeColor=None))
+            chart.add(String(left+bar_width+3*mm, y+2*mm, f"{value:.2f}", fontName=font_name, fontSize=9, fillColor=navy))
+        story += [Paragraph("네 영역의 문항평균", bat_heading), chart,
+                  Paragraph("막대의 축은 0~5점으로 표시하며 실제 응답·평균 범위는 1~5점입니다. 영역 간 작은 차이만으로 의미 있는 차이를 단정할 수 없습니다.", bat_small),
+                  Paragraph("영역별 의미와 돌아볼 점", bat_heading)]
+        for factor in burnout:
+            meaning, practice = meanings[factor]
+            story.append(KeepTogether([Paragraph(f"<b>{factor}</b> · {meaning}", bat_body), Paragraph(practice, bat_small)]))
+        story += [Paragraph("결과를 활용하는 방법", bat_heading),
+                  Paragraph("이 결과는 자기보고에 근거한 교육용 피드백입니다. 총점·정상/위험 등급·의학적 진단을 산출하지 않으며 개인의 자질이나 직무 적합성을 판단하지 않습니다. 소진 경험은 개인의 대처뿐 아니라 근무강도·교대근무·조직의 지원 여건과 함께 살펴볼 필요가 있습니다. 어려움이 지속되어 생활이나 업무에 지장이 있다면 이용 가능한 상담·보건 지원을 검토해 보십시오.", bat_small),
+                  Paragraph("문항 근거: 「한국판 직무소진평가척도(K-BAT) 타당화를 위한 예비연구」 표 3. 원문 9번을 제외한 22문항, 탈진 8·심적거리 4·인지적 조절 손상 5·정서적 조절 손상 5문항.", bat_small)]
+    else:
+        story += [Paragraph("직무소진 결과", bat_heading), Paragraph("직무소진 22문항의 완전응답이 없어 소진 점수는 산출하지 않았습니다.", bat_body)]
+
     doc.build(story, onFirstPage=draw_report_background, onLaterPages=draw_report_background)
     buffer.seek(0)
     return buffer.getvalue()
 
 
 def init_state():
+    if "burnout_answers" not in st.session_state:
+        st.session_state.burnout_answers = {}
     if "page" not in st.session_state:
         st.session_state.page = "intro"
     if "answers" not in st.session_state:
@@ -627,7 +693,7 @@ def save_answer_and_advance(number):
             item_number: st.session_state[f"q_{item_number}"]
             for item_number, _, _, _ in ITEMS
         }
-        st.session_state.page = "demographics"
+        st.session_state.page = "burnout"
 
 
 def previous_question():
@@ -648,7 +714,7 @@ def next_answered_question():
             item_number: st.session_state[f"q_{item_number}"]
             for item_number, _, _, _ in ITEMS
         }
-        st.session_state.page = "demographics"
+        st.session_state.page = "burnout"
 
 
 def reset_profile():
@@ -678,7 +744,7 @@ if st.session_state.page == "intro":
     st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
     st.markdown('<div class="intro-title">감·수·성<br>인권적 직무판단<br>자기성찰 프로파일</div>', unsafe_allow_html=True)
     st.markdown('<div class="developer-credit">연구도구·문항 구성 및 화면 개발: 이성덕</div>', unsafe_allow_html=True)
-    st.markdown('<div class="intro-lead">교정현장에서의 인권적 직무판단 경향을 감·수·성의 세 영역으로 살펴보는 25문항 자기점검입니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-lead">교정현장에서의 인권적 직무판단 경향을 감·수·성의 세 영역으로 살펴보는 25문항 자기점검과 직무소진 22문항 설문입니다.</div>', unsafe_allow_html=True)
     factor_cols = st.columns(3)
     factor_intro = [
         ("감(感)", "정서와 취약성 알아차리기"),
@@ -689,7 +755,7 @@ if st.session_state.page == "intro":
         with col:
             st.markdown(f'<div class="factor-card"><b>{label}</b><span>{description}</span></div>', unsafe_allow_html=True)
     st.write("")
-    st.markdown('<div class="notice"><b>참여 안내:</b> 최근 6개월의 근무 경험을 떠올려 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 5~7분입니다.<br><br>정답이나 등급은 없으며, 이름·직원번호·정확한 소속기관 등 개인을 직접 식별하는 정보는 수집하지 않습니다. 응답 후에는 나의 감·수·성 프로파일 결과를 바로 확인하고 PDF로 내려받을 수 있습니다. 연구 참여에 동의한 응답은 개인을 식별할 수 없도록 처리하여 향후 척도와 교육프로그램 보완을 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="notice"><b>참여 안내:</b> 최근 6개월의 근무 경험을 떠올려 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 10~15분입니다.<br><br>정답이나 등급은 없으며, 이름·직원번호·정확한 소속기관 등 개인을 직접 식별하는 정보는 수집하지 않습니다. 응답 후에는 나의 감·수·성 프로파일 결과를 바로 확인하고 PDF로 내려받을 수 있습니다. 연구 참여에 동의한 응답은 개인을 식별할 수 없도록 처리하여 향후 척도와 교육프로그램 보완을 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
     st.write("")
     if st.button("프로파일 확인 및 연구참여 안내 보기", type="primary", use_container_width=True):
         st.session_state.page = "consent"
@@ -711,8 +777,9 @@ if st.session_state.page == "consent":
 
 ### 참여 내용
 
-- 감·수·성 자기보고 25문항과 최소한의 배경정보 7문항에 응답합니다.
-- 예상 소요시간은 약 5~7분입니다.
+- 감·수·성 자기보고 25문항, 직무소진 22문항과 배경정보 7문항에 응답합니다.
+- 직무소진은 네 영역별 개인 피드백과 교육자용 익명 비교·집계에 사용됩니다. 진단이나 인사평가 목적으로 사용하지 않습니다.
+- 예상 소요시간은 약 10~15분입니다.
 - 이름, 직원번호, 휴대전화 번호, 정확한 소속기관명은 수집하지 않습니다.
 - 성별·연령대·직급·근무기관 유형·경력·교육경험을 범주형으로 수집합니다.
 
@@ -780,6 +847,30 @@ if st.session_state.page == "survey":
     st.stop()
 
 
+if st.session_state.page == "burnout":
+    render_brand_bar()
+    st.title("직무소진 자기점검 · 26~47번")
+    st.write("평소 근무 경험에서 각 문장이 자신에게 얼마나 해당하는지 응답해 주세요. 앞선 감·수·성 4점 척도와 달리 여기서는 1~5점으로 응답합니다.")
+    st.caption("1 전혀 아니다 · 2 드물게 그렇다 · 3 때때로 그렇다 · 4 자주 그렇다 · 5 항상 그렇다")
+    st.caption("K-BAT 예비연구 표 3의 22문항을 사용합니다. 원문은 1·5점 양끝을 명시하며, 중간 응답 문구는 운영용으로 설정했습니다.")
+    with st.form("burnout_form"):
+        responses = {}
+        for offset, (original, factor, question) in enumerate(BAT_ITEMS, start=26):
+            responses[f"BAT{original}"] = st.radio(
+                f"{offset}. [{factor}] {question}", options=[1, 2, 3, 4, 5],
+                format_func=lambda v: f"{v} · {BAT_LABELS[v]}", index=None,
+                key=f"bat_question_{original}", horizontal=True)
+        done = st.form_submit_button("직무소진 응답 완료 · 기본정보로", type="primary")
+        if done:
+            if bat_scores(responses) is None:
+                st.warning("직무소진 22문항에 모두 응답해 주세요.")
+            else:
+                st.session_state.burnout_answers = responses
+                st.session_state.page = "demographics"
+                st.rerun()
+    st.stop()
+
+
 if st.session_state.page == "demographics":
     render_brand_bar()
     st.title("기본정보")
@@ -811,6 +902,7 @@ if st.session_state.page == "demographics":
 if st.session_state.page == "result":
     render_brand_bar()
     answers = st.session_state.answers
+    render_bat_personal(st.session_state.get("burnout_answers", {}))
     scores = factor_means(answers)
     sub_scores = subdomain_means(answers)
     mh_scores = mental_factor_means(answers)
@@ -890,8 +982,8 @@ if st.session_state.page == "result":
 
     st.warning("영역 간 작은 차이는 측정오차를 넘어서는 의미 있는 차이라고 단정할 수 없습니다. 결과를 타인·기관 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단 또는 인권침해 가능성 예측에 사용하지 마십시오.")
 
-    pdf_bytes = make_result_pdf(scores, sub_scores, answers, action_plan)
-    st.download_button("결과지 PDF 내려받기", data=pdf_bytes, file_name="감수성_자기성찰_프로파일_결과.pdf", mime="application/pdf", use_container_width=True)
+    pdf_bytes = make_result_pdf(scores, sub_scores, answers, action_plan, st.session_state.get("burnout_answers", {}))
+    st.download_button("감·수·성 + 직무소진 통합 결과지 PDF 내려받기", data=pdf_bytes, file_name="감수성_직무소진_통합결과.pdf", mime="application/pdf", use_container_width=True)
     if st.button("처음부터 다시 하기", use_container_width=True):
         reset_profile()
 
