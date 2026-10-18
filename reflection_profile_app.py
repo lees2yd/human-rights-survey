@@ -668,6 +668,8 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
 
 
 def init_state():
+    if "burnout_index" not in st.session_state:
+        st.session_state.burnout_index = 0
     if "burnout_answers" not in st.session_state:
         st.session_state.burnout_answers = {}
     if "page" not in st.session_state:
@@ -715,6 +717,22 @@ def next_answered_question():
             for item_number, _, _, _ in ITEMS
         }
         st.session_state.page = "burnout"
+
+
+def save_burnout_and_advance(original):
+    """화면 전환으로 위젯이 정리되어도 응답을 별도 사전에 보존한다."""
+    value = st.session_state.get(f"bat_question_{original}")
+    if value not in (1, 2, 3, 4, 5):
+        return
+    st.session_state.burnout_answers[f"BAT{original}"] = value
+    if st.session_state.burnout_index < len(BAT_ITEMS) - 1:
+        st.session_state.burnout_index += 1
+    elif bat_scores(st.session_state.burnout_answers) is not None:
+        st.session_state.page = "demographics"
+
+
+def previous_burnout_question():
+    st.session_state.burnout_index = max(0, st.session_state.burnout_index - 1)
 
 
 def reset_profile():
@@ -848,26 +866,47 @@ if st.session_state.page == "survey":
 
 
 if st.session_state.page == "burnout":
+    st.markdown("""
+<style>
+.stApp {background:linear-gradient(145deg,#f7fcf8 0%,#e5f4eb 52%,#f7fcf8 100%) !important;}
+h1,h2,h3 {color:#185c3b !important;}
+.brand-bar {background:#f0faf3 !important; border-color:#b9ddc8 !important; color:#216b46 !important;}
+.question {background:#f4fcf6 !important; border:1px solid #acd4bc !important; border-left:5px solid #369566 !important; color:#174f35 !important;}
+div[data-testid="stButton"] > button {background:linear-gradient(135deg,#42a978,#207849) !important; color:white !important; box-shadow:0 7px 16px rgba(32,120,73,.16) !important;}
+div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#329362,#17613b) !important;}
+[data-testid="stProgress"] [role="progressbar"] > div {background-color:#329362 !important;}
+[data-testid="stRadio"] label {color:#185c3b !important;}
+[data-testid="stRadio"] input {accent-color:#278453 !important;}
+</style>
+""", unsafe_allow_html=True)
     render_brand_bar()
-    st.title("직무소진 자기점검 · 26~47번")
+    st.title("직무소진 자기점검")
     st.write("평소 근무 경험에서 각 문장이 자신에게 얼마나 해당하는지 응답해 주세요. 앞선 감·수·성 4점 척도와 달리 여기서는 1~5점으로 응답합니다.")
+    current = min(max(st.session_state.burnout_index, 0), len(BAT_ITEMS) - 1)
+    original, factor, question = BAT_ITEMS[current]
+    answered = sum(st.session_state.burnout_answers.get(c) in (1, 2, 3, 4, 5) for c in BAT_COLUMNS)
+    st.progress(answered / len(BAT_ITEMS), text=f"문항 {current + 1} / {len(BAT_ITEMS)} · 응답 완료 {answered} / {len(BAT_ITEMS)}")
     st.caption("1 전혀 아니다 · 2 드물게 그렇다 · 3 때때로 그렇다 · 4 자주 그렇다 · 5 항상 그렇다")
-    st.caption("K-BAT 예비연구 표 3의 22문항을 사용합니다. 원문은 1·5점 양끝을 명시하며, 중간 응답 문구는 운영용으로 설정했습니다.")
-    with st.form("burnout_form"):
-        responses = {}
-        for offset, (original, factor, question) in enumerate(BAT_ITEMS, start=26):
-            responses[f"BAT{original}"] = st.radio(
-                f"{offset}. [{factor}] {question}", options=[1, 2, 3, 4, 5],
-                format_func=lambda v: f"{v} · {BAT_LABELS[v]}", index=None,
-                key=f"bat_question_{original}", horizontal=True)
-        done = st.form_submit_button("직무소진 응답 완료 · 기본정보로", type="primary")
-        if done:
-            if bat_scores(responses) is None:
-                st.warning("직무소진 22문항에 모두 응답해 주세요.")
-            else:
-                st.session_state.burnout_answers = responses
-                st.session_state.page = "demographics"
-                st.rerun()
+    st.markdown(f'<div class="question">{current + 1}. [{factor}] {question}</div>', unsafe_allow_html=True)
+    key = f"bat_question_{original}"
+    saved = st.session_state.burnout_answers.get(f"BAT{original}")
+    # 재방문 시 사전에 보관한 응답으로 위젯을 복원한다.
+    if key not in st.session_state and saved in (1, 2, 3, 4, 5):
+        st.session_state[key] = saved
+    st.radio("직무소진 응답", options=[1, 2, 3, 4, 5],
+             format_func=lambda v: f"{v} · {BAT_LABELS[v]}", index=None,
+             key=key, label_visibility="collapsed",
+             on_change=save_burnout_and_advance, args=(original,))
+    st.caption("응답을 선택하면 자동으로 다음 문항으로 넘어갑니다.")
+    left, right = st.columns(2)
+    with left:
+        if current > 0:
+            st.button("← 이전 문항", use_container_width=True, on_click=previous_burnout_question, key="bat_previous")
+    with right:
+        if st.session_state.get(key) in (1, 2, 3, 4, 5):
+            st.button("응답 완료 · 기본정보로" if current == len(BAT_ITEMS) - 1 else "다음 문항 →",
+                      type="primary", use_container_width=True,
+                      on_click=save_burnout_and_advance, args=(original,), key="bat_next")
     st.stop()
 
 
