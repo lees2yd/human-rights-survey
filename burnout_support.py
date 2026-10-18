@@ -70,8 +70,10 @@ def render_bat_personal(row):
     st.caption('환산율=(평균−1)÷4×100. 척도 범위에서의 위치이며 소진 확률이나 백분위가 아닙니다. 이 개인 결과는 집단 자료를 조회하지 않습니다.')
     st.download_button('나의 소진 결과 CSV', csv_bytes(rows), 'my_burnout.csv', 'text/csv', key='bat_personal_csv')
 
-def render_bat_dashboard(records):
+def render_bat_dashboard(records, items=None):
+    from burnout_insights import render_bat_quality, render_bat_insights
     st.subheader('직무소진 분석 · K-BAT 22문항')
+    render_bat_quality(records)
     valid = [(r, bat_scores(r)) for r in records]
     valid = [(r, s) for r, s in valid if s is not None]
     n = len(valid)
@@ -80,8 +82,8 @@ def render_bat_dashboard(records):
     if n == 0:
         st.info('소진 22문항 완전응답이 아직 없습니다.')
         return
-    render_bat_anonymous_detail(valid)
     if n < 5:
+        render_bat_anonymous_detail(valid)
         st.info('개별 점수는 위에서 확인할 수 있습니다. 집단 비율·실시일 및 인구학적 통계비교는 유효응답 5명 이상인 경우에 제공합니다.')
         return
     matrix = np.array([[s[f] for f in BAT_FACTORS] for _, s in valid])
@@ -107,6 +109,9 @@ def render_bat_dashboard(records):
     dist.update_layout(barmode='stack', yaxis=dict(range=[0, 100], title='응답 비율 (%)'), height=380, margin=dict(t=25, b=65))
     st.plotly_chart(dist, use_container_width=True)
     st.caption('응답분포의 분모는 영역별 응답자 수×문항 수입니다. 위의 사람 기준 비율과 구분합니다.')
+    render_bat_insights(valid, items)
+    with st.expander('임시 익명번호별 개인·문항 상세 보기', expanded=False):
+        render_bat_anonymous_detail(valid)
 
 
 def anonymous_item_rows(record):
@@ -144,8 +149,11 @@ def render_bat_anonymous_detail(valid):
     chosen = st.selectbox('확인할 임시 익명번호',ids,key='bat_detail_id')
     index = ids.index(chosen)
     record, scores = ordered[index]
-    area_rows = [{'영역':f,'문항수':sum(factor==f for _,factor,_ in BAT_ITEMS),'개인평균(1~5)':round(v,3)} for f,v in scores.items()]
+    from burnout_insights import REFERENCE, REFERENCE_URL
+    area_rows = [{'영역':f,'문항수':sum(factor==f for _,factor,_ in BAT_ITEMS),'개인평균(1~5)':round(v,3), '선행연구 참고평균':REFERENCE[f][0], '차이(개인-참고)':round(v-REFERENCE[f][0],3)} for f,v in scores.items()]
     st.dataframe(area_rows,hide_index=True,use_container_width=True)
+    st.caption('참고평균은 공기업 사무직 345명의 K-BAT 예비연구 표 5입니다. 교도관 규준이나 위험 기준점이 아니며 직무·응답지침이 달라 차이를 참고로만 해석합니다.')
+    st.markdown(f'[참고평균 출처]({REFERENCE_URL})')
     chart=go.Figure(go.Bar(x=BAT_FACTORS,y=[scores[f] for f in BAT_FACTORS],
                            marker_color='#369566',text=[f'{scores[f]:.2f}' for f in BAT_FACTORS],textposition='auto'))
     chart.update_layout(height=350,yaxis=dict(range=[0,5],title='영역 문항평균'),margin=dict(t=20,b=65))
