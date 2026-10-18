@@ -497,8 +497,8 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
     muted = HexColor("#607589")
     title_style = ParagraphStyle("KTitle", parent=styles["Title"], fontName=font_name, fontSize=19, leading=25, textColor=navy, alignment=1, spaceAfter=3)
     subtitle_style = ParagraphStyle("KSubtitle", parent=styles["BodyText"], fontName=font_name, fontSize=8.5, leading=12, textColor=muted, alignment=1, spaceAfter=10)
-    h_style = ParagraphStyle("KH", parent=styles["Heading2"], fontName=font_name, fontSize=13, leading=18, textColor=navy, spaceBefore=10, spaceAfter=6)
-    body_style = ParagraphStyle("KBody", parent=styles["BodyText"], fontName=font_name, fontSize=9.5, leading=15, wordWrap="CJK", textColor=ink, spaceAfter=5)
+    h_style = ParagraphStyle("KH", parent=styles["Heading2"], fontName=font_name, fontSize=12.5, leading=17, textColor=navy, spaceBefore=8, spaceAfter=5)
+    body_style = ParagraphStyle("KBody", parent=styles["BodyText"], fontName=font_name, fontSize=9.2, leading=13.5, wordWrap="CJK", textColor=ink, spaceAfter=4)
     small_style = ParagraphStyle("KSmall", parent=body_style, fontSize=8, leading=12, textColor=muted)
     centered_body = ParagraphStyle("KCentered", parent=body_style, alignment=1, spaceAfter=0)
 
@@ -612,6 +612,16 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
     action_card = Table([[Paragraph(action_plan.strip() if action_plan.strip() else "아직 작성하지 않았습니다.", body_style)]], colWidths=[174*mm])
     action_card.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), HexColor("#f7fcff")), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
     story += [Paragraph("나의 한 가지 행동계획", h_style), action_card, Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style)]
+
+    reference_style = ParagraphStyle("GamReference", parent=small_style, fontSize=7.8, leading=10.5, spaceAfter=3)
+    story.append(KeepTogether([
+        Paragraph("감·수·성 프로파일의 근거 논문", h_style),
+        Paragraph('이성덕(2026). 감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토. 교정연구, 36(2), 3-27.', reference_style),
+        Paragraph(f'<link href="{SCALE_PAPER_URL}" color="#164b79">척도 논문 원문 보기 · {SCALE_PAPER_URL}</link>', reference_style),
+        Paragraph('이 결과지의 25문항과 세 영역 구성의 직접 근거입니다. 독립표본 후속 검증 전에는 교육 요구 탐색을 위한 연구적·보조적 자료로 활용합니다.', reference_style),
+        Paragraph('모델의 이론적 배경: <link href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003245299" color="#164b79">감정 기반 인권 감수성 교육의 새로운 패러다임: 감·수·성 모델의 이론적 정립과 철학적 기초</link>', reference_style),
+        Paragraph('헌법적 해석과 교육적 함의: <link href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003327070" color="#164b79">감·수·성 인권감수성 모델을 통한 헌법 원리의 해석학적 탐색과 교육적 함의</link>', reference_style),
+    ]))
 
     burnout = bat_scores(burnout_answers or {})
     bat_body = ParagraphStyle("BATBody", parent=body_style, fontSize=9, leading=13, spaceAfter=3)
