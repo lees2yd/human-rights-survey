@@ -824,7 +824,9 @@ if st.session_state.page == "consent":
 
 if st.session_state.page == "survey":
     render_brand_bar()
-    st.title("25개 문항 자기점검")
+    st.title("나의 인권감수성은 어떤 모습일까?")
+    st.markdown("**감·수·성으로 돌아보는 나의 인권적 직무판단**")
+    st.caption("인권감수성의 높고 낮음을 판정하기보다, 자신이 보고한 판단 경향을 돌아보는 활동입니다.")
     answered = sum(1 for n, _, _, _ in ITEMS if st.session_state.get(f"q_{n}") is not None)
     current_index = min(st.session_state.question_index, len(ITEMS) - 1)
     number, factor, _, question_text = ITEMS[current_index]
@@ -880,7 +882,8 @@ div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#3
 </style>
 """, unsafe_allow_html=True)
     render_brand_bar()
-    st.title("직무소진 자기점검")
+    st.title("일하는 동안, 나의 마음과 몸은 어떨까?")
+    st.markdown("**직무소진 네 영역으로 살펴보는 나의 근무 경험**")
     st.write("평소 근무 경험에서 각 문장이 자신에게 얼마나 해당하는지 응답해 주세요. 앞선 감·수·성 4점 척도와 달리 여기서는 1~5점으로 응답합니다.")
     current = min(max(st.session_state.burnout_index, 0), len(BAT_ITEMS) - 1)
     original, factor, question = BAT_ITEMS[current]
