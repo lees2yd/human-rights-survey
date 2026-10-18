@@ -95,7 +95,7 @@ def render_bat_personal(row):
     if scores is None:
         st.info('직무소진 22문항 응답을 완료하면 결과가 표시됩니다.')
         return
-    st.subheader('나의 직무소진 네 영역')
+    st.subheader('나의 직무소진 경험 돌아보기')
     st.caption('점수가 높을수록 해당 소진 경험을 많이 보고한 것입니다. 네 영역을 각각 해석하며 총점·진단등급은 산출하지 않습니다.')
     fig = go.Figure(go.Bar(x=list(scores.values()), y=BAT_FACTORS, orientation='h', text=[f'{v:.2f}' for v in scores.values()], textposition='auto'))
     fig.update_layout(xaxis=dict(range=[0, 5], title='문항평균 (1~5점)'), yaxis=dict(autorange='reversed'), margin=dict(l=10, r=20, t=20, b=40), height=330)
@@ -112,7 +112,7 @@ def render_bat_personal(row):
 
 def render_bat_dashboard(records, items=None):
     from burnout_insights import render_bat_quality, render_bat_insights
-    st.subheader('직무소진 분석 · K-BAT 22문항')
+    st.subheader('근무 경험과 지원 필요 탐색 · 직무소진 22문항')
     render_bat_quality(records)
     valid = [(r, bat_scores(r)) for r in records]
     valid = [(r, s) for r, s in valid if s is not None]

@@ -23,7 +23,7 @@ from reportlab.platypus import PageBreak, Image as RLImage, KeepTogether, Paragr
 
 
 st.set_page_config(
-    page_title="감·수·성 자기성찰 프로파일 및 직무소진 평가",
+    page_title="감·수·성으로 돌아보는 나의 인권 직무 경험",
     page_icon="🫶",
     layout="centered",
 )
@@ -533,7 +533,7 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
         pdf_canvas.setFillColor(HexColor("#4d87ad"))
         pdf_canvas.setFont(font_name, 7.5)
         pdf_canvas.drawCentredString(width / 2, 18*mm, "© 2026 이성덕. All rights reserved.  |  감·수·성 로고 상표출원(심사 중)")
-        pdf_canvas.drawRightString(width - 18*mm, 12*mm, f"감·수·성 프로파일 · 직무소진 평가  |  {pdf_doc.page}")
+        pdf_canvas.drawRightString(width - 18*mm, 12*mm, f"감·수·성 인권감수성 프로파일 · 자기성찰 참고자료  |  {pdf_doc.page}")
         pdf_canvas.restoreState()
 
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=23*mm, bottomMargin=22*mm)
@@ -550,11 +550,12 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
     story = [
         header,
         Spacer(1, 4*mm),
-        Paragraph("감·수·성 자기성찰 프로파일<br/>및 직무소진 평가", title_style),
-        Paragraph(f"개인 결과지 · 작성 시각 {datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M')}", subtitle_style),
+        Paragraph("나의 감·수·성 인권감수성 프로파일", title_style),
+        Paragraph("인권적 직무판단의 자기성찰과 직무소진 자기점검", subtitle_style),
+        Paragraph(f"자기성찰 참고자료 · 작성 시각 {datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M')}", subtitle_style),
     ]
 
-    notice = Table([[Paragraph("이 결과는 인권 수준이나 직무역량을 판정하는 검사가 아닙니다. 최근의 응답 경향을 바탕으로, 상대적으로 익숙한 판단영역과 더 성찰해 볼 지점을 살펴보기 위한 교육용 자료입니다.", body_style)]], colWidths=[174*mm])
+    notice = Table([[Paragraph("이 자료는 교정현장에서 자신의 판단 경향을 돌아보고, 교육에서 함께 다룰 주제를 찾기 위한 자기성찰 참고자료입니다. 개인의 인권 수준이나 직무역량을 판정하거나 등급을 매기지 않습니다.", body_style)]], colWidths=[174*mm])
     notice.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), HexColor("#ffffff")), ("BOX", (0, 0), (-1, -1), 0.7, line_blue), ("LINEBEFORE", (0, 0), (0, -1), 3, sky), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
     story += [notice, Spacer(1, 5*mm), Paragraph("나의 세 영역 한눈에 보기", h_style)]
 
@@ -617,7 +618,7 @@ def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=No
     bat_small = ParagraphStyle("BATSmall", parent=small_style, fontSize=7.8, leading=10.5, spaceAfter=3)
     bat_heading = ParagraphStyle("BATHeading", parent=h_style, fontSize=11.5, leading=15, spaceBefore=7, spaceAfter=4)
     if burnout is not None:
-        story += [PageBreak(), Paragraph("나의 직무소진 자기점검", title_style),
+        story += [PageBreak(), Paragraph("나의 직무소진 경험 돌아보기", title_style),
                   Paragraph("K-BAT 22문항 · 네 영역별 개인 결과", subtitle_style),
                   Paragraph("앞의 감·수·성 결과와 함께 자신의 근무 경험을 돌아보기 위한 자료입니다. 소진은 1~5점 척도이며, 점수가 높을수록 해당 경험을 많이 보고한 것입니다. 감·수·성의 4점 점수와 직접 비교하지 않습니다.", bat_body)]
         meanings = {
@@ -763,7 +764,7 @@ def logo_html(css_class):
 
 def render_brand_bar():
     st.markdown(logo_html("page-logo"), unsafe_allow_html=True)
-    st.markdown('<div class="brand-bar"><b>감·수·성 자기성찰 프로파일</b> · 직무소진 평가</div>', unsafe_allow_html=True)
+    st.markdown('<div class="brand-bar"><b>감·수·성 인권감수성</b> · 자기성찰과 직무소진 자기점검</div>', unsafe_allow_html=True)
 
 
 init_state()
@@ -772,9 +773,9 @@ if st.session_state.page == "intro":
     apply_intro_background()
     st.markdown(logo_html("intro-logo"), unsafe_allow_html=True)
     st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
-    st.markdown('<div class="intro-title">감·수·성 자기성찰 프로파일<br>및 직무소진 평가</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-title">감·수·성으로 돌아보는<br>나의 인권 직무 경험</div>', unsafe_allow_html=True)
     st.markdown('<div class="developer-credit">연구도구·문항 구성 및 화면 개발: 이성덕</div>', unsafe_allow_html=True)
-    st.markdown('<div class="intro-lead">교정현장에서의 인권적 직무판단 경향과 직무소진 경험을 함께 살펴봅니다.<br>감·수·성 25문항 · 직무소진 22문항<br>응답 후 두 영역의 개인 결과와 통합 PDF 결과지를 확인할 수 있습니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-lead"><b>감·수·성 자기성찰과 직무소진 자기점검</b><br>교정현장의 인권 관련 상황에서 나는 어떻게 알아차리고, 판단하며, 돌아보고 있을까요?<br>일하는 동안 몸과 마음은 무엇을 경험하고 있을까요?<br>자신의 응답을 돌아보고 교육에서 함께 다룰 주제와 지원이 필요한 부분을 찾아봅니다.<br>감·수·성 25문항 · 직무소진 22문항</div>', unsafe_allow_html=True)
     factor_cols = st.columns(3)
     factor_intro = [
         ("감(感)", "정서와 취약성 알아차리기"),
@@ -785,7 +786,7 @@ if st.session_state.page == "intro":
         with col:
             st.markdown(f'<div class="factor-card"><b>{label}</b><span>{description}</span></div>', unsafe_allow_html=True)
     st.write("")
-    st.markdown('<div class="notice"><b>참여 안내:</b> 감·수·성 문항은 최근 6개월의 근무 경험을, 직무소진 문항은 해당 화면의 안내를 기준으로 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 10~15분입니다.<br><br>정답이나 등급은 없으며, 이름·직원번호·정확한 소속기관 등 개인을 직접 식별하는 정보는 수집하지 않습니다. 응답 후에는 나의 감·수·성 프로파일과 직무소진 네 영역의 결과를 확인하고 하나의 PDF로 내려받을 수 있습니다. 직무소진 평가는 의학적 진단이나 인사평가를 위한 검사가 아닙니다. 연구 참여에 동의한 응답은 개인을 식별할 수 없도록 처리하여 향후 척도와 교육프로그램 보완을 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="notice"><b>참여 안내:</b> 감·수·성 문항은 최근 6개월의 근무 경험을, 직무소진 문항은 해당 화면의 안내를 기준으로 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 10~15분입니다.<br><br>정답이나 등급은 없으며, 이름·직원번호·정확한 소속기관 등 개인을 직접 식별하는 정보는 수집하지 않습니다. 응답 후에는 나의 감·수·성 프로파일과 직무소진 네 영역의 결과를 확인하고 하나의 PDF로 내려받을 수 있습니다. 이 자기점검은 개인의 능력이나 자질을 평가하거나 등급을 매기기 위한 것이 아닙니다. 익명으로 모인 응답은 교육의 내용과 진행 방향을 정하고 지원 필요를 살펴보는 참고자료로 활용합니다. 연구 참여에 동의한 응답은 개인을 식별할 수 없도록 처리하여 향후 척도와 교육프로그램 보완을 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
     st.write("")
     if st.button("설문 소개 및 연구참여 안내 보기", type="primary", use_container_width=True):
         st.session_state.page = "consent"
@@ -801,8 +802,7 @@ if st.session_state.page == "consent":
         f"""
 ### 연구 목적
 
-이 프로파일은 교정현장에서 인권 관련 상황을 마주할 때 자신이 평소 감.수.성의 판단영역을 어떻게 활용하고 있는지 돌아보기 위한 **교육용 자기성찰 활동**입니다. 참여자는 응답 결과를 통해 자신이 상대적으로
-익숙하게 활용하는 영역과 앞으로 더 성찰해 볼 영역을 확인할 수 있습니다. 
+이 설문은 교정현장에서 자신의 판단 경향과 근무 경험을 돌아보고, 교육에서 함께 다룰 주제와 지원이 필요한 부분을 찾기 위한 **교육용 자기성찰·자기점검 활동**입니다. 참여자는 자신의 응답을 돌아보는 참고자료를 제공받습니다. 개인의 능력이나 자질을 판정하거나 등급을 매기기 위한 활동이 아닙니다. 
 아울러 동의한 응답자의 익명화된 자료는 감.수.성 척도의 타당성을 검토하고 향후 인권교육의 개선과 인권감수성 측정을 위한 후속연구에 활용됩니다.
 
 ### 참여 내용
@@ -823,7 +823,7 @@ if st.session_state.page == "consent":
 
 ### 예상되는 불편과 이익
 
-일부 문항에서 자신의 편견·감정·조직관행을 돌아보며 일시적인 불편을 느낄 수 있습니다. 직접적인 보상은 없지만 개인 자기성찰 결과를 즉시 확인하고 PDF로 저장할 수 있습니다.
+일부 문항에서 자신의 편견·감정·조직관행을 돌아보며 일시적인 불편을 느낄 수 있습니다. 직접적인 보상은 없지만 자신의 판단 경향과 근무 경험을 돌아볼 참고자료를 즉시 확인하고 PDF로 저장할 수 있습니다.
 """
     )
     consent = st.checkbox("위 설명을 읽고 이해했으며, 후속연구를 위한 익명 자료 제공에 자발적으로 동의합니다.", key="research_consent")
@@ -961,7 +961,8 @@ if st.session_state.page == "result":
     mh_scores = mental_factor_means(answers)
     summary = profile_summary(scores)
 
-    st.title("나의 감·수·성 프로파일 및 직무소진 결과")
+    st.title("나의 감·수·성 인권감수성 프로파일")
+    st.caption("인권적 직무판단의 자기성찰과 직무소진 자기점검 · 나의 응답 참고자료")
     if st.session_state.research_saved:
         st.success("익명 연구자료가 정상적으로 제출되었습니다.")
     st.markdown(
@@ -1038,11 +1039,11 @@ if st.session_state.page == "result":
     render_bat_personal(st.session_state.get("burnout_answers", {}))
 
     pdf_bytes = make_result_pdf(scores, sub_scores, answers, action_plan, st.session_state.get("burnout_answers", {}))
-    st.download_button("감·수·성 + 직무소진 통합 결과지 PDF 내려받기", data=pdf_bytes, file_name="감수성_직무소진_통합결과.pdf", mime="application/pdf", use_container_width=True)
+    st.download_button("나의 감·수·성 프로파일 · 통합 PDF 내려받기", data=pdf_bytes, file_name="나의_감수성_인권감수성_프로파일.pdf", mime="application/pdf", use_container_width=True)
     if st.button("처음부터 다시 하기", use_container_width=True):
         reset_profile()
 
-    with st.expander("척도 및 문항 정보"):
+    with st.expander("설문 구성과 근거자료"):
         st.write(
             "이 프로그램은 이성덕의 「감(感)·수(受)·성(性) 모델 기반 "
             "교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토」에 "
@@ -1056,11 +1057,24 @@ if st.session_state.page == "result":
 
         st.markdown(
             f"""
-### 직접적인 척도 근거
+### 감·수·성 문항의 직접 근거
 
 - [**이성덕. 「감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토」**]({SCALE_PAPER_URL})
   - 이 프로그램에서 사용하는 최종 25문항과 3요인 구조의 직접적인 근거 논문입니다.
   - 논문 제목을 누르면 DOI 원문 페이지로 바로 이동합니다.
+
+### 직무소진 문항과 참고 평균의 직접 근거
+
+- [조수현(2020). 「한국판 직무소진평가척도(K-BAT) 타당화를 위한 예비연구」](https://doi.org/10.24230/kjiop.v33i4.461-499)
+  - 표 3의 22문항과 네 영역 구성, 표 5의 공기업 사무직 345명 참고 평균을 사용합니다.
+  - 참고범위는 논문의 평균과 표준편차를 이용해 이 프로그램에서 계산한 비교용 구간입니다. 교도관 규준이나 정상·위험 기준이 아닙니다.
+
+### 직무소진 개념과 해석 원칙의 참고자료
+
+- [Schaufeli, Desart, De Witte(2020). BAT 개발·타당도·신뢰도 연구](https://doi.org/10.3390/ijerph17249495)
+  - 소진의 네 영역을 이해하는 데 참고한 원개발 연구입니다. 한국판 22문항의 직접적인 근거는 위의 조수현 논문입니다.
+- [Schaufeli, De Witte, Desart. BAT 공식 사용자 안내서, 버전 2.0(2020년 7월판)](https://burnoutassessmenttool.be/wp-content/uploads/2020/08/User-Manual-BAT-version-2.0.pdf)
+  - 자기보고 점수의 해석과 개인·집단 활용 원칙을 참고했습니다. 국외 규준과 절단점을 이 설문에 적용하지 않습니다.
 
 ### 감·수·성 모델 관련 연구
 

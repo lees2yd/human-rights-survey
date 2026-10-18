@@ -31,7 +31,7 @@ except ImportError:
     SEMOPY_AVAILABLE = False
 
 
-st.set_page_config(page_title="감·수·성 교육필요 대시보드", page_icon="📘", layout="wide")
+st.set_page_config(page_title="감·수·성 인권교육 요구 및 직무소진 경험 분석", page_icon="📘", layout="wide")
 
 WORKSHEET_NAME = "responses"
 PRIORITY_COUNT = 3
@@ -172,7 +172,7 @@ def render_brand_header():
         if LOGO_PATH.exists():
             st.image(str(LOGO_PATH), width=68)
     with text_col:
-        st.markdown("<div class='brand-head'><div class='brand-name'>감·수·성 교육필요 분석 대시보드</div><div class='brand-sub'>교정공무원 인권적 직무판단 자기성찰 설문 - 교육자용 집단 분석</div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='brand-head'><div class='brand-name'>감·수·성 인권교육 요구 및 직무소진 경험 분석</div><div class='brand-sub'>익명 응답으로 교육 주제·진행 방향과 조직적 지원 필요를 탐색합니다.</div></div>", unsafe_allow_html=True)
 
 
 def google_sheet():
@@ -494,7 +494,7 @@ def build_pdf_report(records, filters, start_date, end_date, course_option):
     h2 = ParagraphStyle("h2_ko", parent=styles["Heading2"], fontName=font, fontSize=11, leading=16, textColor=colors.HexColor("#163F67"), spaceBefore=8, spaceAfter=4)
     body = ParagraphStyle("body_ko", parent=styles["BodyText"], fontName=font, fontSize=8.7, leading=14, textColor=colors.HexColor("#263E53"))
     small = ParagraphStyle("small_ko", parent=body, fontSize=7.6, leading=11, textColor=colors.HexColor("#587187"))
-    story = [Paragraph("감·수·성 교육필요 분석 및 교육계획", title)]
+    story = [Paragraph("감·수·성 교육 요구 탐색 및 교육계획", title)]
     story += [Paragraph("교정공무원 인권적 직무판단 자기성찰 설문 - 교육자용 집단 분석", body), Spacer(1, 4 * mm)]
     filter_text = " · ".join(f"{DEMOGRAPHICS[key]}: {value}" for key, value in filters.items() if value != "전체") or "인구학적 필터 없음"
     story += [pdf_paragraph(f"분석 기간: {start_date:%Y-%m-%d} ~ {end_date:%Y-%m-%d} | 분석 인원: {len(records)}명", body), pdf_paragraph(f"적용 조건: {filter_text}", small)]
@@ -831,7 +831,7 @@ def render_cfa_dashboard(records):
 def start():
     apply_style()
     render_brand_header()
-    st.markdown("<div class='notice'>이 화면은 개인의 인권감수성을 평가하거나 인사자료로 활용하기 위한 것이 아닙니다. 익명 응답의 <b>집단 수준 경향</b>을 바탕으로 강의의 교육 필요와 실습 주제를 설계하기 위한 도구입니다. 소수 응답의 비교는 변동이 클 수 있으므로, 수치와 현장 맥락을 함께 해석하십시오.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='notice'>이 화면은 개인의 인권감수성을 평가하거나 인사자료로 활용하기 위한 것이 아닙니다. 익명 응답의 <b>집단 수준 경향</b>을 바탕으로 교육 주제와 진행 방향, 지원 필요를 탐색하기 위한 도구입니다. 소진 경험은 교육뿐 아니라 휴식·업무 부담·조직 지원과 함께 살펴봅니다. 소수 응답의 비교는 변동이 클 수 있으므로, 수치와 현장 맥락을 함께 해석하십시오.</div>", unsafe_allow_html=True)
     require_dashboard_login()
 
     with st.sidebar:
@@ -933,7 +933,7 @@ def start():
     try:
         pdf_bytes = build_pdf_report(selected, filters, start_date, end_date, course_option)
         st.download_button(
-            "교육필요 분석 및 교육계획 PDF 다운로드",
+            "교육 요구 탐색 및 교육계획 PDF 다운로드",
             data=pdf_bytes,
             file_name=f"감수성_교육필요_분석_{start_date:%Y%m%d}-{end_date:%Y%m%d}.pdf",
             mime="application/pdf",
@@ -943,7 +943,7 @@ def start():
     except RuntimeError as error:
         st.error(f"PDF를 만들지 못했습니다: {error}")
 
-    st.subheader("문항별 교육필요 확인")
+    st.subheader("문항별 응답과 교육 주제 탐색")
     rows = item_stats(selected)
     st.caption("25개 문항을 평균이 낮은 순서로 배열했습니다. 색은 감·수·성 영역을 뜻하며, 막대를 누르거나 올리면 문항 전문과 낮은 응답 비율을 확인할 수 있습니다.")
     st.plotly_chart(render_item_overview(rows), use_container_width=True)
@@ -954,6 +954,13 @@ def start():
 
     # 교육필요 분석을 모두 확인한 뒤, 연구자용 척도 검증 화면을 마지막에 둔다.
     render_cfa_dashboard(selected)
+
+    with st.expander("분석의 근거자료와 활용 범위"):
+        st.markdown(f"- [감·수·성 예비척도 개발 연구](https://doi.org/10.14819/krscs.2026.36.2.1.3): 25문항·세 영역의 직접 근거")
+        st.markdown("- [조수현(2020), K-BAT 예비연구](https://doi.org/10.24230/kjiop.v33i4.461-499): 22문항·네 영역과 표 5 참고 평균의 직접 근거")
+        st.markdown("- [BAT 원개발 연구(2020)](https://doi.org/10.3390/ijerph17249495): 소진 개념과 네 영역 이해")
+        st.markdown("- [BAT 공식 사용자 안내서 v2.0](https://burnoutassessmenttool.be/wp-content/uploads/2020/08/User-Manual-BAT-version-2.0.pdf): 자기보고 점수의 해석 원칙")
+        st.caption("교육·지원 필요 탐색과 연구를 위한 참고자료입니다. 참고평균·계산범위는 교도관 규준이나 위험 절단점이 아닙니다. 집단 차이를 개인의 자질 차이나 교육의 인과효과로 해석하지 않습니다.")
 
     st.caption(f"생성 시각: {datetime.now().strftime('%Y-%m-%d %H:%M')} | 데이터는 읽기 전용으로 조회됩니다.")
     st.markdown(
