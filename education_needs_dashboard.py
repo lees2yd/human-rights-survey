@@ -5,6 +5,7 @@
 """
 
 from burnout_support import render_bat_dashboard
+from comparison_support import render_comparison_dashboard
 import io
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -873,6 +874,7 @@ def start():
         st.stop()
 
     render_bat_dashboard(selected)
+    render_comparison_dashboard(selected, ITEMS, DEMOGRAPHICS, DEMOGRAPHIC_CATEGORY_ORDER)
 
     factors = factor_stats(selected)
     left, middle, right = st.columns([.75, .45, .8])
