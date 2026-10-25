@@ -153,7 +153,7 @@ SUBDOMAIN_GUIDES = {
 def apply_style():
     st.markdown("""<style>
     .stApp{background:linear-gradient(145deg,#f8fcff,#e9f6ff);color:#173f66}
-    .block-container{max-width:1280px;padding-top:1.7rem;padding-bottom:3rem}
+    .block-container{max-width:1280px;padding-top:5.5rem;padding-bottom:3rem}
     h1,h2,h3{color:#163f67;word-break:keep-all}.stMarkdown p,.stMarkdown li{word-break:keep-all;line-height:1.7}
     .notice{padding:1rem 1.15rem;background:#fff;border-left:5px solid #4aa9df;border-radius:12px;color:#315b7c}
     .guide{padding:1rem 1.1rem;border:1px solid #d1eafa;border-radius:15px;background:rgba(255,255,255,.86);margin:.6rem 0}
@@ -161,7 +161,7 @@ def apply_style():
     .brand-head{padding:.75rem 0 .9rem;border-bottom:1px solid #cfe8f6;margin-bottom:1rem}
     .brand-name{font-size:1.85rem;font-weight:800;color:#163f67;line-height:1.3;margin:.05rem 0}.brand-sub{color:#4b87ad;font-size:.95rem;margin-top:.2rem}
     .rights{margin-top:2.4rem;padding:1rem;text-align:center;border-top:1px solid #cfe8f6;color:#567890;font-size:.83rem;line-height:1.7}
-    @media(max-width:520px){.block-container{padding:.9rem .7rem 2.5rem}.guide{padding:.85rem}.stMarkdown p,.stMarkdown li{font-size:.95rem}}
+    @media(max-width:520px){.block-container{padding:5rem .7rem 2.5rem}.guide{padding:.85rem}.stMarkdown p,.stMarkdown li{font-size:.95rem}}
     </style>""", unsafe_allow_html=True)
 
 
@@ -883,10 +883,11 @@ def share_chart(scored, column, burnout):
         # Plotly tick labels do not expose tooltips; annotations replace them.
         import textwrap
         fig.update_yaxes(showticklabels=False)
-        fig.update_layout(margin=dict(l=140,r=70,t=30,b=120))
+        fig.update_layout(margin=dict(l=155,r=70,t=30,b=120))
         for label,factor in zip(labels,factors):
             explanation='<br>'.join(textwrap.wrap(BAT_PLAIN_MEANINGS[factor],width=25))
-            fig.add_annotation(x=-.025,xref='paper',y=label,yref='y',text=label+' ⓘ',
+            display_label = label.replace('적 어려움', '적<br>어려움')
+            fig.add_annotation(x=0,xref='paper',xshift=-12,y=label,yref='y',text=display_label+' ⓘ',
                 showarrow=False,xanchor='right',align='right',captureevents=True,
                 font=dict(size=15,color='#205b4b'),hovertext=explanation,
                 hoverlabel=dict(bgcolor='#f0faf5',bordercolor='#329879',font=dict(size=15,color='#173d31')))
@@ -902,7 +903,9 @@ def share_chart(scored, column, burnout):
 
 def render_classroom_share(records):
     st.markdown("""<style>
-    .stApp{background:#f8fbff}.block-container{max-width:1560px}
+    .stApp{background:#f8fbff}.block-container{max-width:1560px;padding-top:5.5rem}
+    [data-testid="stButton"] button{min-height:44px;height:auto;padding:10px 18px}
+    [data-testid="stButton"] button p{white-space:normal;line-height:1.5;overflow:visible}
     @media(min-width:1000px){
       [data-testid="stColumn"]:has(#share-controls-anchor),
       [data-testid="column"]:has(#share-controls-anchor){
