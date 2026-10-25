@@ -886,6 +886,15 @@ def share_chart(scored, column, burnout):
 def render_classroom_share(records):
     st.markdown("""<style>
     .stApp{background:#f8fbff}.block-container{max-width:1560px}
+    @media(min-width:1000px){
+      [data-testid="stColumn"]:has(#share-controls-anchor),
+      [data-testid="column"]:has(#share-controls-anchor){
+        position:sticky;top:4rem;align-self:flex-start;z-index:20;
+        background:#f0f6ff;border:1px solid #d6e4f5;border-radius:12px;padding:12px;
+      }
+    }
+    [data-testid="stColumn"]:has(#share-controls-anchor) label p{font-size:14px}
+
     [data-testid="stRadio"]>div[role="radiogroup"]{display:flex;gap:8px;flex-wrap:wrap}
     [data-testid="stRadio"] label{background:#eaf2fc;border-radius:10px;padding:12px 18px;flex:1}
     [data-testid="stRadio"] label:has(input:checked){background:#234d86;color:white}
@@ -898,28 +907,32 @@ def render_classroom_share(records):
     st.markdown('<div class="share-head">우리의 감·수·성, 함께 살펴보기</div>',unsafe_allow_html=True)
     st.write('인권적 직무 경험과 소진 경험을 함께 이해하고 오늘의 교육 주제를 정합니다.')
     st.markdown('<div class="share-strip">분석 대상: 선택 기간의 전체 교육 응답 · 교육자 화면의 인구학적 필터는 공유 화면에 적용하지 않습니다.</div>',unsafe_allow_html=True)
-    choice = st.radio('함께 볼 결과', ['전체 평균']+list(SHARE_DEMOGRAPHICS),horizontal=True,key='share_comparison_choice')
+    settings, charts = st.columns([1, 5], gap="medium")
+    with settings:
+        st.markdown('<div id="share-controls-anchor"></div>', unsafe_allow_html=True)
+        st.markdown('**보기 설정**')
+        choice = st.selectbox('함께 볼 결과', ['전체 평균']+list(SHARE_DEMOGRAPHICS), key='share_compact_result')
+        st.selectbox('그래프 보기', ['확대 보기','전체 범위 보기'], key='share_bar_view_v2')
+        focus = st.selectbox('화면 크기', ['나란히 보기','감·수·성 크게 보기','K-BAT 크게 보기'], key='share_bar_focus_v2')
+        st.caption('설정을 바꾸면 오른쪽 그래프에 바로 반영됩니다.')
     column = SHARE_DEMOGRAPHICS.get(choice)
-    st.markdown(f'<div class="share-strip">{choice} · 선택 기간 전체 평균을 기준으로 함께 살펴봅니다.</div>',unsafe_allow_html=True)
-    st.caption('이전 막대그래프 구성입니다. 확대 보기와 전체 범위 보기를 전환할 수 있습니다.')
-    st.radio('그래프 보기', ['확대 보기','전체 범위 보기'], horizontal=True,key='share_bar_view_v2')
-    focus=st.radio('화면 크기', ['나란히 보기','감·수·성 크게 보기','K-BAT 크게 보기'],index=0,horizontal=True,key='share_bar_focus_v2')
-    left,right = st.columns(2) if focus=='나란히 보기' else (st.container(),st.container())
-    with left:
-        if focus != "K-BAT 크게 보기":
-            st.markdown('<div class="share-blue">감·수·성 인권감수성</div>',unsafe_allow_html=True)
-            st.write('감정·상황 알아차리기 / 근거·절차로 판단하기 / 나의 판단 돌아보기')
-            share_chart(share_summary(records),column,False)
-            st.caption('높을수록 해당 내용을 자신에게 더 해당한다고 응답했습니다. 작은 차이를 능력의 우열로 해석하지 않습니다.')
-    with right:
-        if focus != "감·수·성 크게 보기":
-            st.markdown('<div class="share-green">K-BAT 직무소진 경험</div>',unsafe_allow_html=True)
-            st.write('탈진 / 심적거리 / 집중과 생각 정리 / 감정 조절')
-            share_chart(share_summary(records,True),column,True)
-            st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답이 있는 집단만 표시합니다. 미응답은 0점으로 처리하지 않습니다.')
-            with st.expander('소진 용어 쉽게 이해하기'):
-                for factor in BAT_FACTORS:
-                    st.write(f'{factor}: {BAT_PLAIN_MEANINGS[factor]}')
+    with charts:
+        left,right = st.columns(2) if focus=='나란히 보기' else (st.container(),st.container())
+        with left:
+            if focus != "K-BAT 크게 보기":
+                st.markdown('<div class="share-blue">감·수·성 인권감수성</div>',unsafe_allow_html=True)
+                st.write('감정·상황 알아차리기 / 근거·절차로 판단하기 / 나의 판단 돌아보기')
+                share_chart(share_summary(records),column,False)
+                st.caption('높을수록 해당 내용을 자신에게 더 해당한다고 응답했습니다. 작은 차이를 능력의 우열로 해석하지 않습니다.')
+        with right:
+            if focus != "감·수·성 크게 보기":
+                st.markdown('<div class="share-green">K-BAT 직무소진 경험</div>',unsafe_allow_html=True)
+                st.write('탈진 / 심적거리 / 집중과 생각 정리 / 감정 조절')
+                share_chart(share_summary(records,True),column,True)
+                st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답이 있는 집단만 표시합니다. 미응답은 0점으로 처리하지 않습니다.')
+                with st.expander('소진 용어 쉽게 이해하기'):
+                    for factor in BAT_FACTORS:
+                        st.write(f'{factor}: {BAT_PLAIN_MEANINGS[factor]}')
     st.caption('최소 인원 제한 없이 집단 평균을 표시합니다. 한 명인 범주의 평균은 그 사람의 점수와 같으며, 인구정보 조합으로 개인을 짐작할 수 있습니다. 이름·응답시각은 표시하지 않습니다.')
     if records:
         st.subheader('오늘 함께 다룰 주제 후보')
