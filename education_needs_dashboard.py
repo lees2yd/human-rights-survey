@@ -835,7 +835,7 @@ SHARE_DEMOGRAPHICS = {'성별':'성별', '직급별':'직급', '연령대별':'�
 def share_summary(records, burnout=False):
     scored = []
     for row in records:
-        scores = bat_scores(row) if burnout else factor_score_map([row])
+        scores = bat_scores(row) if burnout else {f:float(np.mean([row[key] for key in FACTOR_ITEMS[f]])) for f in ('감','수','성')}
         if scores is not None:
             scored.append((row, scores))
     return scored
@@ -859,17 +859,58 @@ def share_chart(scored, column, burnout):
         st.info(message)
         return
     factors = BAT_FACTORS if burnout else ['감','수','성']
-    labels = ['탈진', '심적거리', '인지적 어려움', '정서적 어려움'] if burnout else ['감 · 알아차리기','수 · 판단하기','성 · 돌아보기']
-    palette = ['#23866b','#77c5a3','#135c4b','#a6d8bb','#4eaa91','#bedecf'] if burnout else ['#2369ac','#75b6e0','#193d76','#a0cee9','#478dc5','#bedcef']
+    mode = st.session_state.get('share_graph_mode', '실제 평균')
+    maximum = 5 if burnout else 4
+    overall = {f:float(np.mean([score[f] for _,score in scored])) for f in factors}
+    means = {name:{f:float(np.mean([score[f] for _,score in rows])) for f in factors} for name,rows in groups}
+    palette = ['#23866b','#73bca1','#134f43','#a1ccb9','#418576','#b9d7c8'] if burnout else ['#2369ac','#74a9d0','#193d76','#9cc5e3','#447ea8','#b6d2e7']
     fig = go.Figure()
-    for i,(name,rows) in enumerate(groups):
-        means = [float(np.mean([score[f] for _,score in rows])) for f in factors]
-        fig.add_trace(go.Bar(x=means,y=labels,orientation='h',name=f'{name} (유효 {len(rows)}건)',marker_color=palette[i%len(palette)],text=[f'{v:.2f}' for v in means],textposition='auto',hovertemplate='%{y}: %{x:.2f}<extra>%{fullData.name}</extra>'))
-    if column:
-        fig.add_trace(go.Scatter(x=[float(np.mean([score[f] for _,score in scored])) for f in factors],y=labels,mode='markers',name='선택 기간 전체 평균',marker=dict(symbol='diamond',size=14,color='#667085',line=dict(color='white',width=1))))
-    fig.update_layout(barmode='group',height=max(420,len(factors)*len(groups)*35+180),font=dict(size=17),xaxis=dict(range=[0,5 if burnout else 4],title='응답 평균 (1~5점)' if burnout else '응답 평균 (1~4점)'),yaxis=dict(autorange='reversed',automargin=True),legend=dict(orientation='h',y=-.22),margin=dict(l=10,r=20,t=15,b=100),paper_bgcolor='rgba(0,0,0,0)')
+    positions=[]; labels=[]; plotted=[]
+    for fi,f in enumerate(factors):
+        for gi,(name,rows) in enumerate(groups):
+            y=fi*(len(groups)+1)+gi
+            value=means[name][f]
+            difference=value-overall[f]
+            x=difference if mode=='전체 평균과의 차이' else value
+            plain = {'인지적 조절 손상':'집중·생각 정리','정서적 조절 손상':'감정 조절'}.get(f,f)
+            wrapped = '<br>'.join(str(name)[j:j+10] for j in range(0,len(str(name)),10))
+            positions.append(y);labels.append(f'{plain}<br>{wrapped} · {len(rows)}건');plotted.append(x)
+            text=f'{difference:+.2f}점<br>평균 {value:.2f}' if mode=='전체 평균과의 차이' else f'{value:.2f}점'
+            fig.add_trace(go.Scatter(x=[x],y=[y],mode='markers',cliponaxis=True,marker=dict(size=13,color=palette[gi%len(palette)]),showlegend=False,hovertemplate=f'{f} · {name}<br>평균 {value:.2f}<br>전체 대비 {difference:+.2f}점<extra></extra>'))
+            fig.add_annotation(x=1.02,xref='paper',y=y,yref='y',text=text,showarrow=False,xanchor='left',align='left',font=dict(size=16,color='#173858'))
+        if column and mode!='전체 평균과의 차이':
+            fig.add_shape(type='line',x0=overall[f],x1=overall[f],y0=fi*(len(groups)+1)-.4,y1=fi*(len(groups)+1)+len(groups)-.6,line=dict(color='#8a94a3',dash='dot'))
+    if mode=='전체 평균과의 차이':
+        extent=max(.25,max(abs(v) for v in plotted)*1.3)
+        axis=[-extent,extent];title='전체 평균과의 차이(점)'
+        fig.add_vline(x=0,line_color='#667085',line_dash='dash')
+        st.caption('오른쪽은 전체 평균보다 높고, 왼쪽은 낮습니다. 좋고 나쁨을 판정하는 기준은 아닙니다.')
+    elif mode=='확대 보기':
+        values=plotted+list(overall.values());span=max(.5,max(values)-min(values));pad=span*.25
+        axis=[max(1,min(values)-pad),min(maximum,max(values)+pad)]
+        title=f'확대된 평균 축 · 원래 범위 1~{maximum}점'
+        st.caption(f'점수 차이를 자세히 보기 위해 축을 확대했습니다. 표시 범위 {axis[0]:.2f}~{axis[1]:.2f}점이며 도표마다 다를 수 있습니다.')
+    else:
+        axis=[1,maximum];title=f'응답 평균 · 전체 범위 1~{maximum}점'
+    fig.update_layout(height=max(420,(max(positions)+2)*78+110),font=dict(size=17),xaxis=dict(range=axis,title=title,nticks=6,automargin=True,gridcolor='#e1e8ef'),yaxis=dict(tickmode='array',tickvals=positions,ticktext=labels,range=[max(positions)+.7,-.8],automargin=True),margin=dict(l=150,r=125,t=35,b=75),paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='#ffffff')
     st.plotly_chart(fig,use_container_width=True,key='share_bat' if burnout else 'share_gam')
-    st.caption(f'유효 응답 {len(scored)}건 · 응답 건수이며 중복 참여 여부는 확인하지 않습니다.')
+    st.caption(f'유효 응답 {len(scored)}건 · 점은 집단 평균입니다.' + (' 점선은 선택 기간 전체 평균입니다.' if column or mode=='전체 평균과의 차이' else ''))
+    if column and len(groups)>1:
+        differences=[]
+        for f in factors:
+            ordered=sorted((means[name][f],name) for name,_ in groups)
+            gap=ordered[-1][0]-ordered[0][0]
+            differences.append((gap,f,ordered))
+        largest=max(v[0] for v in differences)
+        if largest < .005:
+            st.info('집단 평균이 표시 정밀도 내에서 같습니다.')
+        else:
+            gap,f,ordered=max(differences,key=lambda row:row[0])
+            st.info(f'함께 살펴볼 지점: {f}의 집단 평균 차이는 최대 {gap:.2f}점입니다.')
+            with st.expander('영역별 차이 자세히 보기'):
+                for gap,f,ordered in differences:
+                    st.write(f'{f}: {gap:.2f}점 차이 ({ordered[-1][1]} {ordered[-1][0]:.2f} / {ordered[0][1]} {ordered[0][0]:.2f})')
+            st.caption('관찰된 평균 차이이며 통계적 유의성·직급 특성·인과관계를 뜻하지 않습니다.')
 
 
 def render_classroom_share(records):
@@ -878,9 +919,9 @@ def render_classroom_share(records):
     [data-testid="stRadio"]>div[role="radiogroup"]{display:flex;gap:8px;flex-wrap:wrap}
     [data-testid="stRadio"] label{background:#eaf2fc;border-radius:10px;padding:12px 18px;flex:1}
     [data-testid="stRadio"] label:has(input:checked){background:#234d86;color:white}
-    .share-head{font-size:36px;font-weight:800;color:#122d56;margin-bottom:5px}
+    .share-head{font-size:clamp(24px,3vw,36px);font-weight:800;color:#122d56;margin-bottom:5px}
     .share-strip{background:#edf5ff;border:1px solid #d1e4fc;border-radius:12px;padding:16px;margin:12px 0;color:#355780}
-    .share-blue,.share-green{padding:18px;border-radius:14px;font-size:27px;font-weight:800;margin-top:8px}
+    .share-blue,.share-green{overflow-wrap:anywhere;line-height:1.5;padding:18px;border-radius:14px;font-size:27px;font-weight:800;margin-top:8px}
     .share-blue{background:#e9f4ff;color:#124787}.share-green{background:#eaf6ee;color:#095b46}
     .share-question{background:white;border:1px solid #d4e4f4;border-radius:12px;padding:20px;min-height:125px;font-size:18px;color:#203b62}
     </style>""",unsafe_allow_html=True)
@@ -890,20 +931,25 @@ def render_classroom_share(records):
     choice = st.radio('함께 볼 결과', ['전체 평균']+list(SHARE_DEMOGRAPHICS),horizontal=True,key='share_comparison_choice')
     column = SHARE_DEMOGRAPHICS.get(choice)
     st.markdown(f'<div class="share-strip">{choice} · 선택 기간 전체 평균을 기준으로 함께 살펴봅니다.</div>',unsafe_allow_html=True)
-    left,right = st.columns(2)
+    st.caption('먼저 한 척도씩 크게 살펴보세요. 차이가 궁금할 때 확대 보기를 선택할 수 있습니다.')
+    st.radio('그래프 보기', ['실제 평균','전체 평균과의 차이','확대 보기'], horizontal=True,key='share_graph_mode')
+    focus=st.radio('화면 크기', ['나란히 보기','감·수·성 크게 보기','K-BAT 크게 보기'],index=1,horizontal=True,key='share_focus')
+    left,right = st.columns(2) if focus=='나란히 보기' else (st.container(),st.container())
     with left:
-        st.markdown('<div class="share-blue">감·수·성 인권감수성　◉ ⚖ ◇</div>',unsafe_allow_html=True)
-        st.write('감정·상황 알아차리기 / 근거·절차로 판단하기 / 나의 판단 돌아보기')
-        share_chart(share_summary(records),column,False)
-        st.caption('높을수록 해당 내용을 자신에게 더 해당한다고 응답했습니다. 작은 차이를 능력의 우열로 해석하지 않습니다.')
+        if focus != "K-BAT 크게 보기":
+            st.markdown('<div class="share-blue">감·수·성 인권감수성</div>',unsafe_allow_html=True)
+            st.write('감정·상황 알아차리기 / 근거·절차로 판단하기 / 나의 판단 돌아보기')
+            share_chart(share_summary(records),column,False)
+            st.caption('높을수록 해당 내용을 자신에게 더 해당한다고 응답했습니다. 작은 차이를 능력의 우열로 해석하지 않습니다.')
     with right:
-        st.markdown('<div class="share-green">K-BAT 직무소진 경험　♡</div>',unsafe_allow_html=True)
-        st.write('탈진 / 심적거리 / 집중과 생각 정리 / 감정 조절')
-        share_chart(share_summary(records,True),column,True)
-        st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답만 집계하며 미응답은 0점으로 처리하지 않습니다.')
-        with st.expander('소진 용어 쉽게 이해하기'):
-            for factor in BAT_FACTORS:
-                st.write(f'{factor}: {BAT_PLAIN_MEANINGS[factor]}')
+        if focus != "감·수·성 크게 보기":
+            st.markdown('<div class="share-green">K-BAT 직무소진 경험</div>',unsafe_allow_html=True)
+            st.write('탈진 / 심적거리 / 집중과 생각 정리 / 감정 조절')
+            share_chart(share_summary(records,True),column,True)
+            st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답이 있는 집단만 표시합니다. 미응답은 0점으로 처리하지 않습니다.')
+            with st.expander('소진 용어 쉽게 이해하기'):
+                for factor in BAT_FACTORS:
+                    st.write(f'{factor}: {BAT_PLAIN_MEANINGS[factor]}')
     st.caption('최소 인원 제한 없이 집단 평균을 표시합니다. 한 명인 범주의 평균은 그 사람의 점수와 같으며, 인구정보 조합으로 개인을 짐작할 수 있습니다. 이름·응답시각은 표시하지 않습니다.')
     if records:
         st.subheader('오늘 함께 다룰 주제 후보')
@@ -924,7 +970,8 @@ def start():
     apply_style()
     if not st.session_state.get("classroom_share", False):
         render_brand_header()
-    st.markdown("<div class='notice'>이 화면은 개인의 인권감수성을 평가하거나 인사자료로 활용하기 위한 것이 아닙니다. 익명 응답의 <b>집단 수준 경향</b>을 바탕으로 교육 주제와 진행 방향, 지원 필요를 탐색하기 위한 도구입니다. 소진 경험은 교육뿐 아니라 휴식·업무 부담·조직 지원과 함께 살펴봅니다. 소수 응답의 비교는 변동이 클 수 있으므로, 수치와 현장 맥락을 함께 해석하십시오.</div>", unsafe_allow_html=True)
+    if not st.session_state.get("classroom_share", False):
+        st.markdown("<div class='notice'>이 화면은 개인의 인권감수성을 평가하거나 인사자료로 활용하기 위한 것이 아닙니다. 익명 응답의 <b>집단 수준 경향</b>을 바탕으로 교육 주제와 진행 방향, 지원 필요를 탐색하기 위한 도구입니다. 소진 경험은 교육뿐 아니라 휴식·업무 부담·조직 지원과 함께 살펴봅니다. 소수 응답의 비교는 변동이 클 수 있으므로, 수치와 현장 맥락을 함께 해석하십시오.</div>", unsafe_allow_html=True)
     require_dashboard_login()
 
     with st.sidebar:
