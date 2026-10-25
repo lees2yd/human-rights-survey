@@ -879,6 +879,23 @@ def share_chart(scored, column, burnout):
     else:
         lower,upper=0,maximum+.2
     fig.update_layout(barmode='group',bargap=.3,bargroupgap=.12,height=max(430,len(factors)*len(groups)*43+190),font=dict(size=16),xaxis=dict(range=[lower,upper],title=f'응답 평균 (1~{maximum}점)',nticks=7,gridcolor='#e1e8ef',automargin=True),yaxis=dict(autorange='reversed',automargin=True),legend=dict(orientation='h',y=-.2,font=dict(size=13)),margin=dict(l=20,r=70,t=30,b=120),paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='white')
+    if burnout:
+        # Plotly tick labels do not expose tooltips; annotations replace them.
+        import textwrap
+        fig.update_yaxes(showticklabels=False)
+        fig.update_layout(margin=dict(l=140,r=70,t=30,b=120))
+        for label,factor in zip(labels,factors):
+            explanation='<br>'.join(textwrap.wrap(BAT_PLAIN_MEANINGS[factor],width=25))
+            fig.add_annotation(x=-.025,xref='paper',y=label,yref='y',text=label+' ⓘ',
+                showarrow=False,xanchor='right',align='right',captureevents=True,
+                font=dict(size=15,color='#205b4b'),hovertext=explanation,
+                hoverlabel=dict(bgcolor='#f0faf5',bordercolor='#329879',font=dict(size=15,color='#173d31')))
+        # Touch users can inspect the same explanation from a bar's hover card.
+        for trace in fig.data:
+            if trace.type=='bar':
+                trace.customdata=['<br>'.join(textwrap.wrap(BAT_PLAIN_MEANINGS[f],width=25)) for f in factors]
+                trace.hovertemplate='%{y}<br>평균 %{x:.2f}<br>%{customdata}<extra>%{fullData.name}</extra>'
+        st.caption('영역 이름에 마우스를 올리면 설명이 나타납니다. 터치 화면에서는 막대를 눌러 확인하세요.')
     st.plotly_chart(fig,use_container_width=True,key='share_bat' if burnout else 'share_gam')
     st.caption(f'유효 응답 {len(scored)}건 · 소진 미응답은 평균에서 제외합니다.' if burnout else f'유효 응답 {len(scored)}건')
 
@@ -930,9 +947,6 @@ def render_classroom_share(records):
                 st.write('탈진 / 심적거리 / 집중과 생각 정리 / 감정 조절')
                 share_chart(share_summary(records,True),column,True)
                 st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답이 있는 집단만 표시합니다. 미응답은 0점으로 처리하지 않습니다.')
-                with st.expander('소진 용어 쉽게 이해하기'):
-                    for factor in BAT_FACTORS:
-                        st.write(f'{factor}: {BAT_PLAIN_MEANINGS[factor]}')
     st.caption('최소 인원 제한 없이 집단 평균을 표시합니다. 한 명인 범주의 평균은 그 사람의 점수와 같으며, 인구정보 조합으로 개인을 짐작할 수 있습니다. 이름·응답시각은 표시하지 않습니다.')
     if records:
         st.subheader('오늘 함께 다룰 주제 후보')
