@@ -4,7 +4,7 @@
 개별 응답자 평가가 아니라, 강의 집단의 교육 우선순위와 교육안을 제시하기 위한 파일이다.
 """
 
-from burnout_support import render_bat_dashboard
+from burnout_support import render_bat_dashboard, bat_scores, BAT_FACTORS, BAT_PLAIN_MEANINGS, BAT_REFERENCE, BAT_ITEMS, BAT_LABELS
 from comparison_support import render_comparison_dashboard
 import io
 from collections import Counter, defaultdict
@@ -828,6 +828,88 @@ def render_cfa_dashboard(records):
     })
 
 
+
+SHARE_DEMOGRAPHICS = {'성별':'성별', '직급별':'직급', '연령대별':'연령대', '기관 유형별':'근무기관유형', '근무기간별':'교정경력'}
+
+
+def share_summary(records, burnout=False):
+    scored = []
+    for row in records:
+        scores = bat_scores(row) if burnout else factor_score_map([row])
+        if scores is not None:
+            scored.append((row, scores))
+    return scored
+
+
+def share_groups(scored, column):
+    # All comparison tabs use the same conservative release rule. Suppress all
+    # breakdowns if any joint demographic cell is small; totals remain available.
+    if len(scored) < 5:
+        return [], '유효 응답 5건 이상일 때 표시합니다.'
+    if column is None:
+        return [('전체', scored)], ''
+    cells = Counter(tuple(str(r.get(c, '') or '미응답') for c in SHARE_DEMOGRAPHICS.values()) for r,_ in scored)
+    if any(n < 5 for n in cells.values()):
+        return [], '소수 집단 또는 여러 비교를 조합한 개인 추정 가능성이 있어 인구학적 비교를 숨깁니다. 전체 평균 탭을 이용해 주세요.'
+    groups = defaultdict(list)
+    for row, scores in scored:
+        groups[str(row.get(column, '') or '미응답')].append((row, scores))
+    return sorted(groups.items()), ''
+
+
+def share_chart(scored, column, burnout):
+    groups, message = share_groups(scored, column)
+    if message:
+        st.info(message)
+        return
+    factors = BAT_FACTORS if burnout else ['감','수','성']
+    labels = ['탈진', '심적거리', '인지적 어려움', '정서적 어려움'] if burnout else ['감 · 알아차리기','수 · 판단하기','성 · 돌아보기']
+    palette = ['#23866b','#77c5a3','#135c4b','#a6d8bb','#4eaa91','#bedecf'] if burnout else ['#2369ac','#75b6e0','#193d76','#a0cee9','#478dc5','#bedcef']
+    fig = go.Figure()
+    for i,(name,rows) in enumerate(groups):
+        means = [float(np.mean([score[f] for _,score in rows])) for f in factors]
+        fig.add_trace(go.Bar(x=means,y=labels,orientation='h',name=f'{name} (유효 {len(rows)}건)',marker_color=palette[i%len(palette)],text=[f'{v:.2f}' for v in means],textposition='auto',hovertemplate='%{y}: %{x:.2f}<extra>%{fullData.name}</extra>'))
+    if column:
+        fig.add_trace(go.Scatter(x=[float(np.mean([score[f] for _,score in scored])) for f in factors],y=labels,mode='markers',name='선택 기간 전체 평균',marker=dict(symbol='diamond',size=14,color='#667085',line=dict(color='white',width=1))))
+    fig.update_layout(barmode='group',height=max(420,len(factors)*len(groups)*35+180),font=dict(size=17),xaxis=dict(range=[0,5 if burnout else 4],title='응답 평균 (1~5점)' if burnout else '응답 평균 (1~4점)'),yaxis=dict(autorange='reversed',automargin=True),legend=dict(orientation='h',y=-.22),margin=dict(l=10,r=20,t=15,b=100),paper_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig,use_container_width=True,key='share_bat' if burnout else 'share_gam')
+    st.caption(f'유효 응답 {len(scored)}건 · 응답 건수이며 중복 참여 여부는 확인하지 않습니다.')
+
+
+def render_classroom_share(records):
+    st.title('우리의 감·수·성, 함께 살펴보기')
+    st.write('인권적 직무 경험과 소진 경험을 함께 이해하고 오늘의 교육 주제를 정합니다.')
+    st.caption('공유 모드는 선택 기간의 전체 응답을 사용합니다. 교육자 화면의 인구학적 필터는 적용하지 않습니다.')
+    choice = st.radio('함께 볼 결과', ['전체 평균']+list(SHARE_DEMOGRAPHICS),horizontal=True,key='share_comparison_choice')
+    column = SHARE_DEMOGRAPHICS.get(choice)
+    left,right = st.columns(2)
+    with left:
+        st.markdown('### 🔵 감·수·성 인권감수성')
+        st.write('감정·상황 알아차리기 / 근거·절차로 판단하기 / 나의 판단 돌아보기')
+        share_chart(share_summary(records),column,False)
+        st.caption('높을수록 해당 내용을 자신에게 더 해당한다고 응답했습니다. 작은 차이를 능력의 우열로 해석하지 않습니다.')
+    with right:
+        st.markdown('### 🟢 K-BAT 직무소진 경험')
+        st.write('탈진 / 심적거리 / 집중과 생각 정리 / 감정 조절')
+        share_chart(share_summary(records,True),column,True)
+        st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답만 집계하며 미응답은 0점으로 처리하지 않습니다.')
+        with st.expander('소진 용어 쉽게 이해하기'):
+            for factor in BAT_FACTORS:
+                st.write(f'{factor}: {BAT_PLAIN_MEANINGS[factor]}')
+    st.info('개인 점수·응답시각은 표시하지 않습니다. 소수 집단과 비교 조합에 따른 추정 가능성을 줄이기 위해 비교가 제한될 수 있습니다.')
+    if len(records)>=5:
+        st.subheader('오늘 함께 다룰 주제 후보')
+        priorities = priority_topics(records)
+        for col,row in zip(st.columns(3), priorities):
+            with col:
+                st.markdown(f"**{row['영역']} · {SUBDOMAIN_GUIDES[row['하위영역']]}**")
+                st.write(row['문항'])
+                st.caption('선택 기간 전체 응답에서 영역별로 상대적으로 낮은 문항입니다. 확정된 교육 필요나 결함을 뜻하지 않습니다.')
+    st.subheader('함께 이야기할 질문')
+    st.write('① 어떤 경험이 비슷한가요?  ② 차이가 있다면 어떤 업무 여건을 살펴볼까요?  ③ 오늘 무엇을 함께 연습하고 어떤 지원을 요청할까요?')
+    st.caption('두 척도는 점수 범위와 의미가 다릅니다. 합산하거나 소진이 인권감수성의 원인이라고 해석하지 않습니다.')
+
+
 def start():
     apply_style()
     render_brand_header()
@@ -863,6 +945,16 @@ def start():
             filters[column] = st.selectbox(label, ["전체"] + options)
 
     selected = filtered_records(records, filters, start_date, end_date)
+    if "classroom_share" not in st.session_state:
+        st.session_state.classroom_share = False
+    if st.button("교육자 화면으로" if st.session_state.classroom_share else "교육생과 공유", type="primary", key="classroom_mode_button"):
+        st.session_state.classroom_share = not st.session_state.classroom_share
+        st.rerun()
+    if st.session_state.classroom_share:
+        st.markdown("<style>[data-testid='stSidebar']{display:none}</style>", unsafe_allow_html=True)
+        st.caption(f"선택 기간: {start_date:%Y-%m-%d} ~ {end_date:%Y-%m-%d} · 교육자가 선택한 집단")
+        render_classroom_share(filtered_records(records, {}, start_date, end_date))
+        return
     st.subheader("분석 대상")
     c1, c2, c3 = st.columns(3)
     c1.metric("전체 유효 응답", len(records))
