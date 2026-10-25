@@ -859,58 +859,28 @@ def share_chart(scored, column, burnout):
         st.info(message)
         return
     factors = BAT_FACTORS if burnout else ['감','수','성']
-    mode = st.session_state.get('share_graph_mode', '실제 평균')
+    labels = ['탈진','심적거리','인지적 어려움','정서적 어려움'] if burnout else ['감 · 알아차리기','수 · 판단하기','성 · 돌아보기']
+    mode = st.session_state.get('share_bar_view_v2','확대 보기')
     maximum = 5 if burnout else 4
-    overall = {f:float(np.mean([score[f] for _,score in scored])) for f in factors}
-    means = {name:{f:float(np.mean([score[f] for _,score in rows])) for f in factors} for name,rows in groups}
+    overall = [float(np.mean([score[f] for _,score in scored])) for f in factors]
     palette = ['#23866b','#73bca1','#134f43','#a1ccb9','#418576','#b9d7c8'] if burnout else ['#2369ac','#74a9d0','#193d76','#9cc5e3','#447ea8','#b6d2e7']
-    fig = go.Figure()
-    positions=[]; labels=[]; plotted=[]
-    for fi,f in enumerate(factors):
-        for gi,(name,rows) in enumerate(groups):
-            y=fi*(len(groups)+1)+gi
-            value=means[name][f]
-            difference=value-overall[f]
-            x=difference if mode=='전체 평균과의 차이' else value
-            plain = {'인지적 조절 손상':'집중·생각 정리','정서적 조절 손상':'감정 조절'}.get(f,f)
-            wrapped = '<br>'.join(str(name)[j:j+10] for j in range(0,len(str(name)),10))
-            positions.append(y);labels.append(f'{plain}<br>{wrapped} · {len(rows)}건');plotted.append(x)
-            text=f'{difference:+.2f}점<br>평균 {value:.2f}' if mode=='전체 평균과의 차이' else f'{value:.2f}점'
-            fig.add_trace(go.Scatter(x=[x],y=[y],mode='markers',cliponaxis=True,marker=dict(size=13,color=palette[gi%len(palette)]),showlegend=False,hovertemplate=f'{f} · {name}<br>평균 {value:.2f}<br>전체 대비 {difference:+.2f}점<extra></extra>'))
-            fig.add_annotation(x=1.02,xref='paper',y=y,yref='y',text=text,showarrow=False,xanchor='left',align='left',font=dict(size=16,color='#173858'))
-        if column and mode!='전체 평균과의 차이':
-            fig.add_shape(type='line',x0=overall[f],x1=overall[f],y0=fi*(len(groups)+1)-.4,y1=fi*(len(groups)+1)+len(groups)-.6,line=dict(color='#8a94a3',dash='dot'))
-    if mode=='전체 평균과의 차이':
-        extent=max(.25,max(abs(v) for v in plotted)*1.3)
-        axis=[-extent,extent];title='전체 평균과의 차이(점)'
-        fig.add_vline(x=0,line_color='#667085',line_dash='dash')
-        st.caption('오른쪽은 전체 평균보다 높고, 왼쪽은 낮습니다. 좋고 나쁨을 판정하는 기준은 아닙니다.')
-    elif mode=='확대 보기':
-        values=plotted+list(overall.values());span=max(.5,max(values)-min(values));pad=span*.25
-        axis=[max(1,min(values)-pad),min(maximum,max(values)+pad)]
-        title=f'확대된 평균 축 · 원래 범위 1~{maximum}점'
-        st.caption(f'점수 차이를 자세히 보기 위해 축을 확대했습니다. 표시 범위 {axis[0]:.2f}~{axis[1]:.2f}점이며 도표마다 다를 수 있습니다.')
+    fig=go.Figure(); all_values=list(overall)
+    for i,(name,rows) in enumerate(groups):
+        values=[float(np.mean([score[f] for _,score in rows])) for f in factors]
+        all_values.extend(values)
+        fig.add_trace(go.Bar(x=values,y=labels,orientation='h',name=f'{name} (유효 {len(rows)}건)',marker_color=palette[i%len(palette)],text=[f'{v:.2f}' for v in values],textposition='outside',cliponaxis=False,textfont=dict(size=17,color='#173858'),hovertemplate='%{y}<br>평균 %{x:.2f}<extra>%{fullData.name}</extra>'))
+    if column:
+        fig.add_trace(go.Scatter(x=overall,y=labels,mode='markers',name='선택 기간 전체 평균',marker=dict(symbol='diamond',size=13,color='#667085',line=dict(color='white',width=1))))
+    if mode=='확대 보기':
+        span=max(1.0,max(all_values)-min(all_values))
+        lower=max(0,min(all_values)-span*.3)
+        upper=min(maximum+.2,max(all_values)+span*.35)
+        st.caption(f'확대 보기: 가로축 {lower:.2f}~{upper:.2f}점. 막대의 시작 부분을 생략했습니다. 길이의 비율보다 표시된 점수 차이를 읽어 주세요.')
     else:
-        axis=[1,maximum];title=f'응답 평균 · 전체 범위 1~{maximum}점'
-    fig.update_layout(height=max(420,(max(positions)+2)*78+110),font=dict(size=17),xaxis=dict(range=axis,title=title,nticks=6,automargin=True,gridcolor='#e1e8ef'),yaxis=dict(tickmode='array',tickvals=positions,ticktext=labels,range=[max(positions)+.7,-.8],automargin=True),margin=dict(l=150,r=125,t=35,b=75),paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='#ffffff')
+        lower,upper=0,maximum+.2
+    fig.update_layout(barmode='group',bargap=.3,bargroupgap=.12,height=max(430,len(factors)*len(groups)*43+190),font=dict(size=16),xaxis=dict(range=[lower,upper],title=f'응답 평균 (1~{maximum}점)',nticks=7,gridcolor='#e1e8ef',automargin=True),yaxis=dict(autorange='reversed',automargin=True),legend=dict(orientation='h',y=-.2,font=dict(size=13)),margin=dict(l=20,r=70,t=30,b=120),paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='white')
     st.plotly_chart(fig,use_container_width=True,key='share_bat' if burnout else 'share_gam')
-    st.caption(f'유효 응답 {len(scored)}건 · 점은 집단 평균입니다.' + (' 점선은 선택 기간 전체 평균입니다.' if column or mode=='전체 평균과의 차이' else ''))
-    if column and len(groups)>1:
-        differences=[]
-        for f in factors:
-            ordered=sorted((means[name][f],name) for name,_ in groups)
-            gap=ordered[-1][0]-ordered[0][0]
-            differences.append((gap,f,ordered))
-        largest=max(v[0] for v in differences)
-        if largest < .005:
-            st.info('집단 평균이 표시 정밀도 내에서 같습니다.')
-        else:
-            gap,f,ordered=max(differences,key=lambda row:row[0])
-            st.info(f'함께 살펴볼 지점: {f}의 집단 평균 차이는 최대 {gap:.2f}점입니다.')
-            with st.expander('영역별 차이 자세히 보기'):
-                for gap,f,ordered in differences:
-                    st.write(f'{f}: {gap:.2f}점 차이 ({ordered[-1][1]} {ordered[-1][0]:.2f} / {ordered[0][1]} {ordered[0][0]:.2f})')
-            st.caption('관찰된 평균 차이이며 통계적 유의성·직급 특성·인과관계를 뜻하지 않습니다.')
+    st.caption(f'유효 응답 {len(scored)}건 · 소진 미응답은 평균에서 제외합니다.' if burnout else f'유효 응답 {len(scored)}건')
 
 
 def render_classroom_share(records):
@@ -931,9 +901,9 @@ def render_classroom_share(records):
     choice = st.radio('함께 볼 결과', ['전체 평균']+list(SHARE_DEMOGRAPHICS),horizontal=True,key='share_comparison_choice')
     column = SHARE_DEMOGRAPHICS.get(choice)
     st.markdown(f'<div class="share-strip">{choice} · 선택 기간 전체 평균을 기준으로 함께 살펴봅니다.</div>',unsafe_allow_html=True)
-    st.caption('먼저 한 척도씩 크게 살펴보세요. 차이가 궁금할 때 확대 보기를 선택할 수 있습니다.')
-    st.radio('그래프 보기', ['실제 평균','전체 평균과의 차이','확대 보기'], horizontal=True,key='share_graph_mode')
-    focus=st.radio('화면 크기', ['나란히 보기','감·수·성 크게 보기','K-BAT 크게 보기'],index=1,horizontal=True,key='share_focus')
+    st.caption('이전 막대그래프 구성입니다. 확대 보기와 전체 범위 보기를 전환할 수 있습니다.')
+    st.radio('그래프 보기', ['확대 보기','전체 범위 보기'], horizontal=True,key='share_bar_view_v2')
+    focus=st.radio('화면 크기', ['나란히 보기','감·수·성 크게 보기','K-BAT 크게 보기'],index=0,horizontal=True,key='share_bar_focus_v2')
     left,right = st.columns(2) if focus=='나란히 보기' else (st.container(),st.container())
     with left:
         if focus != "K-BAT 크게 보기":
