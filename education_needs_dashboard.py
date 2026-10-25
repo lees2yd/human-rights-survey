@@ -842,15 +842,11 @@ def share_summary(records, burnout=False):
 
 
 def share_groups(scored, column):
-    # All comparison tabs use the same conservative release rule. Suppress all
-    # breakdowns if any joint demographic cell is small; totals remain available.
-    if len(scored) < 5:
-        return [], '유효 응답 5건 이상일 때 표시합니다.'
+    # User-requested descriptive display without a minimum group size.
+    if not scored:
+        return [], '유효 응답이 없습니다.'
     if column is None:
         return [('전체', scored)], ''
-    cells = Counter(tuple(str(r.get(c, '') or '미응답') for c in SHARE_DEMOGRAPHICS.values()) for r,_ in scored)
-    if any(n < 5 for n in cells.values()):
-        return [], '소수 집단 또는 여러 비교를 조합한 개인 추정 가능성이 있어 인구학적 비교를 숨깁니다. 전체 평균 탭을 이용해 주세요.'
     groups = defaultdict(list)
     for row, scores in scored:
         groups[str(row.get(column, '') or '미응답')].append((row, scores))
@@ -877,27 +873,39 @@ def share_chart(scored, column, burnout):
 
 
 def render_classroom_share(records):
-    st.title('우리의 감·수·성, 함께 살펴보기')
+    st.markdown("""<style>
+    .stApp{background:#f8fbff}.block-container{max-width:1560px}
+    [data-testid="stRadio"]>div[role="radiogroup"]{display:flex;gap:8px;flex-wrap:wrap}
+    [data-testid="stRadio"] label{background:#eaf2fc;border-radius:10px;padding:12px 18px;flex:1}
+    [data-testid="stRadio"] label:has(input:checked){background:#234d86;color:white}
+    .share-head{font-size:36px;font-weight:800;color:#122d56;margin-bottom:5px}
+    .share-strip{background:#edf5ff;border:1px solid #d1e4fc;border-radius:12px;padding:16px;margin:12px 0;color:#355780}
+    .share-blue,.share-green{padding:18px;border-radius:14px;font-size:27px;font-weight:800;margin-top:8px}
+    .share-blue{background:#e9f4ff;color:#124787}.share-green{background:#eaf6ee;color:#095b46}
+    .share-question{background:white;border:1px solid #d4e4f4;border-radius:12px;padding:20px;min-height:125px;font-size:18px;color:#203b62}
+    </style>""",unsafe_allow_html=True)
+    st.markdown('<div class="share-head">우리의 감·수·성, 함께 살펴보기</div>',unsafe_allow_html=True)
     st.write('인권적 직무 경험과 소진 경험을 함께 이해하고 오늘의 교육 주제를 정합니다.')
-    st.caption('공유 모드는 선택 기간의 전체 응답을 사용합니다. 교육자 화면의 인구학적 필터는 적용하지 않습니다.')
+    st.markdown('<div class="share-strip">분석 대상: 선택 기간의 전체 교육 응답 · 교육자 화면의 인구학적 필터는 공유 화면에 적용하지 않습니다.</div>',unsafe_allow_html=True)
     choice = st.radio('함께 볼 결과', ['전체 평균']+list(SHARE_DEMOGRAPHICS),horizontal=True,key='share_comparison_choice')
     column = SHARE_DEMOGRAPHICS.get(choice)
+    st.markdown(f'<div class="share-strip">{choice} · 선택 기간 전체 평균을 기준으로 함께 살펴봅니다.</div>',unsafe_allow_html=True)
     left,right = st.columns(2)
     with left:
-        st.markdown('### 🔵 감·수·성 인권감수성')
+        st.markdown('<div class="share-blue">감·수·성 인권감수성　◉ ⚖ ◇</div>',unsafe_allow_html=True)
         st.write('감정·상황 알아차리기 / 근거·절차로 판단하기 / 나의 판단 돌아보기')
         share_chart(share_summary(records),column,False)
         st.caption('높을수록 해당 내용을 자신에게 더 해당한다고 응답했습니다. 작은 차이를 능력의 우열로 해석하지 않습니다.')
     with right:
-        st.markdown('### 🟢 K-BAT 직무소진 경험')
+        st.markdown('<div class="share-green">K-BAT 직무소진 경험　♡</div>',unsafe_allow_html=True)
         st.write('탈진 / 심적거리 / 집중과 생각 정리 / 감정 조절')
         share_chart(share_summary(records,True),column,True)
         st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답만 집계하며 미응답은 0점으로 처리하지 않습니다.')
         with st.expander('소진 용어 쉽게 이해하기'):
             for factor in BAT_FACTORS:
                 st.write(f'{factor}: {BAT_PLAIN_MEANINGS[factor]}')
-    st.info('개인 점수·응답시각은 표시하지 않습니다. 소수 집단과 비교 조합에 따른 추정 가능성을 줄이기 위해 비교가 제한될 수 있습니다.')
-    if len(records)>=5:
+    st.caption('최소 인원 제한 없이 집단 평균을 표시합니다. 한 명인 범주의 평균은 그 사람의 점수와 같으며, 인구정보 조합으로 개인을 짐작할 수 있습니다. 이름·응답시각은 표시하지 않습니다.')
+    if records:
         st.subheader('오늘 함께 다룰 주제 후보')
         priorities = priority_topics(records)
         for col,row in zip(st.columns(3), priorities):
@@ -906,13 +914,16 @@ def render_classroom_share(records):
                 st.write(row['문항'])
                 st.caption('선택 기간 전체 응답에서 영역별로 상대적으로 낮은 문항입니다. 확정된 교육 필요나 결함을 뜻하지 않습니다.')
     st.subheader('함께 이야기할 질문')
-    st.write('① 어떤 경험이 비슷한가요?  ② 차이가 있다면 어떤 업무 여건을 살펴볼까요?  ③ 오늘 무엇을 함께 연습하고 어떤 지원을 요청할까요?')
+    for col, title, detail in zip(st.columns(3), ['어떤 경험이 비슷한가요?', '어떤 업무 여건을 살펴볼까요?', '오늘 무엇을 함께 연습할까요?'], ['공통으로 경험하는 상황을 찾아봅니다.', '차이의 배경을 단정하지 않고 함께 생각합니다.', '실천할 행동과 필요한 지원을 나눕니다.']):
+        with col:
+            st.markdown(f'<div class="share-question"><b>{title}</b><br><br>{detail}</div>',unsafe_allow_html=True)
     st.caption('두 척도는 점수 범위와 의미가 다릅니다. 합산하거나 소진이 인권감수성의 원인이라고 해석하지 않습니다.')
 
 
 def start():
     apply_style()
-    render_brand_header()
+    if not st.session_state.get("classroom_share", False):
+        render_brand_header()
     st.markdown("<div class='notice'>이 화면은 개인의 인권감수성을 평가하거나 인사자료로 활용하기 위한 것이 아닙니다. 익명 응답의 <b>집단 수준 경향</b>을 바탕으로 교육 주제와 진행 방향, 지원 필요를 탐색하기 위한 도구입니다. 소진 경험은 교육뿐 아니라 휴식·업무 부담·조직 지원과 함께 살펴봅니다. 소수 응답의 비교는 변동이 클 수 있으므로, 수치와 현장 맥락을 함께 해석하십시오.</div>", unsafe_allow_html=True)
     require_dashboard_login()
 
