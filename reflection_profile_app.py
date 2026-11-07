@@ -1,10 +1,9 @@
-from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_LABELS, BAT_REFERENCE, BAT_PLAIN_MEANINGS, bat_scores
+from burnout_support import BAT_ITEMS, BAT_COLUMNS, BAT_LABELS, BAT_REFERENCE, BAT_PLAIN_MEANINGS, bat_reference_explanation, bat_scores, render_bat_personal
 import base64
 import io
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
-
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
@@ -18,17 +17,13 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.graphics.shapes import Drawing, Rect
-from reportlab.platypus import PageBreak, Image as RLImage, Paragraph, SimpleDocTemplate
-
-
+from reportlab.graphics.shapes import Drawing, Rect, String, Line
+from reportlab.platypus import PageBreak, Image as RLImage, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 st.set_page_config(
-    page_title="감·수·성 모델로 돌아보는 나의 인권감수성",
+    page_title="감·수·성으로 돌아보는 나의 인권 직무 경험",
     page_icon="🫶",
     layout="centered",
-)
-
-# 배포 전에 실제 IRB 승인 내용으로 바꾸십시오.
+)# 배포 전에 실제 IRB 승인 내용으로 바꾸십시오.
 RESEARCH_TITLE = "감·수·성 인권적 직무판단 척도의 독립표본 타당화 연구"
 IRB_APPROVAL_NO = "보건복지부 지정 공용기관생명윤리위원회의 승인(IRB No. P01-202602-01-030)"
 PRINCIPAL_INVESTIGATOR = "이성덕"
@@ -40,13 +35,10 @@ LOGO_PATH = Path(__file__).with_name("gam_su_seong_logo.png")
 BACKGROUND_PATH = Path(__file__).with_name("human_rights_background.png")
 HERO_DESKTOP_PATH = Path(__file__).with_name("hero_background_desktop.png")
 HERO_MOBILE_PATH = Path(__file__).with_name("hero_background_mobile.png")
-
-
 def image_data_uri(path):
     if not path.exists():
         return ""
     return f"data:image/png;base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
-
 st.markdown(
     """
 <style>
@@ -101,9 +93,7 @@ st.markdown(
 </style>
 """,
     unsafe_allow_html=True,
-)
-
-background_data_uri = image_data_uri(BACKGROUND_PATH)
+)background_data_uri = image_data_uri(BACKGROUND_PATH)
 if background_data_uri:
     st.markdown(
         f"""
@@ -127,13 +117,10 @@ if background_data_uri:
 """,
         unsafe_allow_html=True,
     )
-
 # Streamlit의 Markdown 블록은 서로 독립적으로 렌더링됩니다. 따라서 첫 화면은
 # 빈 .hero div가 아니라 앱 전체에 전용 배경을 적용해야 실제 콘텐츠 뒤에 보입니다.
 hero_desktop_data_uri = image_data_uri(HERO_DESKTOP_PATH)
 hero_mobile_data_uri = image_data_uri(HERO_MOBILE_PATH) or hero_desktop_data_uri
-
-
 def apply_intro_background():
     """첫 화면에만 전용 배경을 적용하고, 텍스트는 개별 반투명 카드 위에 보이게 합니다."""
     if not hero_desktop_data_uri:
@@ -164,16 +151,12 @@ def apply_intro_background():
 """,
         unsafe_allow_html=True,
     )
-
-
 SCALE_LABELS = {
     1: "전혀 그렇지 않다",
     2: "그렇지 않은 편이다",
     3: "그런 편이다",
     4: "매우 그렇다",
-}
-
-ITEMS = [
+}ITEMS = [
     (1, "감", "공감적 이해", "수용자가 소란을 피울 때, 그 안에 두려움이나 불안이 있을 수 있다고 생각한다."),
     (2, "감", "정서 인식", "수용자의 말투나 표정을 보며 화남, 슬픔, 걱정 같은 감정을 쉽게 떠올린다."),
     (3, "감", "공감적 이해", "수용자의 감정을 단정하지 않고, 대화나 관찰로 다시 확인하려 한다."),
@@ -199,12 +182,28 @@ ITEMS = [
     (23, "성", "자기점검·조정", "내가 느낀 감정이 실제 상황 때문이 아니라, 내 피로나 스트레스로 인해 과장된 것일 수도 있다고 생각한다."),
     (24, "성", "권위·관행 성찰", "동료들이 정신건강 문제가 있는 수용자에게 강하게 말할 때, 나도 그 분위기에 휩쓸린 적이 없는지 다시 생각해 본다."),
     (25, "성", "편견 성찰", "나는 정신건강 문제가 있는 수용자를 문제 수용자로 단정하지 않으려고 노력한다."),
-]
-
-# 논문의 원문항 번호를 보존하기 위한 대응표(Q12와 Q25는 논문에서 삭제됨)
+]# 논문의 원문항 번호를 보존하기 위한 대응표(Q12와 Q25는 논문에서 삭제됨)
 ORIGINAL_ITEM_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27]
-
-SUBDOMAIN_FEEDBACK = {
+FACTOR_META = {
+    "감": {
+        "title": "감(感) — 정서적·상황적 인식",
+        "question": "무엇을 알아차리고 있는가?",
+        "meaning": "자신과 수용자의 감정·정서 신호를 알아차리고, 취약성과 인권침해 가능성의 맥락에서 이해하는 판단영역입니다.",
+        "practice": "반응하기 전에 표정·말투·행동의 변화를 관찰하고, 감정을 단정하지 않은 채 확인 질문을 한 번 해보세요.",
+    },
+    "수": {
+        "title": "수(受) — 규범적·전문적 판단",
+        "question": "어떤 기준으로 판단하고 있는가?",
+        "meaning": "상황정보를 목적·필요성·비례성·적법절차에 따라 검토하고, 전문적 협력을 통해 정당화 가능한 대응을 선택하는 판단영역입니다.",
+        "practice": "조치 전에 ‘목적은 무엇인가, 덜 제한적인 방법은 없는가, 절차와 전문가 협력이 필요한가’를 확인해 보세요.",
+    },
+    "성": {
+        "title": "성(性) — 성찰적 점검·조정",
+        "question": "내 판단을 무엇이 움직이고 있는가?",
+        "meaning": "편견·피로·감정·동료 압력·조직의 권위와 관행이 판단에 미치는 영향을 점검하고 필요한 경우 조정하는 판단영역입니다.",
+        "practice": "강한 감정이 들었던 사건 하나를 골라 사실, 나의 감정, 판단 근거, 동료 분위기를 분리해 짧게 기록해 보세요.",
+    },
+}SUBDOMAIN_FEEDBACK = {
     "정서 인식": "나와 상대의 감정을 구체적으로 알아차리고 이름 붙이는 연습",
     "공감적 이해": "수용자의 감정을 추정하되 단정하지 않고 질문과 관찰로 확인하는 연습",
     "취약성 이해": "정신건강·장애·위기 상태가 행동과 의사소통에 미치는 영향을 사례로 학습",
@@ -214,8 +213,28 @@ SUBDOMAIN_FEEDBACK = {
     "편견 성찰": "집단명칭이나 과거 기록보다 현재의 개인과 상황을 먼저 보는 연습",
     "권위·관행 성찰": "동료 압력과 관행을 사실상의 정답으로 받아들이지 않고 판단 근거를 언어화",
     "자기점검·조정": "피로와 스트레스가 반응 강도에 미치는 영향을 점검하고 행동을 조정",
-}
-
+}PRACTICE_GUIDES = {
+    "감": {
+        "title": "감(感) 연습 — 고통·취약성의 신호 알아차리기",
+        "steps": "그때 나와 상대에게 나타난 감정·표정·말투·행동을 구체적으로 적고, 그 신호가 존엄·안전·보호 필요성과 어떻게 연결되는지 한 문장으로 써 보세요.",
+    },
+    "수": {
+        "title": "수(受) 연습 — 목적·필요성·절차를 다시 설계하기",
+        "steps": "내 조치의 목적과 법적·직무상 근거를 적은 뒤, 덜 제한적인 대안, 필요한 절차, 의료·심리 등 전문적 협력의 필요성을 차례로 점검해 보세요.",
+    },
+    "성": {
+        "title": "성(性) 연습 — 편견·권위·피로의 영향 점검하기",
+        "steps": "내 판단에 피로, 과거 경험, 동료 분위기, 권위나 관행이 미친 영향을 적고, 상대방의 권리와 관계에 미칠 결과를 고려한 다음 행동을 한 가지 정해 보세요.",
+    },
+}INTEGRATED_PRACTICE = (
+    "최근 불편하거나 긴장되었던 수용자 대응 상황 하나를 떠올려 보십시오. "
+    "① 감(感): 나와 상대는 어떤 감정·고통·취약성을 경험했는가? "
+    "② 수(受): 나의 대응은 목적, 필요성, 침해 최소성, 절차 및 전문적 협력의 기준에 비추어 적절했는가? "
+    "③ 성(性): 피로, 선입견, 동료 분위기, 권위나 관행이 내 판단에 영향을 주지는 않았는가? 다음에는 무엇을 조정할 것인가?"
+)COMMON_REFLECTION_QUESTION = (
+    "위 세 문항과 관련하여, 최근 이를 실천하기 어려웠던 경험을 떠올려 보십시오. "
+    "그때 개인의 감정·피로, 업무절차, 인력·조직지원 중 무엇이 영향을 주었으며, 다음에는 무엇을 다르게 조정해 볼 수 있습니까?"
+)MENTAL_ITEMS = {7, 8, 9, 15, 16, 17, 24, 25}
 DEMOGRAPHIC_OPTIONS = {
     "gender": ["남성", "여성", "응답하지 않음"],
     "age": ["20대", "30대", "40대", "50대 이상", "응답하지 않음"],
@@ -224,9 +243,7 @@ DEMOGRAPHIC_OPTIONS = {
     "career": ["5년 미만", "5~10년 미만", "10~20년 미만", "20년 이상", "응답하지 않음"],
     "hr_education": ["없음", "1회", "2~3회", "4회 이상", "응답하지 않음"],
     "mental_education": ["없음", "1회", "2회 이상", "응답하지 않음"],
-}
-
-DEMOGRAPHIC_LABELS = {
+}DEMOGRAPHIC_LABELS = {
     "gender": "성별",
     "age": "연령대",
     "rank": "직급",
@@ -234,31 +251,45 @@ DEMOGRAPHIC_LABELS = {
     "career": "교정 경력",
     "hr_education": "최근 3년간 인권교육 경험",
     "mental_education": "정신건강 관련 교육 경험",
-}
-
-
-def factor_means(answers):
+}def factor_means(answers):
     grouped = {"감": [], "수": [], "성": []}
     for number, factor, _, _ in ITEMS:
         grouped[factor].append(answers[number])
     return {factor: round(float(np.mean(values)), 2) for factor, values in grouped.items()}
-
-
 def subdomain_means(answers):
     grouped = {}
     for number, _, subdomain, _ in ITEMS:
         grouped.setdefault(subdomain, []).append(answers[number])
     return {name: round(float(np.mean(values)), 2) for name, values in grouped.items()}
-
-
 def mental_factor_means(answers):
     grouped = {"감": [], "수": [], "성": []}
     for number, factor, _, _ in ITEMS:
-        if number in {7, 8, 9, 15, 16, 17, 24, 25}:
+        if number in MENTAL_ITEMS:
             grouped[factor].append(answers[number])
     return {factor: round(float(np.mean(values)), 2) for factor, values in grouped.items()}
-
-
+def profile_summary(scores, tolerance=0.30):
+    max_score = max(scores.values())
+    min_score = min(scores.values())
+    high_factors = [name for name, value in scores.items() if value == max_score]
+    low_factors = [name for name, value in scores.items() if value == min_score]
+    spread = max_score - min_score
+    if spread < tolerance:
+        return {
+            "label": "비교적 균형적인 프로파일",
+            "lead": "세 판단영역의 문항평균 차이가 크지 않습니다.",
+            "detail": "특정 영역의 우열을 뜻하지 않으며, 실제 사례에서는 세 판단영역을 어떤 순서와 근거로 연결하는지 돌아보는 것이 좋습니다.",
+            "focus": high_factors,
+            "growth": low_factors,
+        }
+    high_text = "·".join(high_factors)
+    low_text = "·".join(low_factors)
+    return {
+        "label": "영역별 차이가 나타난 프로파일",
+        "lead": f"응답상 ‘{high_text}’ 영역을 상대적으로 익숙하게 활용하는 경향이 나타났으며, ‘{low_text}’ 영역은 더 의식적으로 성찰해 볼 여지가 있습니다.",
+        "detail": "이 차이는 능력의 우열이나 결함을 뜻하지 않습니다. 자기보고식 응답에서 나타난 개인 내부의 상대적 경향입니다.",
+        "focus": high_factors,
+        "growth": low_factors,
+    }
 def reflection_items(answers, limit=3):
     """낮은 응답 중 감·수·성이 가능한 한 고르게 포함되도록 문항을 고릅니다."""
     values = list(answers.values())
@@ -278,8 +309,18 @@ def reflection_items(answers, limit=3):
         if len(selected) == limit:
             break
     return selected
-
-
+def practice_topics(answers):
+    """상대적으로 더 살펴볼 응답을 감·수·성별 연습주제로 바꿉니다. 별도 하위척도 판정은 하지 않습니다."""
+    selected = reflection_items(answers)
+    return [
+        {
+            "factor": factor,
+            "item": text,
+            "title": PRACTICE_GUIDES[factor]["title"],
+            "steps": PRACTICE_GUIDES[factor]["steps"],
+        }
+        for _, factor, _, text in selected
+    ]
 def google_sheet():
     """Streamlit Secrets의 서비스 계정으로 연구자료 시트에 연결합니다."""
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -289,8 +330,6 @@ def google_sheet():
     client = gspread.authorize(credentials)
     spreadsheet_key = st.secrets["google_sheets"]["spreadsheet_key"]
     return client.open_by_key(spreadsheet_key).worksheet(WORKSHEET_NAME)
-
-
 def research_row(answers, demographics):
     scores = factor_means(answers)
     sub_scores = subdomain_means(answers)
@@ -316,11 +355,9 @@ def research_row(answers, demographics):
     burnout = st.session_state.get("burnout_answers", {})
     if bat_scores(burnout) is None:
         raise ValueError("직무소진 22문항을 모두 응답해 주세요.")
-    headers += [*BAT_COLUMNS, "소진설문버전"]
+    headers += BAT_COLUMNS + ["소진설문버전"]
     values += [burnout[c] for c in BAT_COLUMNS] + ["K-BAT22-table3-v1"]
     return headers, values
-
-
 def save_research_response(answers, demographics):
     sheet = google_sheet()
     headers, values = research_row(answers, demographics)
@@ -337,8 +374,6 @@ def save_research_response(answers, demographics):
             sheet.resize(cols=len(headers))
         sheet.update(range_name="A1", values=[headers], value_input_option="RAW")
     sheet.append_row(values, value_input_option="RAW")
-
-
 def find_korean_font():
     candidates = [
         Path(__file__).parent / "fonts" / "NanumGothicCoding.ttf",
@@ -354,11 +389,7 @@ def find_korean_font():
         except (FileNotFoundError, RuntimeError):
             continue
     return None
-
-
 KOREAN_FONT_PATH = find_korean_font()
-
-
 def radar_png(scores):
     labels = ["감", "수", "성"]
     values = [scores[label] for label in labels]
@@ -387,114 +418,204 @@ def radar_png(scores):
     plt.close(fig)
     buf.seek(0)
     return buf
-
-
-SCENE_PROMPT = "최근 수용자에게 대응했던 근무 장면 하나를 떠올려 보세요."
-SCENE_QUESTIONS = {
-    "감 · 알아차림": "그때 나와 상대에게 어떤 감정이나 도움이 필요한 신호가 있었나요?",
-    "수 · 판단": "내 조치는 왜 필요했고, 어떤 절차나 권리를 덜 제한하는 방법을 고려했나요?",
-    "성 · 성찰과 조정": "내 피로, 선입견, 동료 분위기는 대응에 어떤 영향을 주었고, 다음에는 무엇을 조정할까요?",
-}
-RECOVERY_QUESTION = "최근 근무에서 회복이나 지원이 가장 필요했던 순간은 언제였나요?"
-BURNOUT_NAMES = {
-    "탈진": "몸과 마음의 탈진",
-    "심적거리": "일에 대한 거리감",
-    "인지적 조절 손상": "집중과 기억의 어려움",
-    "정서적 조절 손상": "감정 조절의 어려움",
-}
-PROFILE_NOTE = "세 수치는 이번 자기보고 응답의 영역별 평균(1~4점)입니다. 성찰을 위한 참고자료로 활용해 주세요."
-BURNOUT_NOTE = "각 영역은 1~5점의 문항평균입니다. 값이 높을수록 해당 경험을 더 자주 보고한 것으로 해석합니다."
-REFERENCE_NOTE = "공기업 사무직 345명의 선행연구 결과입니다. 평균 ± 1표준편차는 해당 표본의 점수 분포를 설명하는 참고값입니다. 교정공무원 규준이나 정상·위험 판정 기준으로 사용하지 않습니다."
-
-
-def make_result_pdf(scores, action_plan, burnout):
-    from xml.sax.saxutils import escape
-    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
-    from reportlab.pdfbase.ttfonts import TTFError
-
+def make_result_pdf(scores, sub_scores, answers, action_plan, burnout_answers=None):
     buffer = io.BytesIO()
-    font = "HYSMyeongJo-Medium"
-    pdfmetrics.registerFont(UnicodeCIDFont(font))
+    font_name = "Helvetica"
     if KOREAN_FONT_PATH:
         try:
             pdfmetrics.registerFont(TTFont("KoreanFont", KOREAN_FONT_PATH))
-            font = "KoreanFont"
-        except (TTFError, OSError, ValueError):
+            font_name = "KoreanFont"
+        except Exception:
             pass
-
     styles = getSampleStyleSheet()
-    body = ParagraphStyle("ResultBody", parent=styles["BodyText"], fontName=font,
-                          fontSize=10, leading=16, wordWrap="CJK", spaceAfter=5)
-    heading = ParagraphStyle("ResultHeading", parent=body, fontSize=13,
-                             leading=19, spaceBefore=9, textColor=HexColor("#164b79"))
-    title = ParagraphStyle("ResultTitle", parent=heading, fontSize=18, leading=25)
-    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=18*mm, rightMargin=18*mm,
-                            topMargin=17*mm, bottomMargin=17*mm)
-    def draw_background(canvas, page):
+    navy = HexColor("#164b79")
+    sky = HexColor("#43a7dd")
+    pale_sky = HexColor("#eaf7ff")
+    line_blue = HexColor("#b9dff3")
+    ink = HexColor("#25445d")
+    muted = HexColor("#607589")
+    title_style = ParagraphStyle("KTitle", parent=styles["Title"], fontName=font_name, fontSize=19, leading=25, textColor=navy, alignment=1, spaceAfter=3)
+    subtitle_style = ParagraphStyle("KSubtitle", parent=styles["BodyText"], fontName=font_name, fontSize=8.5, leading=12, textColor=muted, alignment=1, spaceAfter=10)
+    h_style = ParagraphStyle("KH", parent=styles["Heading2"], fontName=font_name, fontSize=12.5, leading=17, textColor=navy, spaceBefore=8, spaceAfter=5)
+    body_style = ParagraphStyle("KBody", parent=styles["BodyText"], fontName=font_name, fontSize=9.2, leading=13.5, wordWrap="CJK", textColor=ink, spaceAfter=4)
+    small_style = ParagraphStyle("KSmall", parent=body_style, fontSize=8, leading=12, textColor=muted)
+    centered_body = ParagraphStyle("KCentered", parent=body_style, alignment=1, spaceAfter=0)
+    def draw_report_background(pdf_canvas, pdf_doc):
+        """설문 첫 화면의 하늘색·산 실루엣 분위기를 PDF에도 일관되게 적용한다."""
         width, height = A4
-        canvas.saveState()
-        canvas.setFillColor(HexColor("#f7fcff"))
-        canvas.rect(0, 0, width, height, fill=1, stroke=0)
-        canvas.setFillColor(HexColor("#dff1fb"))
-        ridge = canvas.beginPath()
+        pdf_canvas.saveState()
+        pdf_canvas.setFillColor(HexColor("#f7fcff"))
+        pdf_canvas.rect(0, 0, width, height, stroke=0, fill=1)
+        # 상단의 옅은 하늘빛 띠와 하단의 산 실루엣
+        pdf_canvas.setFillColor(HexColor("#edf8fe"))
+        pdf_canvas.rect(0, height - 30*mm, width, 30*mm, stroke=0, fill=1)
+        pdf_canvas.setFillColor(HexColor("#dff1fb"))
+        mountain = pdf_canvas.beginPath()
+        mountain.moveTo(0, 0)
+        mountain.curveTo(35*mm, 22*mm, 54*mm, 13*mm, 81*mm, 26*mm)
+        mountain.curveTo(112*mm, 42*mm, 144*mm, 13*mm, width, 30*mm)
+        mountain.lineTo(width, 0)
+        mountain.close()
+        pdf_canvas.drawPath(mountain, stroke=0, fill=1)
+        pdf_canvas.setFillColor(HexColor("#cce8f8"))
+        ridge = pdf_canvas.beginPath()
         ridge.moveTo(0, 0)
-        ridge.curveTo(40*mm, 20*mm, 65*mm, 9*mm, 100*mm, 16*mm)
-        ridge.curveTo(140*mm, 25*mm, 175*mm, 8*mm, width, 19*mm)
+        ridge.curveTo(48*mm, 11*mm, 83*mm, 6*mm, 117*mm, 18*mm)
+        ridge.curveTo(150*mm, 30*mm, 177*mm, 8*mm, width, 15*mm)
         ridge.lineTo(width, 0)
         ridge.close()
-        canvas.drawPath(ridge, fill=1, stroke=0)
-        canvas.setFillColor(HexColor("#164b79"))
-        canvas.setFont(font, 8)
-        canvas.drawString(18*mm, 8*mm, "감·수·성 자기성찰 참고자료")
-        canvas.drawRightString(width - 18*mm, 8*mm, str(page.page))
-        canvas.restoreState()
-
-    score_line = "  ·  ".join(f"{factor} {score:.2f}" for factor, score in scores.items())
-    story = [
-        Paragraph("나의 감·수·성 인권감수성과 직무소진", title),
-        Paragraph("감·수·성 인권감수성 모델을 활용한 자기성찰 참고자료", body),
-        Paragraph("감·수·성 결과", heading),
-        Paragraph(score_line, body),
-        Paragraph(PROFILE_NOTE, body),
-        RLImage(radar_png(scores), width=45*mm, height=45*mm, kind="proportional"),
-        Paragraph("직무소진 결과", heading),
-    ]
-    if LOGO_PATH.is_file():
-        story.insert(0, RLImage(str(LOGO_PATH), width=13*mm, height=13*mm, kind="proportional"))
-    if burnout is None:
-        story.append(Paragraph("직무소진 결과를 산출할 수 없습니다.", body))
+        pdf_canvas.drawPath(ridge, stroke=0, fill=1)
+        pdf_canvas.setStrokeColor(HexColor("#75c0e8"))
+        pdf_canvas.setLineWidth(0.6)
+        pdf_canvas.line(18*mm, height - 17*mm, 48*mm, height - 17*mm)
+        pdf_canvas.setFillColor(HexColor("#4d87ad"))
+        pdf_canvas.setFont(font_name, 7.5)
+        pdf_canvas.drawCentredString(width / 2, 18*mm, "© 2026 이성덕. All rights reserved.  |  감·수·성 로고 상표출원(심사 중)")
+        pdf_canvas.drawRightString(width - 18*mm, 12*mm, f"감·수·성 인권감수성 프로파일 · 자기성찰 참고자료  |  {pdf_doc.page}")
+        pdf_canvas.restoreState()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=23*mm, bottomMargin=22*mm)
+    brand_style = ParagraphStyle("KBrand", parent=body_style, fontSize=10, leading=13, textColor=sky, alignment=0, spaceAfter=0)
+    if LOGO_PATH.exists():
+        logo = RLImage(str(LOGO_PATH), width=15*mm, height=15*mm, kind="proportional")
+        header_data = [[logo, Paragraph("감·수·성", brand_style)]]
+        header_widths = [25*mm, 149*mm]
     else:
-        story.append(Paragraph(BURNOUT_NOTE, body))
-        for factor, value in burnout.items():
-            story.append(Paragraph(f"{BURNOUT_NAMES[factor]} {value:.2f}", body))
-            chart_width = doc.width - 12
-            chart = Drawing(chart_width, 9)
-            chart.add(Rect(0, 2, chart_width, 6, fillColor=HexColor("#e3f0e8"), strokeColor=None))
-            chart.add(Rect(0, 2, chart_width * value / 5, 6,
-                           fillColor=HexColor("#409773"), strokeColor=None))
-            story.append(chart)
-
-    story += [PageBreak(), Paragraph("한 장면을 감·수·성으로 다시 보기", title),
-              Paragraph(SCENE_PROMPT, body)]
-    for label, question in SCENE_QUESTIONS.items():
-        story.append(Paragraph(f"{label} — {question}", body))
-    story += [
-        Paragraph("다음 근무에서 해볼 한 가지", heading),
-        Paragraph(escape(action_plan.strip()).replace("\n", "<br/>") or "작성한 내용이 없습니다.", body),
-        Paragraph("회복과 지원 돌아보기", heading),
-        Paragraph(RECOVERY_QUESTION, body),
-        Paragraph("참고자료", heading),
-        Paragraph(f'<link href="{SCALE_PAPER_URL}">감·수·성 예비척도 개발 논문</link>', body),
+        header_data = [[Paragraph("감·수·성", ParagraphStyle("KBrandCentered", parent=brand_style, alignment=1))]]
+        header_widths = [174*mm]
+    header = Table(header_data, colWidths=header_widths)
+    header.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), pale_sky), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (0, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+    story = [
+        header,
+        Spacer(1, 4*mm),
+        Paragraph("나의 감·수·성 인권감수성 프로파일", title_style),
+        Paragraph("인권적 직무판단의 자기성찰과 직무소진 자기점검", subtitle_style),
+        Paragraph(f"자기성찰 참고자료 · 작성 시각 {datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M')}", subtitle_style),
     ]
+    notice = Table([[Paragraph("이 자료는 교정현장에서 자신의 판단 경향을 돌아보고, 교육에서 함께 다룰 주제를 찾기 위한 자기성찰 참고자료입니다. 개인의 인권 수준이나 직무역량을 판정하거나 등급을 매기지 않습니다.", body_style)]], colWidths=[174*mm])
+    notice.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), HexColor("#ffffff")), ("BOX", (0, 0), (-1, -1), 0.7, line_blue), ("LINEBEFORE", (0, 0), (0, -1), 3, sky), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
+    story += [notice, Spacer(1, 5*mm), Paragraph("나의 세 영역 한눈에 보기", h_style)]
+    score_data = [["영역", "문항평균", "스스로 던져 볼 핵심 질문"], ["감(感)", f"{scores['감']:.2f}", FACTOR_META['감']['question']], ["수(受)", f"{scores['수']:.2f}", FACTOR_META['수']['question']], ["성(性)", f"{scores['성']:.2f}", FACTOR_META['성']['question']]]
+    table = Table(score_data, colWidths=[32*mm, 30*mm, 112*mm])
+    table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, -1), font_name), ("FONTSIZE", (0, 0), (-1, 0), 9), ("FONTSIZE", (0, 1), (-1, -1), 9.2),
+        ("BACKGROUND", (0, 0), (-1, 0), navy), ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#ffffff")),
+        ("BACKGROUND", (0, 1), (-1, 1), HexColor("#f4fbff")), ("BACKGROUND", (0, 2), (-1, 2), HexColor("#eaf7ff")), ("BACKGROUND", (0, 3), (-1, 3), HexColor("#f4fbff")),
+        ("GRID", (0, 0), (-1, -1), 0.45, line_blue), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (1, -1), "CENTER"), ("TEXTCOLOR", (0, 1), (0, -1), navy),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+    ]))
+    story += [table, Spacer(1, 4*mm)]
+    summary = profile_summary(scores)
+    triangle_chart = RLImage(radar_png(scores), width=52*mm, height=52*mm, kind="proportional")
+    profile_card = Table(
+        [[triangle_chart, Paragraph(f"<b>{summary['label']}</b><br/><br/>{summary['lead']}<br/>{summary['detail']}", body_style)]],
+        colWidths=[62*mm, 112*mm],
+    )
+    profile_card.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), HexColor("#f7fcff")), ("BOX", (0, 0), (-1, -1), 0.6, line_blue),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 9), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story += [Paragraph("나의 삼각형 프로파일", h_style), profile_card]
+    for factor in ["감", "수", "성"]:
+        meta = FACTOR_META[factor]
+        story.append(KeepTogether([
+            Paragraph(meta["title"], h_style),
+            Paragraph(meta["meaning"], body_style),
+            Paragraph(f"실천 제안: {meta['practice']}", body_style),
+        ]))
+    story += [Paragraph("한 사례를 감·수·성으로 다시 보기", h_style), Paragraph(INTEGRATED_PRACTICE, body_style)]
+    story += [Paragraph("결과에 연결한 연습주제", h_style)]
+    topics = practice_topics(answers)
+    if topics:
+        for topic in topics:
+            story += [Paragraph(f"<b>{topic['title']}</b>", body_style), Paragraph(f"연결 문항: {topic['item']}", body_style), Paragraph(topic['steps'], body_style)]
+    else:
+        story.append(Paragraph("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 우선순위로 정하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 돌아보십시오.", body_style))
+    story += [Paragraph("지금 성찰해 볼 세 문항", h_style)]
+    selected_items = reflection_items(answers)
+    if selected_items:
+        for number, factor, _, text in selected_items:
+            story.append(Paragraph(f"{number}. [{factor}] {text}", body_style))
+        story += [Paragraph("성찰 질문", h_style), Paragraph(COMMON_REFLECTION_QUESTION, body_style)]
+    else:
+        story.append(Paragraph("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 임의로 제시하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 성찰해 보십시오.", body_style))
+    action_card = Table([[Paragraph(action_plan.strip() if action_plan.strip() else "아직 작성하지 않았습니다.", body_style)]], colWidths=[174*mm])
+    action_card.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), HexColor("#f7fcff")), ("BOX", (0, 0), (-1, -1), 0.6, line_blue), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
+    story += [Paragraph("나의 한 가지 행동계획", h_style), action_card, Spacer(1, 5*mm), Paragraph("해석상 주의", h_style), Paragraph("영역 간 작은 점수 차이는 의미 있는 차이라고 단정할 수 없습니다. 다른 사람·기관과의 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단, 인권침해 가능성 예측에 사용할 수 없습니다. 점수는 최근 경험과 자기인식, 조직환경 및 사회적 바람직성의 영향을 받을 수 있습니다.", small_style)]
+    reference_style = ParagraphStyle("GamReference", parent=small_style, fontSize=7.8, leading=10.5, spaceAfter=3)
+    story.append(KeepTogether([
+        Paragraph("감·수·성 프로파일의 근거 논문", h_style),
+        Paragraph('이성덕(2026). 감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토. 교정연구, 36(2), 3-27.', reference_style),
+        Paragraph(f'<link href="{SCALE_PAPER_URL}" color="#164b79">척도 논문 원문 보기 · {SCALE_PAPER_URL}</link>', reference_style),
+        Paragraph('이 결과지의 25문항과 세 영역 구성의 직접 근거입니다. 독립표본 후속 검증 전에는 교육 요구 탐색을 위한 연구적·보조적 자료로 활용합니다.', reference_style),
+        Paragraph('모델의 이론적 배경: <link href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003245299" color="#164b79">감정 기반 인권 감수성 교육의 새로운 패러다임: 감·수·성 모델의 이론적 정립과 철학적 기초</link>', reference_style),
+        Paragraph('헌법적 해석과 교육적 함의: <link href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003327070" color="#164b79">감·수·성 인권감수성 모델을 통한 헌법 원리의 해석학적 탐색과 교육적 함의</link>', reference_style),
+    ]))
+    burnout = bat_scores(burnout_answers or {})
+    bat_body = ParagraphStyle("BATBody", parent=body_style, fontSize=9, leading=13, spaceAfter=3)
+    bat_small = ParagraphStyle("BATSmall", parent=small_style, fontSize=7.8, leading=10.5, spaceAfter=3)
+    bat_heading = ParagraphStyle("BATHeading", parent=h_style, fontSize=11.5, leading=15, spaceBefore=7, spaceAfter=4)
     if burnout is not None:
-        story.append(Paragraph(REFERENCE_NOTE, body))
+        story += [PageBreak(), Paragraph("나의 직무소진 경험 돌아보기", title_style),
+                  Paragraph("K-BAT 22문항 · 네 영역별 개인 결과", subtitle_style),
+                  Paragraph("앞의 감·수·성 결과와 함께 자신의 근무 경험을 돌아보기 위한 자료입니다. 소진은 1~5점 척도이며, 점수가 높을수록 해당 경험을 많이 보고한 것입니다. 감·수·성의 4점 점수와 직접 비교하지 않습니다.", bat_body)]
+        meanings = {
+            "탈진": ("정신적·신체적 에너지 고갈과 회복의 어려움", "근무 후 회복시간과 수면을 점검하고, 피로가 누적될 때 업무량·휴식 여건의 조정을 상의해 보십시오."),
+            "심적거리": ("업무에 대한 무관심·냉소와 심리적 거리", "업무에서 부담을 느낀 상황을 살피고, 동료와의 지지·역할 조정 등 활용 가능한 자원을 확인해 보십시오."),
+            "인지적 조절 손상": ("집중·기억·명료한 사고의 어려움", "집중이 흐려지는 상황을 점검하고, 확인표·중요 업무 재확인·방해요인 줄이기를 활용해 보십시오."),
+            "정서적 조절 손상": ("감정 인식·조절의 어려움과 과도한 반응", "감정 변화의 신호를 알아차리고 잠시 멈추기·감정 이름 붙이기·도움 요청을 연습해 보십시오."),
+        }
+        data = [[Paragraph(x, centered_body) for x in ["영역", "나의 평균", "참고 평균", "연구 참고범위", "차이<br/>(나 - 참고)"]]]
+        for factor, value in burnout.items():
+            reference, sd = BAT_REFERENCE[factor]
+            data.append([Paragraph(factor, bat_body), f"{value:.2f}", f"{reference:.2f}", f"{reference-sd:.2f} ~ {reference+sd:.2f}", f"{value-reference:+.2f}"])
+        bat_table = Table(data, colWidths=[44*mm, 27*mm, 27*mm, 46*mm, 30*mm])
+        bat_table.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (-1, -1), font_name), ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("BACKGROUND", (0, 0), (-1, 0), pale_sky), ("GRID", (0, 0), (-1, -1), .4, line_blue),
+            ("ALIGN", (1, 1), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        story += [Spacer(1, 4*mm), bat_table, Spacer(1, 3*mm),
+                  Paragraph("참고 연구는 공기업 사무직 345명의 결과입니다. 참고범위는 연구 평균을 중심으로 점수의 퍼짐을 반영해 계산했습니다(평균 ± 1표준편차). 논문이 정한 정상범위나 위험 기준이 아닙니다. 교도관과 직무·응답지침이 다르므로 참고로만 보십시오.", bat_small)]
+        chart = Drawing(174*mm, 42*mm)
+        left, bar_width = 65*mm, 95*mm
+        for tick in range(6):
+            x = left + bar_width*tick/5
+            chart.add(Line(x, 9*mm, x, 40*mm, strokeColor=line_blue, strokeWidth=.4))
+            chart.add(String(x, 4*mm, str(tick), fontName=font_name, fontSize=8, textAnchor="middle", fillColor=muted))
+        for index, (factor, value) in enumerate(burnout.items()):
+            y = (33-index*8)*mm
+            chart.add(String(0, y+2*mm, factor, fontName=font_name, fontSize=8.5, fillColor=ink))
+            chart.add(Rect(left, y, bar_width*value/5, 7*mm, fillColor=sky, strokeColor=None))
+            reference_x = left + bar_width*BAT_REFERENCE[factor][0]/5
+            chart.add(Line(reference_x, y-1*mm, reference_x, y+8*mm, strokeColor=navy, strokeWidth=1.8))
+            chart.add(String(left+bar_width+3*mm, y+2*mm, f"{value:.2f}", fontName=font_name, fontSize=9, fillColor=navy))
+        story += [Paragraph("네 영역의 문항평균", bat_heading), chart,
+                  Paragraph("파란 막대: 나의 점수 / 짙은 세로선: 선행연구 평균. 응답·평균 범위는 1~5점(축은 0~5점)입니다. 참고 평균이나 범위 위·아래라는 사실만으로 정상·위험을 판정하지 않습니다.", bat_small),
+                  PageBreak(), Paragraph("소진 점수, 이렇게 읽어보세요", title_style),
+                  Paragraph("점수는 나의 자질을 평가하는 성적표가 아닙니다. 어떤 근무 경험을 보고했는지 살펴보고, 회복과 지원이 필요한 부분을 돌아보는 참고자료입니다.", bat_body)]
         for factor in burnout:
-            mean, sd = BAT_REFERENCE[factor]
-            story.append(Paragraph(f"{BURNOUT_NAMES[factor]} · 평균 {mean:.2f} · 평균 ± 1표준편차 {mean-sd:.2f}~{mean+sd:.2f}", body))
-        story.append(Paragraph('<link href="https://doi.org/10.24230/kjiop.v33i4.461-499">한국판 K-BAT 타당화 예비연구</link>', body))
-    doc.build(story, onFirstPage=draw_background, onLaterPages=draw_background)
+            meaning, practice = meanings[factor]
+            story.append(KeepTogether([
+                Paragraph(f"<b>{factor}</b>", bat_heading),
+                Paragraph(BAT_PLAIN_MEANINGS[factor], bat_body),
+                Paragraph(bat_reference_explanation(factor, burnout[factor]), bat_body),
+                Paragraph(f"돌아볼 점: {practice}", bat_body),
+            ]))
+        story += [Paragraph("결과를 활용하는 방법", bat_heading),
+                  Paragraph("이 결과는 자기보고에 근거한 교육용 피드백입니다. 총점·정상/위험 등급·의학적 진단을 산출하지 않으며 개인의 자질이나 직무 적합성을 판단하지 않습니다. 소진 경험은 개인의 대처뿐 아니라 근무강도·교대근무·조직의 지원 여건과 함께 살펴볼 필요가 있습니다. 어려움이 지속되어 생활이나 업무에 지장이 있다면 이용 가능한 상담·보건 지원을 검토해 보십시오.", bat_small),
+                  Paragraph("참고 연구와 설명의 근거", bat_heading),
+                  Paragraph('조수현(2020). 한국판 직무소진평가척도(K-BAT) 타당화를 위한 예비연구. 표 3·5. <link href="https://doi.org/10.24230/kjiop.v33i4.461-499" color="#164b79">논문 보기</link>', bat_small),
+                  Paragraph('Schaufeli, Desart, De Witte(2020). BAT 개발·타당도·신뢰도 연구. <link href="https://doi.org/10.3390/ijerph17249495" color="#164b79">논문 보기</link>', bat_small),
+                  Paragraph('Schaufeli, De Witte, Desart. BAT 사용자 안내서, 버전 2.0(2020년 7월판). <link href="https://burnoutassessmenttool.be/wp-content/uploads/2020/08/User-Manual-BAT-version-2.0.pdf" color="#164b79">안내서 보기</link>', bat_small),
+                  Paragraph("참고범위는 한국판 논문의 평균·표준편차로 계산한 비교용 구간입니다. 점수의 높고 낮음은 좋고 나쁨이나 정상·위험을 뜻하지 않으며, 작은 차이를 의미 있는 차이로 단정하지 않습니다. 실천 안내는 교육적 제안입니다. 범위 안이나 아래라도 실제 어려움은 함께 살펴보십시오.", bat_small)]
+    else:
+        story += [Paragraph("직무소진 결과", bat_heading), Paragraph("직무소진 22문항의 완전응답이 없어 소진 점수는 산출하지 않았습니다.", bat_body)]
+    doc.build(story, onFirstPage=draw_report_background, onLaterPages=draw_report_background)
+    buffer.seek(0)
     return buffer.getvalue()
-
 def init_state():
     if "burnout_index" not in st.session_state:
         st.session_state.burnout_index = 0
@@ -508,8 +629,6 @@ def init_state():
         st.session_state.research_saved = False
     if "question_index" not in st.session_state:
         st.session_state.question_index = 0
-
-
 def save_answer_and_advance(number):
     """현재 응답을 저장하고 다음 문항으로 이동합니다."""
     value = st.session_state.get(f"q_{number}")
@@ -519,13 +638,13 @@ def save_answer_and_advance(number):
     if st.session_state.question_index < len(ITEMS) - 1:
         st.session_state.question_index += 1
     else:
+        st.session_state.answers = {
+            item_number: st.session_state[f"q_{item_number}"]
+            for item_number, _, _, _ in ITEMS
+        }
         st.session_state.page = "burnout"
-
-
 def previous_question():
     st.session_state.question_index = max(0, st.session_state.question_index - 1)
-
-
 def next_answered_question():
     """이전에 응답한 문항을 다시 보는 경우 다음 문항으로 이동합니다."""
     number, _, _, _ = ITEMS[st.session_state.question_index]
@@ -536,9 +655,11 @@ def next_answered_question():
     if st.session_state.question_index < len(ITEMS) - 1:
         st.session_state.question_index += 1
     else:
+        st.session_state.answers = {
+            item_number: st.session_state[f"q_{item_number}"]
+            for item_number, _, _, _ in ITEMS
+        }
         st.session_state.page = "burnout"
-
-
 def save_burnout_and_advance(original):
     """화면 전환으로 위젯이 정리되어도 응답을 별도 사전에 보존한다."""
     value = st.session_state.get(f"bat_question_{original}")
@@ -549,68 +670,45 @@ def save_burnout_and_advance(original):
         st.session_state.burnout_index += 1
     elif bat_scores(st.session_state.burnout_answers) is not None:
         st.session_state.page = "demographics"
-
-
 def previous_burnout_question():
     st.session_state.burnout_index = max(0, st.session_state.burnout_index - 1)
-
-
 def reset_profile():
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
-
-
 def logo_html(css_class):
     """Streamlit 열 배치와 무관하게 로고 전체가 보이도록 고정 크기의 HTML 이미지를 만듭니다."""
     if not LOGO_PATH.exists():
         return ""
     encoded = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
     return f'<div class="logo-wrap {css_class}"><img src="data:image/png;base64,{encoded}" alt="감·수·성 로고"></div>'
-
-
 def render_brand_bar():
     st.markdown(logo_html("page-logo"), unsafe_allow_html=True)
     st.markdown('<div class="brand-bar"><b>감·수·성 인권감수성</b> · 자기성찰과 직무소진 자기점검</div>', unsafe_allow_html=True)
-
-
 init_state()
-
 if st.session_state.page == "intro":
     apply_intro_background()
     st.markdown(logo_html("intro-logo"), unsafe_allow_html=True)
-    st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰과 조정</div>', unsafe_allow_html=True)
-    st.markdown('<div class="intro-title">감·수·성 모델로 돌아보는<br>나의 인권감수성</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-kicker">알아차림 · 판단 · 성찰</div>', unsafe_allow_html=True)
+    st.markdown('<div class="intro-title">감·수·성으로 돌아보는<br>나의 인권 직무 경험</div>', unsafe_allow_html=True)
     st.markdown('<div class="developer-credit">연구도구·문항 구성 및 화면 개발: 이성덕</div>', unsafe_allow_html=True)
-    counts = len(ITEMS), len(BAT_ITEMS), len(DEMOGRAPHIC_OPTIONS)
-    st.markdown(
-        '<div class="intro-lead">감·수·성 인권감수성 모델은 교정현장에서 내가 무엇을 알아차리고, '
-        '어떤 기준으로 판단하며, 내 대응을 어떻게 돌아보고 조정하는지 살펴보는 틀입니다.<br>'
-        '이 자기점검에서는 직무소진 경험도 함께 살펴봅니다.<br>'
-        f'<b>약 10~15분 · 감·수·성 {counts[0]}문항 · 직무소진 {counts[1]}문항 · '
-        f'일반사항 {counts[2]}문항(총 {sum(counts)}문항)</b></div>',
-        unsafe_allow_html=True,
-    )
-    for col, (label, question) in zip(st.columns(3), SCENE_QUESTIONS.items()):
+    st.markdown('<div class="intro-lead"><b>감·수·성 자기성찰과 직무소진 자기점검</b><br>교정현장의 인권 관련 상황에서 나는 어떻게 알아차리고, 판단하며, 돌아보고 있을까요?<br>일하는 동안 몸과 마음은 무엇을 경험하고 있을까요?<br>자신의 응답을 돌아보고 교육에서 함께 다룰 주제와 지원이 필요한 부분을 찾아봅니다.<br>감·수·성 25문항 · 직무소진 22문항</div>', unsafe_allow_html=True)
+    factor_cols = st.columns(3)
+    factor_intro = [
+        ("감(感)", "정서와 취약성 알아차리기"),
+        ("수(受)", "기준에 따라 대응 판단하기"),
+        ("성(性)", "내 판단을 성찰하고 조정하기"),
+    ]
+    for col, (label, description) in zip(factor_cols, factor_intro):
         with col:
-            st.markdown(f'<div class="factor-card"><b>{label}</b><span>{question}</span></div>', unsafe_allow_html=True)
-
-    st.markdown(
-        '<div class="notice"><b>응답 방법</b><br>감·수·성 문항은 최근 6개월의 근무 경험을 떠올려 답해 주세요. '
-        '직무소진은 해당 화면의 안내에 따라 응답해 주세요.<br><br>'
-        '<b>참여와 결과</b><br>연구 참여 설명을 읽고 동의하면 자기점검을 시작할 수 있습니다. '
-        '참여는 자발적이며, 설문에 참여하지 않아도 교육과 토론에 동일하게 참여할 수 있습니다. '
-        '응답을 제출하면 두 결과를 확인하고 통합 PDF를 내려받을 수 있습니다.<br><br>'
-        '<b>개인정보와 자료 활용</b><br>이름, 직원번호, 휴대전화 번호, 정확한 소속기관명은 수집하지 않습니다. '
-        '교육에서는 개인이 드러나지 않는 집계 결과를 활용하며, 동의 후 제출한 자료는 척도의 타당성 검토와 '
-        '인권교육 개선을 위한 연구에 활용합니다.</div>',
-        unsafe_allow_html=True,
-    )
-    if st.button("연구 참여 설명 및 동의 안내 보기", type="primary", use_container_width=True):
+            st.markdown(f'<div class="factor-card"><b>{label}</b><span>{description}</span></div>', unsafe_allow_html=True)
+    st.write("")
+    st.markdown('<div class="notice"><b>참여 안내:</b> 감·수·성 문항은 최근 6개월의 근무 경험을, 직무소진 문항은 해당 화면의 안내를 기준으로 가장 가까운 응답을 선택해 주세요. 예상 소요시간은 약 10~15분입니다.<br><br>정답이나 등급은 없으며, 이름·직원번호·정확한 소속기관 등 개인을 직접 식별하는 정보는 수집하지 않습니다. 응답 후에는 나의 감·수·성 프로파일과 직무소진 네 영역의 결과를 확인하고 하나의 PDF로 내려받을 수 있습니다. 이 자기점검은 개인의 능력이나 자질을 평가하거나 등급을 매기기 위한 것이 아닙니다. 익명으로 모인 응답은 교육의 내용과 진행 방향을 정하고 지원 필요를 살펴보는 참고자료로 활용합니다. 연구 참여에 동의한 응답은 개인을 식별할 수 없도록 처리하여 향후 척도와 교육프로그램 보완을 위한 연구자료로 활용됩니다.</div>', unsafe_allow_html=True)
+    st.write("")
+    if st.button("설문 소개 및 연구참여 안내 보기", type="primary", use_container_width=True):
         st.session_state.page = "consent"
         st.rerun()
     st.stop()
-
 if st.session_state.page == "consent":
     render_brand_bar()
     st.title("연구 참여 설명 및 동의")
@@ -618,28 +716,21 @@ if st.session_state.page == "consent":
     st.markdown(
         f"""
 ### 연구 목적
-
 이 설문은 교정현장에서 자신의 판단 경향과 근무 경험을 돌아보고, 교육에서 함께 다룰 주제와 지원이 필요한 부분을 찾기 위한 **교육용 자기성찰·자기점검 활동**입니다. 참여자는 자신의 응답을 돌아보는 참고자료를 제공받습니다. 개인의 능력이나 자질을 판정하거나 등급을 매기기 위한 활동이 아닙니다. 
 아울러 동의한 응답자의 익명화된 자료는 감.수.성 척도의 타당성을 검토하고 향후 인권교육의 개선과 인권감수성 측정을 위한 후속연구에 활용됩니다.
-
 ### 참여 내용
-
 - 감·수·성 자기보고 25문항, 직무소진 22문항과 배경정보 7문항에 응답합니다.
 - 직무소진은 네 영역별 개인 피드백과 교육자용 익명 비교·집계에 사용됩니다. 진단이나 인사평가 목적으로 사용하지 않습니다.
 - 예상 소요시간은 약 10~15분입니다.
 - 이름, 직원번호, 휴대전화 번호, 정확한 소속기관명은 수집하지 않습니다.
 - 성별·연령대·직급·근무기관 유형·경력·교육경험을 범주형으로 수집합니다.
-
 ### 자발성과 개인정보 보호
-
 - 참여는 전적으로 자발적이며, 참여하지 않거나 중단해도 불이익이 없습니다.
 - 제출 전에는 언제든 중단할 수 있습니다. 익명으로 제출된 뒤에는 연구자가 특정 응답을 찾아 삭제하기 어려울 수 있습니다.
 - 자료는 통계적으로 분석하며 개인별 결과나 작은 집단을 식별할 수 있는 결과는 공개하지 않습니다.
 - 자료 보유기간: **{DATA_RETENTION}**
 - 응답은 연구 목적과 인권교육 개선을 위해서만 사용합니다.
-
 ### 예상되는 불편과 이익
-
 일부 문항에서 자신의 편견·감정·조직관행을 돌아보며 일시적인 불편을 느낄 수 있습니다. 직접적인 보상은 없지만 자신의 판단 경향과 근무 경험을 돌아볼 참고자료를 즉시 확인하고 PDF로 저장할 수 있습니다.
 """
     )
@@ -649,14 +740,12 @@ if st.session_state.page == "consent":
         st.session_state.page = "survey"
         st.rerun()
     st.stop()
-
-
 if st.session_state.page == "survey":
     render_brand_bar()
     st.title("나의 인권감수성은 어떤 모습일까?")
     st.markdown("**감·수·성으로 돌아보는 나의 인권적 직무판단**")
     st.caption("인권감수성의 높고 낮음을 판정하기보다, 자신이 보고한 판단 경향을 돌아보는 활동입니다.")
-    answered = len(st.session_state.answers)
+    answered = sum(1 for n, _, _, _ in ITEMS if st.session_state.get(f"q_{n}") is not None)
     current_index = min(st.session_state.question_index, len(ITEMS) - 1)
     number, factor, _, question_text = ITEMS[current_index]
     st.progress(
@@ -664,19 +753,14 @@ if st.session_state.page == "survey":
         text=f"문항 {current_index + 1} / {len(ITEMS)} · 응답 완료 {answered} / {len(ITEMS)}",
     )
     st.caption("1 전혀 그렇지 않다 · 2 그렇지 않은 편이다 · 3 그런 편이다 · 4 매우 그렇다")
-
     if number == 7:
         with st.expander("‘정신건강 문제가 있는 수용자’의 의미", expanded=False):
             st.write("진단 여부와 관계없이 환청·망상, 심한 불안이나 흥분, 현저한 기능 저하 또는 자·타해 위험 등으로 인해 상황에 맞는 의사소통과 절차적·전문적 대응이 필요한 수용자를 의미합니다.")
-
     factor_class = "factor-gam"
     st.markdown(
         f'<div class="question"><span class="{factor_class}">{number}.</span> {question_text}</div>',
         unsafe_allow_html=True,
     )
-    key = f"q_{number}"
-    if key not in st.session_state and number in st.session_state.answers:
-        st.session_state[key] = st.session_state.answers[number]
     st.radio(
         f"{number}번 응답",
         options=[1, 2, 3, 4],
@@ -687,7 +771,6 @@ if st.session_state.page == "survey":
         on_change=save_answer_and_advance,
         args=(number,),
     )
-
     st.caption("응답을 선택하면 자동으로 다음 문항으로 넘어갑니다.")
     navigation_columns = st.columns(2)
     with navigation_columns[0]:
@@ -697,8 +780,6 @@ if st.session_state.page == "survey":
         if st.session_state.get(f"q_{number}") is not None:
             st.button("다음 문항 →", type="primary", use_container_width=True, on_click=next_answered_question)
     st.stop()
-
-
 if st.session_state.page == "burnout":
     st.markdown("""
 <style>
@@ -743,8 +824,6 @@ div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#3
                       type="primary", use_container_width=True,
                       on_click=save_burnout_and_advance, args=(original,), key="bat_next")
     st.stop()
-
-
 if st.session_state.page == "demographics":
     render_brand_bar()
     st.title("기본정보")
@@ -771,89 +850,114 @@ if st.session_state.page == "demographics":
             st.caption(f"관리자 확인용 오류: {error}")
             st.info("저장에 실패한 경우 응답은 제출된 것으로 처리되지 않습니다.")
     st.stop()
-
-
 if st.session_state.page == "result":
     render_brand_bar()
     answers = st.session_state.answers
     scores = factor_means(answers)
-    burnout = bat_scores(st.session_state.get("burnout_answers", {}))
-
-    st.title("나의 자기점검 결과")
+    sub_scores = subdomain_means(answers)
+    mh_scores = mental_factor_means(answers)
+    summary = profile_summary(scores)
+    st.title("나의 감·수·성 인권감수성 프로파일")
+    st.caption("인권적 직무판단의 자기성찰과 직무소진 자기점검 · 나의 응답 참고자료")
     if st.session_state.research_saved:
-        st.success("익명 연구자료가 제출되었습니다.")
-    st.caption("두 결과는 자기성찰을 위한 참고자료입니다. 인사평가나 진단에 사용하지 않습니다.")
-    gam_tab, burnout_tab = st.tabs(["감·수·성 결과", "직무소진 결과"])
-
-    with gam_tab:
-        st.subheader("나의 응답 한눈에 보기")
-        st.write(" · ".join(f"**{factor} {value:.2f}**" for factor, value in scores.items()))
-        st.caption(PROFILE_NOTE)
-        st.image(radar_png(scores), width=290)
-
-        st.subheader("한 장면을 감·수·성으로 다시 보기")
-        st.write(SCENE_PROMPT)
-        for label, question in SCENE_QUESTIONS.items():
-            st.markdown(f"**{label}**  \n{question}")
-        st.subheader("다음 근무에서 해볼 한 가지")
-        action_plan = st.text_area(
-            "해보고 싶은 행동을 한 문장으로 적어 보세요. (선택)",
-            placeholder="예: 안전이 확보되면 무엇이 불편한지 짧게 확인해 보겠습니다.",
-            max_chars=300,
-        )
-        st.caption("작성한 행동계획은 내려받는 PDF에 포함됩니다.")
-        with st.expander("내 응답에서 돌아볼 문항과 근거자료"):
-            selected = {factor: item for _, factor, _, item in reflection_items(answers)}
-            for factor in scores:
-                if factor in selected:
-                    st.write(f"{factor} · {selected[factor]}")
-            st.markdown("**9개 내용영역과 연습 방향**")
-            st.caption("문항의 내용 분류입니다. 별도 하위척도 점수로 해석하지 않습니다.")
-            for name, guidance in SUBDOMAIN_FEEDBACK.items():
-                st.write(f"**{name}** · {guidance}")
-            st.markdown("**정신건강 관련 상황의 응답 경향**")
-            mental_scores = mental_factor_means(answers)
-            st.write(" · ".join(f"{factor} {value:.2f}" for factor, value in mental_scores.items()))
-            st.caption("관련 문항 평균(1~4점)입니다. 영역별 문항 수는 감 3개, 수 3개, 성 2개입니다.")
-            st.markdown(f"[감·수·성 예비척도 개발 논문]({SCALE_PAPER_URL})")
-            st.markdown("[감·수·성 모델의 이론적 정립과 철학적 기초](https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003245299)")
-            st.markdown("[헌법 원리의 해석학적 탐색과 교육적 함의](https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003327070)")
-
-    with burnout_tab:
-        st.subheader("나의 직무소진 경험")
-        if burnout is None:
-            st.info("직무소진 결과를 산출할 수 없습니다.")
-        else:
-            labels = [BURNOUT_NAMES[factor] for factor in burnout]
-            values = list(burnout.values())
-            fig = go.Figure(go.Bar(
-                x=values, y=labels, orientation="h", marker_color="#409773",
-                text=[f"{value:.2f}" for value in values], textposition="inside",
-            ))
-            fig.update_xaxes(range=[0, 5], dtick=1)
-            fig.update_yaxes(autorange="reversed", automargin=True)
-            fig.update_layout(height=265, margin=dict(l=12, r=12, t=10, b=35))
-            st.plotly_chart(fig, use_container_width=True)
-            st.caption(BURNOUT_NOTE)
-            st.write(f"**{RECOVERY_QUESTION}**")
-            with st.expander("영역 설명과 선행연구 참고값"):
-                st.caption(REFERENCE_NOTE)
-                for factor in burnout:
-                    mean, sd = BAT_REFERENCE[factor]
-                    st.markdown(f"**{BURNOUT_NAMES[factor]}** · {BAT_PLAIN_MEANINGS[factor]}")
-                    st.caption(f"평균 {mean:.2f} · 평균 ± 1표준편차 {mean-sd:.2f}~{mean+sd:.2f}")
-
-    st.download_button(
-        "통합 PDF 내려받기", data=make_result_pdf(scores, action_plan, burnout),
-        file_name="나의_감수성_직무소진_자기점검.pdf", mime="application/pdf",
-        use_container_width=True,
-    )
-    if st.button("처음부터 다시 하기", use_container_width=True):
-        reset_profile()
-
+        st.success("익명 연구자료가 정상적으로 제출되었습니다.")
     st.markdown(
-        '<div class="rights-footer">© 2026 이성덕. All rights reserved.<br>'
-        '감·수·성 로고 상표출원(심사 중)</div>',
+        '<div class="notice">세 점수는 <b>각 영역의 1~4점 문항평균</b>입니다. 개인 내부의 상대적 경향만 살펴보며, 규준이나 절단점에 따른 높음·낮음 판정은 하지 않습니다.</div>',
         unsafe_allow_html=True,
     )
-
+    c1, c2, c3 = st.columns(3)
+    c1.metric("감(感)", f"{scores['감']:.2f}")
+    c2.metric("수(受)", f"{scores['수']:.2f}")
+    c3.metric("성(性)", f"{scores['성']:.2f}")
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(r=[scores["감"], scores["수"], scores["성"], scores["감"]], theta=["감", "수", "성", "감"], fill="toself", name="전체 프로파일", line=dict(color="#4f6fad")))
+    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[1, 4], tickvals=[1, 2, 3, 4])), showlegend=False, height=410, margin=dict(l=45, r=45, t=35, b=35))
+    st.plotly_chart(fig, use_container_width=True)
+    st.subheader(summary["label"])
+    st.write(summary["lead"])
+    st.caption(summary["detail"])
+    st.subheader("한 사례를 감·수·성으로 다시 보기")
+    st.markdown(f'<div class="notice">{INTEGRATED_PRACTICE}</div>', unsafe_allow_html=True)
+    st.subheader("결과에 연결한 연습주제")
+    topics = practice_topics(answers)
+    if topics:
+        for topic in topics:
+            with st.expander(topic["title"], expanded=True):
+                st.markdown(f"**연결 문항:** {topic['item']}")
+                st.write(topic["steps"])
+    else:
+        st.info("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 우선순위로 정하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 성찰해 보십시오.")
+    st.subheader("세 판단영역의 의미와 실천 제안")
+    for factor in ["감", "수", "성"]:
+        meta = FACTOR_META[factor]
+        with st.expander(f"{meta['title']} · {scores[factor]:.2f}", expanded=True):
+            st.markdown(f"**핵심 질문:** {meta['question']}")
+            st.write(meta["meaning"])
+            st.info(f"실천 제안: {meta['practice']}")
+    with st.expander("9개 내용영역과 연습 방향", expanded=False):
+        st.caption("아래 9개 영역은 문항의 이론적 내용분류이며, 별도로 검증된 하위척도나 점수 순위가 아닙니다.")
+        for name, guidance in SUBDOMAIN_FEEDBACK.items():
+            st.markdown(f"**{name}**")
+            st.write(guidance)
+    with st.expander("정신건강 문제 상황에서의 응답 경향", expanded=False):
+        st.write("문항 수가 감 3개, 수 3개, 성 2개로 다르므로 합계가 아니라 문항평균으로 제시합니다. 별도의 표준화된 하위척도나 유형 판정이 아닙니다.")
+        cols = st.columns(3)
+        for col, factor in zip(cols, ["감", "수", "성"]):
+            col.metric(f"{factor} 평균", f"{mh_scores[factor]:.2f}")
+    st.subheader("지금 성찰해 볼 세 문항")
+    selected_items = reflection_items(answers)
+    if selected_items:
+        for number, factor, _, text in selected_items:
+            st.markdown(f"**{number}. [{factor}] {text}**")
+        st.markdown("**성찰 질문**")
+        st.write(COMMON_REFLECTION_QUESTION)
+    else:
+        st.info("모든 문항에 같은 점수로 응답했습니다. 특정 문항을 임의로 제시하지 않고, 실제 사례에서 감·수·성을 어떤 근거와 순서로 연결하는지 성찰해 보십시오.")
+    st.subheader("나의 한 가지 행동계획")
+    action_plan = st.text_area(
+        "다음 근무에서 시도할 작고 구체적인 행동을 적어보세요.",
+        placeholder="예: 흥분한 수용자에게 지시하기 전, 감정을 단정하지 않고 현재 가장 불편한 점을 한 번 확인한다.",
+        height=110,
+    )
+    st.warning("영역 간 작은 차이는 측정오차를 넘어서는 의미 있는 차이라고 단정할 수 없습니다. 결과를 타인·기관 비교, 상·중·하 등급화, 인사평가, 법적·행정적 판단 또는 인권침해 가능성 예측에 사용하지 마십시오.")
+    render_bat_personal(st.session_state.get("burnout_answers", {}))
+    pdf_bytes = make_result_pdf(scores, sub_scores, answers, action_plan, st.session_state.get("burnout_answers", {}))
+    st.download_button("나의 감·수·성 프로파일 · 통합 PDF 내려받기", data=pdf_bytes, file_name="나의_감수성_인권감수성_프로파일.pdf", mime="application/pdf", use_container_width=True)
+    if st.button("처음부터 다시 하기", use_container_width=True):
+        reset_profile()
+    with st.expander("설문 구성과 근거자료"):
+        st.write(
+            "이 프로그램은 이성덕의 「감(感)·수(受)·성(性) 모델 기반 "
+            "교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토」에 "
+            "제시된 최종 25문항을 교육용 자기성찰 형식으로 구성한 것입니다."
+        )
+        st.write(
+            "현재 단계에서는 개인의 인권 수준이나 직무역량을 판정하는 검사로 "
+            "사용하지 않으며, 개인의 자기성찰과 익명화된 집단 수준의 교육 요구를 "
+            "확인하기 위한 보조자료로 제한하여 활용하는 것이 적절합니다."
+        )
+        st.markdown(
+            f"""
+### 감·수·성 문항의 직접 근거
+- [**이성덕. 「감(感)·수(受)·성(性) 모델 기반 교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토」**]({SCALE_PAPER_URL})
+  - 이 프로그램에서 사용하는 최종 25문항과 3요인 구조의 직접적인 근거 논문입니다.
+  - 논문 제목을 누르면 DOI 원문 페이지로 바로 이동합니다.
+### 직무소진 문항과 참고 평균의 직접 근거
+- [조수현(2020). 「한국판 직무소진평가척도(K-BAT) 타당화를 위한 예비연구」](https://doi.org/10.24230/kjiop.v33i4.461-499)
+  - 표 3의 22문항과 네 영역 구성, 표 5의 공기업 사무직 345명 참고 평균을 사용합니다.
+  - 참고범위는 논문의 평균과 표준편차를 이용해 이 프로그램에서 계산한 비교용 구간입니다. 교도관 규준이나 정상·위험 기준이 아닙니다.
+### 직무소진 개념과 해석 원칙의 참고자료
+- [Schaufeli, Desart, De Witte(2020). BAT 개발·타당도·신뢰도 연구](https://doi.org/10.3390/ijerph17249495)
+  - 소진의 네 영역을 이해하는 데 참고한 원개발 연구입니다. 한국판 22문항의 직접적인 근거는 위의 조수현 논문입니다.
+- [Schaufeli, De Witte, Desart. BAT 공식 사용자 안내서, 버전 2.0(2020년 7월판)](https://burnoutassessmenttool.be/wp-content/uploads/2020/08/User-Manual-BAT-version-2.0.pdf)
+  - 자기보고 점수의 해석과 개인·집단 활용 원칙을 참고했습니다. 국외 규준과 절단점을 이 설문에 적용하지 않습니다.
+### 감·수·성 모델 관련 연구
+- [감(感)·수(受)·성(性) 인권감수성 모델을 통한 헌법 원리의 해석학적 탐색과 교육적 함의](https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003327070)
+- [감정 기반 인권 감수성 교육의 새로운 패러다임: ‘감(感)·수(受)·성(性)’ 모델의 이론적 정립과 철학적 기초](https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003245299)
+- [이성덕 연구자 Google Scholar 프로필](https://scholar.google.com/citations?hl=ko&user=rcMXEpAAAAAJ)
+"""
+        )
+    st.markdown(
+        '<div class="rights-footer">© 2026 이성덕. All rights reserved.<br>감·수·성 로고 상표출원(심사 중)</div>',
+        unsafe_allow_html=True,
+    )
