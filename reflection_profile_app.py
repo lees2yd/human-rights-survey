@@ -1046,6 +1046,24 @@ if st.session_state.page == "result":
     if st.session_state.research_saved:
         st.success("익명 연구자료가 제출되었습니다.")
     st.caption("두 결과는 자기성찰을 위한 참고자료입니다. 인사평가나 진단에 사용하지 않습니다.")
+    st.markdown(
+        """
+        <style>
+        [data-testid="stTabs"] [role="tab"] {
+            min-height: 48px;
+            padding-inline: 10px;
+            white-space: normal;
+        }
+        [data-testid="stTabs"] [role="tab"] p,
+        [data-testid="stExpander"] summary p {
+            font-size: 1.15rem !important;
+            font-weight: 650;
+            line-height: 1.4;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     gam_tab, burnout_tab = st.tabs(["감·수·성 인권감수성 결과", "직무소진 결과"])
 
     with gam_tab:
@@ -1075,11 +1093,6 @@ if st.session_state.page == "result":
                     st.markdown(f"**{number}번 · {score}점 ({SCALE_LABELS[score]})**")
                     st.write(item)
                     st.write(f"**돌아볼 질문** · {REFLECTION_QUESTIONS[number]}")
-        with st.expander("감·수·성 인권감수성 모델 근거자료"):
-            for label, citation, url, role in MODEL_REFERENCES:
-                st.markdown(f"**[{label}]({url})** — 이성덕({citation})")
-                st.caption(role)
-
     with burnout_tab:
         result_heading("4. 직무소진 결과", green=True)
         if burnout is None:
@@ -1113,14 +1126,16 @@ if st.session_state.page == "result":
                     st.write(burnout_comparison(factor, value))
                     st.write(f"**내가 해볼 일** · {personal}")
                     st.write(f"**함께 조정할 일** · {shared}")
-            st.subheader("5) 회복과 지원 돌아보기")
-            st.write(RECOVERY_QUESTION)
-            st.caption(BURNOUT_SUPPORT_NOTE)
-            with st.expander("직무소진 결과의 연구 근거"):
-                for label, citation, url, role in BURNOUT_REFERENCES:
-                    st.markdown(f"**[{label}]({url})**")
-                    st.caption(citation)
-                    st.write(role)
+    result_heading("연구 근거")
+    with st.expander("감·수·성 인권감수성 모델 근거자료"):
+        for label, citation, url, role in MODEL_REFERENCES:
+            st.markdown(f"**[{label}]({url})** — 이성덕({citation})")
+            st.caption(role)
+    with st.expander("직무소진 결과의 연구 근거"):
+        for label, citation, url, role in BURNOUT_REFERENCES:
+            st.markdown(f"**[{label}]({url})**")
+            st.caption(citation)
+            st.write(role)
 
     st.download_button(
         "통합 PDF 내려받기", data=make_result_pdf(scores, "", burnout, selected),
