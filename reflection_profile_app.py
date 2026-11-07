@@ -616,10 +616,10 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     rule = HexColor("#D9E2EA")
     styles = getSampleStyleSheet()
     body = ParagraphStyle("ResultBody", parent=styles["BodyText"], fontName=font,
-                          fontSize=10, leading=16, wordWrap="CJK", spaceAfter=7,
+                          fontSize=10, leading=14, wordWrap="CJK", spaceAfter=10,
                           textColor=HexColor("#202E3A"))
     heading = ParagraphStyle("ResultHeading", parent=body, fontSize=13,
-                             leading=19, spaceBefore=13, textColor=navy, keepWithNext=True)
+                             leading=19, spaceBefore=15, textColor=navy, keepWithNext=True)
     title = ParagraphStyle("ResultTitle", parent=heading, fontSize=21, leading=29, spaceAfter=9)
     green_heading = ParagraphStyle("BurnoutHeading", parent=heading, textColor=green)
     green_title = ParagraphStyle("BurnoutTitle", parent=title, textColor=green)
@@ -1063,8 +1063,17 @@ if st.session_state.page == "result":
         [data-testid="stExpanderDetails"] {
             padding-inline-start: 1.1rem;
         }
-        [data-testid="stExpanderDetails"] p {
-            line-height: 1.6;
+        [data-testid="stTabs"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stExpanderDetails"] [data-testid="stMarkdownContainer"] p {
+            line-height: 1.42;
+        }
+        [data-testid="stTabs"] [data-testid="stMarkdownContainer"] p + p,
+        [data-testid="stExpanderDetails"] [data-testid="stMarkdownContainer"] p + p {
+            margin-top: 0.8rem;
+        }
+        [data-testid="stTabs"] [data-testid="stMarkdownContainer"],
+        [data-testid="stExpanderDetails"] [data-testid="stMarkdownContainer"] {
+            padding-bottom: 0.25rem;
         }
         </style>
         """,
