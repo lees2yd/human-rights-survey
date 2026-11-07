@@ -488,7 +488,6 @@ SCENE_QUESTIONS = {
     "수 · 판단": "내 조치는 왜 필요했고, 어떤 절차나 권리를 덜 제한하는 방법을 고려했나요?",
     "성 · 성찰과 조정": "내 피로, 선입견, 동료 분위기는 대응에 어떤 영향을 주었고, 다음에는 무엇을 조정할까요?",
 }
-RECOVERY_QUESTION = "최근 근무에서 회복이나 지원이 가장 필요했던 순간은 언제였나요?"
 BURNOUT_NAMES = {
     "탈진": "몸과 마음의 탈진",
     "심적거리": "일에 대한 거리감",
@@ -570,7 +569,6 @@ BURNOUT_DETAILS = {
     "인지적 조절 손상": "인계 중 다른 요청이 들어와 확인한 항목을 잊거나, 기록을 읽고도 핵심을 다시 확인해야 하는 장면을 떠올려 보세요.",
     "정서적 조절 손상": "긴장이 높은 대응에서 평소보다 말이 빨라지거나, 상황이 끝난 뒤에도 짜증이나 긴장이 오래 남는지 살펴보세요.",
 }
-BURNOUT_SUPPORT_NOTE = "경험이 반복된다면 어느 근무 조건에서 두드러지는지 살피고, 휴식·업무 분담·지원 요청 중 조정할 수 있는 한 가지를 골라 보세요."
 
 
 def result_heading(title, *, green=False):
@@ -618,14 +616,16 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     rule = HexColor("#D9E2EA")
     styles = getSampleStyleSheet()
     body = ParagraphStyle("ResultBody", parent=styles["BodyText"], fontName=font,
-                          fontSize=10, leading=16, wordWrap="CJK", spaceAfter=5,
+                          fontSize=10, leading=16, wordWrap="CJK", spaceAfter=7,
                           textColor=HexColor("#202E3A"))
     heading = ParagraphStyle("ResultHeading", parent=body, fontSize=13,
-                             leading=19, spaceBefore=9, textColor=navy, keepWithNext=True)
+                             leading=19, spaceBefore=13, textColor=navy, keepWithNext=True)
     title = ParagraphStyle("ResultTitle", parent=heading, fontSize=21, leading=29, spaceAfter=9)
     green_heading = ParagraphStyle("BurnoutHeading", parent=heading, textColor=green)
     green_title = ParagraphStyle("BurnoutTitle", parent=title, textColor=green)
     caption = ParagraphStyle("ReportCaption", parent=body, fontSize=9, textColor=muted)
+    detail = ParagraphStyle("ResultDetail", parent=body, leftIndent=12)
+    reference = ParagraphStyle("ReferenceDetail", parent=caption, leftIndent=12)
     doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=20*mm, rightMargin=20*mm,
                             topMargin=24*mm, bottomMargin=21*mm)
 
@@ -637,9 +637,9 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         canvas.line(20*mm, 16*mm, width - 20*mm, 16*mm)
         canvas.setFillColor(muted)
         canvas.setFont(font, 8)
-        canvas.drawString(20*mm, height - 15*mm, "교정공무원 인권교육  /  개인 자기성찰 보고서")
-        canvas.drawString(20*mm, 11*mm, "개인 자기성찰 참고자료")
-        canvas.drawRightString(width - 20*mm, 11*mm, f"{page.page:02d}")
+        canvas.drawString(20*mm, height - 15*mm, "교정공무원 감.수.성 인권감수성 판단구조 / K-BAT 직무소진 결과")
+        canvas.drawString(20*mm, 11*mm, f"{page.page:02d}")
+        canvas.drawRightString(width - 20*mm, 11*mm, "개인 자기점검 참고자료")
         canvas.restoreState()
 
     def section_title(text, is_green=False):
@@ -688,13 +688,13 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         for score, number, item in rows:
             story.append(KeepTogether([
                 report_paragraph(f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {escape(item)}", body),
-                report_paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", body),
+                report_paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", detail),
             ]))
     story.append(report_paragraph("감·수·성 모델과 결과지의 연구 근거", heading))
     for label, citation, url, role in MODEL_REFERENCES:
         story.append(KeepTogether([
             report_paragraph(f'<link href="{url}" color="#163752">{label}</link> — 이성덕({citation})', caption),
-            report_paragraph(role, caption),
+            report_paragraph(role, reference),
         ]))
     story.extend([PageBreak(), section_title("4. 직무소진 결과", True)])
     if burnout is None:
@@ -719,24 +719,21 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
             story.append(KeepTogether([
                 report_paragraph(f"{index}) {BURNOUT_NAMES[factor]} · {value:.2f}점", green_heading),
                 report_paragraph(BAT_PLAIN_MEANINGS[factor], body),
-                report_paragraph(f"근무 장면 · {BURNOUT_DETAILS[factor]}", body),
+                report_paragraph(f"근무 장면 · {BURNOUT_DETAILS[factor]}", detail),
                 report_paragraph(burnout_comparison(factor, value), body),
-                report_paragraph(f"내가 해볼 일 · {personal}", body),
-                report_paragraph(f"함께 조정할 일 · {shared}", body),
+                report_paragraph(f"내가 해볼 일 · {personal}", detail),
+                report_paragraph(f"함께 조정할 일 · {shared}", detail),
             ]))
 
     if burnout is not None:
         story.extend([
-            report_paragraph("5) 회복과 지원 돌아보기", green_heading),
-            report_paragraph(RECOVERY_QUESTION, body),
-            report_paragraph(BURNOUT_SUPPORT_NOTE, body),
             report_paragraph("직무소진 결과의 연구 근거", green_heading),
         ])
         for label, citation, url, role in BURNOUT_REFERENCES:
             story.append(KeepTogether([
                 report_paragraph(f'<link href="{url}" color="#24644F">{label}</link>', caption),
                 report_paragraph(escape(citation), caption),
-                report_paragraph(role, caption),
+                report_paragraph(role, reference),
             ]))
 
     story.extend([
@@ -1060,6 +1057,15 @@ if st.session_state.page == "result":
             font-weight: 650;
             line-height: 1.4;
         }
+        [data-testid="stTabs"] [data-testid="stExpander"] {
+            margin-block: 5px;
+        }
+        [data-testid="stExpanderDetails"] {
+            padding-inline-start: 1.1rem;
+        }
+        [data-testid="stExpanderDetails"] p {
+            line-height: 1.6;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1089,7 +1095,9 @@ if st.session_state.page == "result":
         for index, (factor, (note, rows)) in enumerate(selected.items(), 1):
             with st.expander(f"{index}) {FACTOR_META[factor]['title']} · 돌아볼 두 문항", expanded=True):
                 st.caption(note)
-                for score, number, item in rows:
+                for item_index, (score, number, item) in enumerate(rows):
+                    if item_index:
+                        st.divider()
                     st.markdown(f"**{number}번 · {score}점 ({SCALE_LABELS[score]})**")
                     st.write(item)
                     st.write(f"**돌아볼 질문** · {REFLECTION_QUESTIONS[number]}")
@@ -1128,11 +1136,15 @@ if st.session_state.page == "result":
                     st.write(f"**함께 조정할 일** · {shared}")
     result_heading("연구 근거")
     with st.expander("감·수·성 인권감수성 모델 근거자료"):
-        for label, citation, url, role in MODEL_REFERENCES:
+        for index, (label, citation, url, role) in enumerate(MODEL_REFERENCES):
+            if index:
+                st.divider()
             st.markdown(f"**[{label}]({url})** — 이성덕({citation})")
             st.caption(role)
     with st.expander("직무소진 결과의 연구 근거"):
-        for label, citation, url, role in BURNOUT_REFERENCES:
+        for index, (label, citation, url, role) in enumerate(BURNOUT_REFERENCES):
+            if index:
+                st.divider()
             st.markdown(f"**[{label}]({url})**")
             st.caption(citation)
             st.write(role)
