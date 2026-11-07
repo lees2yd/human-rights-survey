@@ -36,6 +36,21 @@ RESEARCH_CONTACT = "010-9619-4652, mindscaper2013@naver.com"
 DATA_RETENTION = "연구 종료 후 3년"
 WORKSHEET_NAME = "responses"
 SCALE_PAPER_URL = "https://doi.org/10.14819/krscs.2026.36.2.1.3"
+MODEL_REFERENCES = (
+    ("이론적 정립과 철학적 기초", "2025 · 법과인권교육연구 18(3), 117–145",
+     "https://doi.org/10.35881/HLER.2025.18.3.6",
+     "감정 인식, 규범적 판단, 성찰적 조정을 연결하는 모델의 이론적 토대입니다."),
+    ("헌법 원리의 해석학적 탐색과 교육적 함의", "2026 · 법과인권교육연구 19(1), 99–128",
+     "https://doi.org/10.35881/HLER.2026.19.1.5",
+     "헌법재판소 판례 9건을 살펴 교정 현장의 인권적 판단을 돌아볼 교육적 질문에 근거를 제공합니다."),
+    ("교정공무원 인권감수성 예비척도 개발과 요인구조의 탐색적 검토",
+     "2026 · 교정연구 36(2), 3–27", SCALE_PAPER_URL,
+     "결과지에서 사용하는 25문항과 감 9문항, 수 8문항, 성 8문항 구성의 직접 근거입니다."),
+    ("감·수·성 구성요소 간 횡단적 관계에 관한 예비적 경험연구",
+     "2026 · 법과인권교육연구 19(3), 37–67",
+     "https://doi.org/10.35881/HLER.2026.19.3.2",
+     "동일한 교정공무원 125명의 횡단 자기보고 자료에서 세 영역의 관련성을 예비적으로 확인했습니다. 시간적 순서나 인과관계는 별도의 검증이 필요합니다."),
+)
 LOGO_PATH = Path(__file__).with_name("gam_su_seong_logo.png")
 BACKGROUND_PATH = Path(__file__).with_name("human_rights_background.png")
 HERO_DESKTOP_PATH = Path(__file__).with_name("hero_background_desktop.png")
@@ -600,40 +615,65 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         canvas.drawRightString(width - 20*mm, 11*mm, f"{page.page:02d}")
         canvas.restoreState()
 
-    score_line = "  ·  ".join(f"{factor} {score:.2f}" for factor, score in scores.items())
+    def section_title(text, is_green=False):
+        style = ParagraphStyle("SectionBand", parent=green_title if is_green else title,
+                               backColor=HexColor("#EDF6EF" if is_green else "#EDF5FB"),
+                               borderColor=HexColor("#AFCFBB" if is_green else "#A9CDE4"),
+                               borderWidth=0.8, borderRadius=8, borderPadding=8,
+                               fontSize=18, leading=26, spaceBefore=12, spaceAfter=18)
+        return report_paragraph(text, style)
+
+    from reportlab.platypus import Table, TableStyle
+    score_cards = Table([[
+        report_paragraph(f"{label}<br/><font size='21'>{scores[factor]:.2f}</font>", heading)
+        for factor, label in (("감", "감(感)  알아차림"), ("수", "수(受)  판단"), ("성", "성(性)  성찰과 조정"))
+    ]], colWidths=[(doc.width - 12) / 3] * 3)
+    score_cards.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), HexColor("#EDF4FB")),
+        ("INNERGRID", (0, 0), (-1, -1), 3, HexColor("#FFFFFF")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 13),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+    ]))
     story = [
-        report_paragraph("01  감·수·성 인권감수성 결과", title),
+        section_title("1. 감·수·성 인권감수성 결과"),
         report_paragraph("감·수·성 인권감수성 모델을 활용한 자기성찰 참고자료", body),
-        report_paragraph(score_line, body),
+        report_paragraph("1) 나의 점수와 삼각형 도표", heading),
+        score_cards, Spacer(1, 4*mm),
+        report_paragraph("영역별 문항평균  |  1~4점", caption),
         report_paragraph(PROFILE_NOTE, body),
-        RLImage(radar_png(scores), width=45*mm, height=45*mm, kind="proportional"),
-        report_paragraph("내 점수는 무엇을 보여주나요?", heading),
+        RLImage(radar_png(scores), width=75*mm, height=75*mm, kind="proportional"),
+        report_paragraph("2) 내 점수는 무엇을 보여주나요?", heading),
         *(report_paragraph(line, body) for line in response_summary(scores)),
     ]
     if LOGO_PATH.is_file():
         story.insert(0, RLImage(str(LOGO_PATH), width=13*mm, height=13*mm, kind="proportional"))
-    story += [PageBreak(), report_paragraph("한 장면을 감·수·성으로 다시 보기", heading),
+    story += [PageBreak(), section_title("2. 한 장면을 감·수·성으로 다시 보기"),
               report_paragraph(SCENE_PROMPT, body)]
-    for label, question in SCENE_QUESTIONS.items():
+    for index, (label, question) in enumerate(SCENE_QUESTIONS.items(), 1):
         factor = label[0]
-        story.append(report_paragraph(f"{label} — {question}", heading))
+        story.append(report_paragraph(f"{index}) {label} — {question}", heading))
         story.append(report_paragraph(FACTOR_META[factor]["meaning"], body))
         story.append(report_paragraph(PRACTICE_GUIDES[factor]["steps"], body))
-    story.extend([report_paragraph("내 응답에서 돌아볼 여섯 가지", title)])
-    for factor, (note, rows) in selected.items():
-        story.extend([report_paragraph(factor, heading), report_paragraph(note, body)])
+    story.extend([PageBreak(), section_title("3. 내 응답에서 돌아볼 여섯 가지")])
+    for index, (factor, (note, rows)) in enumerate(selected.items(), 1):
+        story.extend([report_paragraph(f"{index}) {factor} — {dict(감='알아차림', 수='판단', 성='성찰과 조정')[factor]}", heading), report_paragraph(note, body)])
         for score, number, item in rows:
             story.append(KeepTogether([
                 report_paragraph(f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {escape(item)}", body),
                 report_paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", body),
             ]))
-    story.extend([
-        report_paragraph(f'<link href="{SCALE_PAPER_URL}" color="#163752">근거자료  ·  감·수·성 예비척도 개발 논문</link>', caption),
-        PageBreak(), report_paragraph("02  직무소진 결과", green_title),
-    ])
+    story.append(report_paragraph("감·수·성 모델과 결과지의 연구 근거", heading))
+    for label, citation, url, role in MODEL_REFERENCES:
+        story.append(KeepTogether([
+            report_paragraph(f'<link href="{url}" color="#163752">{label}</link> — 이성덕({citation})', caption),
+            report_paragraph(role, caption),
+        ]))
+    story.extend([PageBreak(), section_title("4. 직무소진 결과", True)])
     if burnout is None:
         story.append(report_paragraph("직무소진 결과를 산출할 수 없습니다.", body))
     else:
+        story.append(report_paragraph("1) 나의 점수와 막대그래프", green_heading))
         for factor, value in burnout.items():
             story.append(report_paragraph(f"{BURNOUT_NAMES[factor]} {value:.2f}", body))
             chart_width = doc.width - 12
@@ -645,12 +685,13 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         story.append(report_paragraph("내 점수는 무엇을 보여주나요?", green_heading))
         story.append(report_paragraph(BURNOUT_NOTE, body))
         story.extend(report_paragraph(line, body) for line in burnout_summary(burnout))
-        story.append(report_paragraph("영역별 의미와 실천 방법", green_heading))
         story.append(report_paragraph(REFERENCE_NOTE, body))
-        for factor, value in burnout.items():
+        for index, (factor, value) in enumerate(burnout.items()):
+            if index == 2:
+                story.extend([PageBreak(), section_title("5. 직무소진 영역별 해설", True)])
             personal, shared = BAT_PRACTICE[factor]
             story.append(KeepTogether([
-                report_paragraph(f"{BURNOUT_NAMES[factor]} · {value:.2f}점", green_heading),
+                report_paragraph(f"{index + 3 if index < 2 else index - 1}) {BURNOUT_NAMES[factor]} · {value:.2f}점", green_heading),
                 report_paragraph(BAT_PLAIN_MEANINGS[factor], body),
                 report_paragraph(burnout_comparison(factor, value), body),
                 report_paragraph(f"내가 해볼 일 · {personal}", body),
@@ -659,13 +700,13 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
 
     if burnout is not None:
         story.extend([
-            report_paragraph("회복과 지원 돌아보기", green_heading),
+            report_paragraph("3) 회복과 지원 돌아보기", green_heading),
             report_paragraph(RECOVERY_QUESTION, body),
             report_paragraph('<link href="https://doi.org/10.24230/kjiop.v33i4.461-499" color="#24644F">근거자료  ·  한국판 K-BAT 타당화 예비연구</link>', caption),
         ])
 
     story.extend([
-        PageBreak(), report_paragraph("03  나의 실천사항", title),
+        PageBreak(), section_title("6. 나의 실천사항"),
         report_paragraph("다음 근무의 어떤 상황에서 무엇을 해볼지 적어보세요.", body),
     ])
     if action_plan.strip():
@@ -674,10 +715,10 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
             report_paragraph(escape(action_plan.strip()).replace("\n", "<br/>"), body),
         ])
     story.extend([
-        report_paragraph("어떤 상황에서", heading),
+        report_paragraph("1) 어떤 상황에서", heading),
         Spacer(1, 2*mm),
     ])
-    for label, count in (("", 3), ("무엇을 해볼지", 4), ("필요한 도움이나 함께 조정할 일", 3)):
+    for label, count in (("", 3), ("2) 무엇을 해볼지", 4), ("3) 필요한 도움이나 함께 조정할 일", 3)):
         if label:
             story.extend([Spacer(1, 5*mm), report_paragraph(label, heading), Spacer(1, 2*mm)])
         lines = Drawing(doc.width - 12, count * 9*mm)
@@ -1010,9 +1051,10 @@ if st.session_state.page == "result":
             mental_scores = mental_factor_means(answers)
             st.write(" · ".join(f"{factor} {value:.2f}" for factor, value in mental_scores.items()))
             st.caption("관련 문항 평균(1~4점)입니다. 영역별 문항 수는 감 3개, 수 3개, 성 2개입니다.")
-            st.markdown(f"[감·수·성 예비척도 개발 논문]({SCALE_PAPER_URL})")
-            st.markdown("[감·수·성 모델의 이론적 정립과 철학적 기초](https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003245299)")
-            st.markdown("[헌법 원리의 해석학적 탐색과 교육적 함의](https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003327070)")
+            st.markdown("**감·수·성 모델과 결과지의 연구 근거**")
+            for label, citation, url, role in MODEL_REFERENCES:
+                st.markdown(f"**[{label}]({url})** — 이성덕({citation})")
+                st.caption(role)
 
     with burnout_tab:
         st.subheader("나의 직무소진 경험")
