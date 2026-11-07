@@ -172,6 +172,7 @@ SCALE_LABELS = {
     3: "그런 편이다",
     4: "매우 그렇다",
 }
+
 ITEMS = [
     (1, "감", "공감적 이해", "수용자가 소란을 피울 때, 그 안에 두려움이나 불안이 있을 수 있다고 생각한다."),
     (2, "감", "정서 인식", "수용자의 말투나 표정을 보며 화남, 슬픔, 걱정 같은 감정을 쉽게 떠올린다."),
@@ -278,6 +279,7 @@ def reflection_items(answers, limit=3):
             break
     return selected
 
+
 def google_sheet():
     """Streamlit Secrets의 서비스 계정으로 연구자료 시트에 연결합니다."""
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -334,7 +336,8 @@ def save_research_response(answers, demographics):
         if sheet.col_count < len(headers):
             sheet.resize(cols=len(headers))
         sheet.update(range_name="A1", values=[headers], value_input_option="RAW")
-    sheet.append_row(values, value_input_option="RAW")    
+    sheet.append_row(values, value_input_option="RAW")
+
 
 def find_korean_font():
     candidates = [
@@ -402,6 +405,7 @@ BURNOUT_NAMES = {
 PROFILE_NOTE = "세 수치는 이번 자기보고 응답의 영역별 평균(1~4점)입니다. 성찰을 위한 참고자료로 활용해 주세요."
 BURNOUT_NOTE = "각 영역은 1~5점의 문항평균입니다. 값이 높을수록 해당 경험을 더 자주 보고한 것으로 해석합니다."
 REFERENCE_NOTE = "공기업 사무직 345명의 선행연구 결과입니다. 평균 ± 1표준편차는 해당 표본의 점수 분포를 설명하는 참고값입니다. 교정공무원 규준이나 정상·위험 판정 기준으로 사용하지 않습니다."
+
 
 def make_result_pdf(scores, action_plan, burnout):
     from xml.sax.saxutils import escape
@@ -534,6 +538,19 @@ def next_answered_question():
     else:
         st.session_state.page = "burnout"
 
+
+def save_burnout_and_advance(original):
+    """화면 전환으로 위젯이 정리되어도 응답을 별도 사전에 보존한다."""
+    value = st.session_state.get(f"bat_question_{original}")
+    if value not in (1, 2, 3, 4, 5):
+        return
+    st.session_state.burnout_answers[f"BAT{original}"] = value
+    if st.session_state.burnout_index < len(BAT_ITEMS) - 1:
+        st.session_state.burnout_index += 1
+    elif bat_scores(st.session_state.burnout_answers) is not None:
+        st.session_state.page = "demographics"
+
+
 def previous_burnout_question():
     st.session_state.burnout_index = max(0, st.session_state.burnout_index - 1)
 
@@ -633,6 +650,7 @@ if st.session_state.page == "consent":
         st.rerun()
     st.stop()
 
+
 if st.session_state.page == "survey":
     render_brand_bar()
     st.title("나의 인권감수성은 어떤 모습일까?")
@@ -679,6 +697,7 @@ if st.session_state.page == "survey":
         if st.session_state.get(f"q_{number}") is not None:
             st.button("다음 문항 →", type="primary", use_container_width=True, on_click=next_answered_question)
     st.stop()
+
 
 if st.session_state.page == "burnout":
     st.markdown("""
@@ -779,7 +798,7 @@ if st.session_state.page == "result":
         st.subheader("다음 근무에서 해볼 한 가지")
         action_plan = st.text_area(
             "해보고 싶은 행동을 한 문장으로 적어 보세요. (선택)",
-             placeholder="예: 안전이 확보되면 무엇이 불편한지 짧게 확인해 보겠습니다.",
+            placeholder="예: 안전이 확보되면 무엇이 불편한지 짧게 확인해 보겠습니다.",
             max_chars=300,
         )
         st.caption("작성한 행동계획은 내려받는 PDF에 포함됩니다.")
@@ -838,4 +857,3 @@ if st.session_state.page == "result":
         unsafe_allow_html=True,
     )
 
-           
