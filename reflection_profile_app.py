@@ -720,13 +720,12 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         story.append(report_paragraph("2) 내 점수는 무엇을 보여주나요?", green_heading))
         story.append(report_paragraph(BURNOUT_NOTE, body))
         story.extend(report_paragraph(line, body) for line in burnout_summary(burnout))
+        story.extend([PageBreak(), section_title("5. 직무소진 영역별 해설", True)])
         story.append(report_paragraph(REFERENCE_NOTE, body))
-        for index, (factor, value) in enumerate(burnout.items()):
-            if index == 2:
-                story.extend([PageBreak(), section_title("5. 직무소진 영역별 해설", True)])
+        for index, (factor, value) in enumerate(burnout.items(), 1):
             personal, shared = BAT_PRACTICE[factor]
             story.append(KeepTogether([
-                report_paragraph(f"{index + 3 if index < 2 else index - 1}) {BURNOUT_NAMES[factor]} · {value:.2f}점", green_heading),
+                report_paragraph(f"{index}) {BURNOUT_NAMES[factor]} · {value:.2f}점", green_heading),
                 report_paragraph(BAT_PLAIN_MEANINGS[factor], body),
                 report_paragraph(f"근무 장면 · {BURNOUT_DETAILS[factor]}", body),
                 report_paragraph(burnout_comparison(factor, value), body),
@@ -736,7 +735,7 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
 
     if burnout is not None:
         story.extend([
-            report_paragraph("3) 회복과 지원 돌아보기", green_heading),
+            report_paragraph("5) 회복과 지원 돌아보기", green_heading),
             report_paragraph(RECOVERY_QUESTION, body),
             report_paragraph(BURNOUT_SUPPORT_NOTE, body),
             report_paragraph("직무소진 결과의 연구 근거", green_heading),
@@ -830,12 +829,6 @@ def save_burnout_and_advance(original):
 
 def previous_burnout_question():
     st.session_state.burnout_index = max(0, st.session_state.burnout_index - 1)
-
-
-def reset_profile():
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.rerun()
 
 
 def logo_html(css_class):
@@ -1120,13 +1113,11 @@ if st.session_state.page == "result":
             st.write(BURNOUT_NOTE)
             for line in burnout_summary(burnout):
                 st.write(line)
-            st.caption(REFERENCE_NOTE)
             maximum = max(round(value, 2) for value in burnout.values())
             minimum = min(round(value, 2) for value in burnout.values())
-            for index, (factor, value) in enumerate(burnout.items()):
-                if index == 2:
-                    result_heading("5. 직무소진 영역별 해설", green=True)
-                number = index + 3 if index < 2 else index - 1
+            result_heading("5. 직무소진 영역별 해설", green=True)
+            st.caption(REFERENCE_NOTE)
+            for number, (factor, value) in enumerate(burnout.items(), 1):
                 expanded = maximum != minimum and round(value, 2) == maximum
                 with st.expander(f"{number}) {BURNOUT_NAMES[factor]} · {value:.2f}점", expanded=expanded):
                     personal, shared = BAT_PRACTICE[factor]
@@ -1135,7 +1126,7 @@ if st.session_state.page == "result":
                     st.write(burnout_comparison(factor, value))
                     st.write(f"**내가 해볼 일** · {personal}")
                     st.write(f"**함께 조정할 일** · {shared}")
-            st.subheader("3) 회복과 지원 돌아보기")
+            st.subheader("5) 회복과 지원 돌아보기")
             st.write(RECOVERY_QUESTION)
             st.caption(BURNOUT_SUPPORT_NOTE)
             with st.expander("직무소진 결과의 연구 근거"):
@@ -1144,19 +1135,11 @@ if st.session_state.page == "result":
                     st.caption(citation)
                     st.write(role)
 
-    result_heading("6. 나의 실천사항")
-    action_plan = st.text_area(
-        "오늘 돌아본 내용에서 하나를 골라, 다음 근무의 어떤 상황에서 무엇을 해볼지 적어보세요. (선택)",
-        placeholder="예: 안전을 확보한 뒤 무엇이 가장 불편한지 짧게 확인하겠습니다.",
-        max_chars=300,
-    )
     st.download_button(
-        "통합 PDF 내려받기", data=make_result_pdf(scores, action_plan, burnout, selected),
+        "통합 PDF 내려받기", data=make_result_pdf(scores, "", burnout, selected),
         file_name="나의_감수성_직무소진_자기점검.pdf", mime="application/pdf",
         use_container_width=True,
     )
-    if st.button("처음부터 다시 하기", use_container_width=True):
-        reset_profile()
 
     st.markdown(
         '<div class="rights-footer">© 2026 이성덕. All rights reserved.<br>'
