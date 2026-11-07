@@ -681,6 +681,29 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         return report_paragraph(text, style)
 
     from reportlab.platypus import Table, TableStyle
+    def research_box(title_text, entries, *, is_green=False):
+        color = "#24644F" if is_green else "#163752"
+        rows = [[report_paragraph(title_text, green_heading if is_green else heading)]]
+        for number, (label, citation, url, role) in enumerate(entries, 1):
+            credit = escape(citation if is_green else f"이성덕({citation})")
+            rows.append([[
+                report_paragraph(f'{number}. <link href="{url}" color="{color}">{escape(label)}</link>', caption),
+                report_paragraph(credit, reference),
+                report_paragraph(escape(role), reference),
+            ]])
+        box = Table(rows, colWidths=[doc.width - 12], repeatRows=1)
+        box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), HexColor("#F2F7F3" if is_green else "#F1F6FB")),
+            ("BOX", (0, 0), (-1, -1), 0.8, rule),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.6, rule),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ]))
+        return box
+
     score_cards = Table([[
         report_paragraph(f"{label}<br/><font size='21'>{scores[factor]:.2f}</font>", heading)
         for factor, label in (("감", "감(感)  알아차림"), ("수", "수(受)  판단"), ("성", "성(性)  성찰과 조정"))
@@ -720,12 +743,7 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
                 numbered_detail(item_index, f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {item}"),
                 report_paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", followup),
             ]))
-    story.append(report_paragraph("감·수·성 모델과 결과지의 연구 근거", heading))
-    for label, citation, url, role in MODEL_REFERENCES:
-        story.append(KeepTogether([
-            report_paragraph(f'<link href="{url}" color="#163752">{label}</link> — 이성덕({citation})', caption),
-            report_paragraph(role, reference),
-        ]))
+    story.extend([Spacer(1, 10), research_box("감·수·성 모델과 결과지의 연구 근거", MODEL_REFERENCES)])
     story.extend([PageBreak(), section_title("4. 직무소진 결과", True)])
     if burnout is None:
         story.append(report_paragraph("직무소진 결과를 산출할 수 없습니다.", body))
@@ -752,15 +770,7 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
             ]))
 
     if burnout is not None:
-        story.extend([
-            report_paragraph("직무소진 결과의 연구 근거", green_heading),
-        ])
-        for label, citation, url, role in BURNOUT_REFERENCES:
-            story.append(KeepTogether([
-                report_paragraph(f'<link href="{url}" color="#24644F">{label}</link>', caption),
-                report_paragraph(escape(citation), caption),
-                report_paragraph(role, reference),
-            ]))
+        story.extend([Spacer(1, 10), research_box("직무소진 결과의 연구 근거", BURNOUT_REFERENCES, is_green=True)])
 
     story.extend([
         PageBreak(), section_title("6. 나의 실천사항"),
