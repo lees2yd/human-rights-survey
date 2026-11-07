@@ -19,7 +19,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Rect
-from reportlab.platypus import PageBreak, Image as RLImage, Paragraph, SimpleDocTemplate
+from reportlab.platypus import KeepTogether, Spacer, PageBreak, Image as RLImage, Paragraph, SimpleDocTemplate
 
 
 st.set_page_config(
@@ -553,105 +553,138 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     from reportlab.pdfbase.ttfonts import TTFError
 
     buffer = io.BytesIO()
-    font = "HYSMyeongJo-Medium"
+    font = "HYGothic-Medium"
     pdfmetrics.registerFont(UnicodeCIDFont(font))
-    if KOREAN_FONT_PATH:
-        try:
-            pdfmetrics.registerFont(TTFont("KoreanFont", KOREAN_FONT_PATH))
-            font = "KoreanFont"
-        except (TTFError, OSError, ValueError):
-            pass
+    for name in ("NotoSansKR-Regular.ttf", "NanumGothic.ttf", "NanumGothicCoding.ttf"):
+        path = Path(__file__).with_name("fonts") / name
+        if path.is_file():
+            try:
+                pdfmetrics.registerFont(TTFont("ReportSans", str(path)))
+                font = "ReportSans"
+                break
+            except (TTFError, OSError, ValueError):
+                continue
 
+    def report_paragraph(text, style):
+        if font == "HYGothic-Medium":
+            text = text.replace("·", " / ")
+        return Paragraph(text, style)
+
+    navy = HexColor("#163752")
+    green = HexColor("#24644F")
+    muted = HexColor("#536577")
+    rule = HexColor("#D9E2EA")
     styles = getSampleStyleSheet()
     body = ParagraphStyle("ResultBody", parent=styles["BodyText"], fontName=font,
-                          fontSize=10, leading=16, wordWrap="CJK", spaceAfter=5)
+                          fontSize=10, leading=16, wordWrap="CJK", spaceAfter=5,
+                          textColor=HexColor("#202E3A"))
     heading = ParagraphStyle("ResultHeading", parent=body, fontSize=13,
-                             leading=19, spaceBefore=9, textColor=HexColor("#164b79"))
-    title = ParagraphStyle("ResultTitle", parent=heading, fontSize=18, leading=25)
-    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=18*mm, rightMargin=18*mm,
-                            topMargin=17*mm, bottomMargin=17*mm)
+                             leading=19, spaceBefore=9, textColor=navy, keepWithNext=True)
+    title = ParagraphStyle("ResultTitle", parent=heading, fontSize=21, leading=29, spaceAfter=9)
+    green_heading = ParagraphStyle("BurnoutHeading", parent=heading, textColor=green)
+    green_title = ParagraphStyle("BurnoutTitle", parent=title, textColor=green)
+    caption = ParagraphStyle("ReportCaption", parent=body, fontSize=9, textColor=muted)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=20*mm, rightMargin=20*mm,
+                            topMargin=24*mm, bottomMargin=21*mm)
+
     def draw_background(canvas, page):
         width, height = A4
         canvas.saveState()
-        canvas.setFillColor(HexColor("#f7fcff"))
-        canvas.rect(0, 0, width, height, fill=1, stroke=0)
-        canvas.setFillColor(HexColor("#dff1fb"))
-        ridge = canvas.beginPath()
-        ridge.moveTo(0, 0)
-        ridge.curveTo(40*mm, 20*mm, 65*mm, 9*mm, 100*mm, 16*mm)
-        ridge.curveTo(140*mm, 25*mm, 175*mm, 8*mm, width, 19*mm)
-        ridge.lineTo(width, 0)
-        ridge.close()
-        canvas.drawPath(ridge, fill=1, stroke=0)
-        canvas.setFillColor(HexColor("#164b79"))
+        canvas.setStrokeColor(rule)
+        canvas.line(20*mm, height - 19*mm, width - 20*mm, height - 19*mm)
+        canvas.line(20*mm, 16*mm, width - 20*mm, 16*mm)
+        canvas.setFillColor(muted)
         canvas.setFont(font, 8)
-        canvas.drawString(18*mm, 8*mm, "감·수·성 자기성찰 참고자료")
-        canvas.drawRightString(width - 18*mm, 8*mm, str(page.page))
+        canvas.drawString(20*mm, height - 15*mm, "교정공무원 인권교육  /  개인 자기성찰 보고서")
+        canvas.drawString(20*mm, 11*mm, "개인 자기성찰 참고자료")
+        canvas.drawRightString(width - 20*mm, 11*mm, f"{page.page:02d}")
         canvas.restoreState()
 
     score_line = "  ·  ".join(f"{factor} {score:.2f}" for factor, score in scores.items())
     story = [
-        Paragraph("나의 감·수·성 인권감수성과 직무소진", title),
-        Paragraph("감·수·성 인권감수성 모델을 활용한 자기성찰 참고자료", body),
-        Paragraph("감·수·성 인권감수성 결과", heading),
-        Paragraph(score_line, body),
-        Paragraph(PROFILE_NOTE, body),
+        report_paragraph("01  감·수·성 인권감수성 결과", title),
+        report_paragraph("감·수·성 인권감수성 모델을 활용한 자기성찰 참고자료", body),
+        report_paragraph(score_line, body),
+        report_paragraph(PROFILE_NOTE, body),
         RLImage(radar_png(scores), width=45*mm, height=45*mm, kind="proportional"),
-        Paragraph("내 점수는 무엇을 보여주나요?", heading),
-        *(Paragraph(line, body) for line in response_summary(scores)),
-        Paragraph("직무소진 결과", heading),
+        report_paragraph("내 점수는 무엇을 보여주나요?", heading),
+        *(report_paragraph(line, body) for line in response_summary(scores)),
     ]
     if LOGO_PATH.is_file():
         story.insert(0, RLImage(str(LOGO_PATH), width=13*mm, height=13*mm, kind="proportional"))
+    story += [PageBreak(), report_paragraph("한 장면을 감·수·성으로 다시 보기", heading),
+              report_paragraph(SCENE_PROMPT, body)]
+    for label, question in SCENE_QUESTIONS.items():
+        factor = label[0]
+        story.append(report_paragraph(f"{label} — {question}", heading))
+        story.append(report_paragraph(FACTOR_META[factor]["meaning"], body))
+        story.append(report_paragraph(PRACTICE_GUIDES[factor]["steps"], body))
+    story.extend([report_paragraph("내 응답에서 돌아볼 여섯 가지", title)])
+    for factor, (note, rows) in selected.items():
+        story.extend([report_paragraph(factor, heading), report_paragraph(note, body)])
+        for score, number, item in rows:
+            story.append(KeepTogether([
+                report_paragraph(f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {escape(item)}", body),
+                report_paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", body),
+            ]))
+    story.extend([
+        report_paragraph(f'<link href="{SCALE_PAPER_URL}" color="#163752">근거자료  ·  감·수·성 예비척도 개발 논문</link>', caption),
+        PageBreak(), report_paragraph("02  직무소진 결과", green_title),
+    ])
     if burnout is None:
-        story.append(Paragraph("직무소진 결과를 산출할 수 없습니다.", body))
+        story.append(report_paragraph("직무소진 결과를 산출할 수 없습니다.", body))
     else:
         for factor, value in burnout.items():
-            story.append(Paragraph(f"{BURNOUT_NAMES[factor]} {value:.2f}", body))
+            story.append(report_paragraph(f"{BURNOUT_NAMES[factor]} {value:.2f}", body))
             chart_width = doc.width - 12
             chart = Drawing(chart_width, 9)
             chart.add(Rect(0, 2, chart_width, 6, fillColor=HexColor("#e3f0e8"), strokeColor=None))
             chart.add(Rect(0, 2, chart_width * value / 5, 6,
                            fillColor=HexColor("#409773"), strokeColor=None))
             story.append(chart)
-        story.append(Paragraph("내 점수는 무엇을 보여주나요?", heading))
-        story.append(Paragraph(BURNOUT_NOTE, body))
-        story.extend(Paragraph(line, body) for line in burnout_summary(burnout))
-        story.append(Paragraph("영역별 의미와 실천 방법", heading))
-        story.append(Paragraph(REFERENCE_NOTE, body))
+        story.append(report_paragraph("내 점수는 무엇을 보여주나요?", green_heading))
+        story.append(report_paragraph(BURNOUT_NOTE, body))
+        story.extend(report_paragraph(line, body) for line in burnout_summary(burnout))
+        story.append(report_paragraph("영역별 의미와 실천 방법", green_heading))
+        story.append(report_paragraph(REFERENCE_NOTE, body))
         for factor, value in burnout.items():
             personal, shared = BAT_PRACTICE[factor]
-            story.extend([
-                Paragraph(f"{BURNOUT_NAMES[factor]} · {value:.2f}점", heading),
-                Paragraph(BAT_PLAIN_MEANINGS[factor], body),
-                Paragraph(burnout_comparison(factor, value), body),
-                Paragraph(f"내가 해볼 일 · {personal}", body),
-                Paragraph(f"함께 조정할 일 · {shared}", body),
-            ])
+            story.append(KeepTogether([
+                report_paragraph(f"{BURNOUT_NAMES[factor]} · {value:.2f}점", green_heading),
+                report_paragraph(BAT_PLAIN_MEANINGS[factor], body),
+                report_paragraph(burnout_comparison(factor, value), body),
+                report_paragraph(f"내가 해볼 일 · {personal}", body),
+                report_paragraph(f"함께 조정할 일 · {shared}", body),
+            ]))
 
-    story += [PageBreak(), Paragraph("한 장면을 감·수·성으로 다시 보기", title),
-              Paragraph(SCENE_PROMPT, body)]
-    for label, question in SCENE_QUESTIONS.items():
-        factor = label[0]
-        story.append(Paragraph(f"{label} — {question}", heading))
-        story.append(Paragraph(FACTOR_META[factor]["meaning"], body))
-        story.append(Paragraph(PRACTICE_GUIDES[factor]["steps"], body))
-    story.append(Paragraph("내 응답에서 돌아볼 여섯 가지", heading))
-    for factor, (note, rows) in selected.items():
-        story.extend([Paragraph(factor, heading), Paragraph(note, body)])
-        for score, number, item in rows:
-            story.append(Paragraph(f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {escape(item)}", body))
-            story.append(Paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", body))
-    story += [
-        Paragraph("회복과 지원 돌아보기", heading),
-        Paragraph(RECOVERY_QUESTION, body),
-        Paragraph("참고자료", heading),
-        Paragraph(f'<link href="{SCALE_PAPER_URL}">감·수·성 예비척도 개발 논문</link>', body),
-    ]
     if burnout is not None:
-        story.append(Paragraph('<link href="https://doi.org/10.24230/kjiop.v33i4.461-499">한국판 K-BAT 타당화 예비연구</link>', body))
-    story.extend([Paragraph("다음 근무에서 해볼 한 가지", heading),
-                  Paragraph(escape(action_plan.strip()).replace("\n", "<br/>") or "작성한 내용이 없습니다.", body)])
+        story.extend([
+            report_paragraph("회복과 지원 돌아보기", green_heading),
+            report_paragraph(RECOVERY_QUESTION, body),
+            report_paragraph('<link href="https://doi.org/10.24230/kjiop.v33i4.461-499" color="#24644F">근거자료  ·  한국판 K-BAT 타당화 예비연구</link>', caption),
+        ])
+
+    story.extend([
+        PageBreak(), report_paragraph("03  나의 실천사항", title),
+        report_paragraph("다음 근무의 어떤 상황에서 무엇을 해볼지 적어보세요.", body),
+    ])
+    if action_plan.strip():
+        story.extend([
+            report_paragraph("설문에서 작성한 실천사항", heading),
+            report_paragraph(escape(action_plan.strip()).replace("\n", "<br/>"), body),
+        ])
+    story.extend([
+        report_paragraph("어떤 상황에서", heading),
+        Spacer(1, 2*mm),
+    ])
+    for label, count in (("", 3), ("무엇을 해볼지", 4), ("필요한 도움이나 함께 조정할 일", 3)):
+        if label:
+            story.extend([Spacer(1, 5*mm), report_paragraph(label, heading), Spacer(1, 2*mm)])
+        lines = Drawing(doc.width - 12, count * 9*mm)
+        for index in range(count):
+            lines.add(Rect(0, index * 9*mm, doc.width - 12, 0.35,
+                           fillColor=rule, strokeColor=None))
+        story.append(lines)
     doc.build(story, onFirstPage=draw_background, onLaterPages=draw_background)
     return buffer.getvalue()
 
