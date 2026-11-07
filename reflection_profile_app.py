@@ -389,6 +389,48 @@ def radar_png(scores):
     return buf
 
 
+FACTOR_META = {
+    "감": {
+        "title": "감(感) — 정서적·상황적 인식",
+        "question": "무엇을 알아차리고 있는가?",
+        "meaning": "자신과 수용자의 감정·정서 신호를 알아차리고, 취약성과 인권침해 가능성의 맥락에서 이해하는 판단영역입니다.",
+        "practice": "반응하기 전에 표정·말투·행동의 변화를 관찰하고, 감정을 단정하지 않은 채 확인 질문을 한 번 해보세요.",
+    },
+    "수": {
+        "title": "수(受) — 규범적·전문적 판단",
+        "question": "어떤 기준으로 판단하고 있는가?",
+        "meaning": "상황정보를 목적·필요성·비례성·적법절차에 따라 검토하고, 전문적 협력을 통해 정당화 가능한 대응을 선택하는 판단영역입니다.",
+        "practice": "조치 전에 ‘목적은 무엇인가, 덜 제한적인 방법은 없는가, 절차와 전문가 협력이 필요한가’를 확인해 보세요.",
+    },
+    "성": {
+        "title": "성(性) — 성찰적 점검·조정",
+        "question": "내 판단을 무엇이 움직이고 있는가?",
+        "meaning": "편견·피로·감정·동료 압력·조직의 권위와 관행이 판단에 미치는 영향을 점검하고 필요한 경우 조정하는 판단영역입니다.",
+        "practice": "강한 감정이 들었던 사건 하나를 골라 사실, 나의 감정, 판단 근거, 동료 분위기를 분리해 짧게 기록해 보세요.",
+    },
+}
+
+PRACTICE_GUIDES = {
+    "감": {
+        "title": "감(感) 연습 — 고통·취약성의 신호 알아차리기",
+        "steps": "그때 나와 상대에게 나타난 감정·표정·말투·행동을 구체적으로 적고, 그 신호가 존엄·안전·보호 필요성과 어떻게 연결되는지 한 문장으로 써 보세요.",
+    },
+    "수": {
+        "title": "수(受) 연습 — 목적·필요성·절차를 다시 설계하기",
+        "steps": "내 조치의 목적과 법적·직무상 근거를 적은 뒤, 덜 제한적인 대안, 필요한 절차, 의료·심리 등 전문적 협력의 필요성을 차례로 점검해 보세요.",
+    },
+    "성": {
+        "title": "성(性) 연습 — 편견·권위·피로의 영향 점검하기",
+        "steps": "내 판단에 피로, 과거 경험, 동료 분위기, 권위나 관행이 미친 영향을 적고, 상대방의 권리와 관계에 미칠 결과를 고려한 다음 행동을 한 가지 정해 보세요.",
+    },
+}
+
+BAT_PRACTICE = {
+    "탈진": "회복시간과 휴식 여건을 살펴보세요.",
+    "심적거리": "업무 부담을 살피고 동료와 상의할 수 있는 부분을 찾아보세요.",
+    "인지적 조절 손상": "집중이 흐려지는 상황을 찾고 확인표나 업무 재확인을 활용해 보세요.",
+    "정서적 조절 손상": "감정 변화의 신호를 알아차리고 잠시 멈추거나 도움을 요청해 보세요.",
+}
 SCENE_PROMPT = "최근 수용자에게 대응했던 근무 장면 하나를 떠올려 보세요."
 SCENE_QUESTIONS = {
     "감 · 알아차림": "그때 나와 상대에게 어떤 감정이나 도움이 필요한 신호가 있었나요?",
@@ -407,7 +449,18 @@ BURNOUT_NOTE = "각 영역은 1~5점의 문항평균입니다. 값이 높을수�
 REFERENCE_NOTE = "공기업 사무직 345명의 선행연구 결과입니다. 평균 ± 1표준편차는 해당 표본의 점수 분포를 설명하는 참고값입니다. 교정공무원 규준이나 정상·위험 판정 기준으로 사용하지 않습니다."
 
 
-def make_result_pdf(scores, action_plan, burnout):
+def response_summary(scores):
+    highest = max(scores.values())
+    lowest = min(scores.values())
+    if highest == lowest:
+        return "이번 응답에서 세 영역의 문항평균이 같았습니다."
+    high = "·".join(factor for factor, value in scores.items() if value == highest)
+    low = "·".join(factor for factor, value in scores.items() if value == lowest)
+    return f"이번 응답에서 {high} 영역의 평균은 {highest:.2f}점, {low} 영역의 평균은 {lowest:.2f}점이었습니다. 작은 점수 차이는 실제 역량 차이로 해석하기 어렵습니다."
+
+
+def make_result_pdf(scores, action_plan, burnout, selected=None):
+    selected = selected or {}
     from xml.sax.saxutils import escape
     from reportlab.pdfbase.cidfonts import UnicodeCIDFont
     from reportlab.pdfbase.ttfonts import TTFError
@@ -456,6 +509,7 @@ def make_result_pdf(scores, action_plan, burnout):
         Paragraph("감·수·성 결과", heading),
         Paragraph(score_line, body),
         Paragraph(PROFILE_NOTE, body),
+        Paragraph(response_summary(scores), body),
         RLImage(radar_png(scores), width=45*mm, height=45*mm, kind="proportional"),
         Paragraph("직무소진 결과", heading),
     ]
@@ -472,12 +526,18 @@ def make_result_pdf(scores, action_plan, burnout):
             chart.add(Rect(0, 2, chart_width, 6, fillColor=HexColor("#e3f0e8"), strokeColor=None))
             chart.add(Rect(0, 2, chart_width * value / 5, 6,
                            fillColor=HexColor("#409773"), strokeColor=None))
-            story.append(chart)
+            story.extend([chart, Paragraph(BAT_PLAIN_MEANINGS[factor], body),
+                          Paragraph(BAT_PRACTICE[factor], body)])
 
     story += [PageBreak(), Paragraph("한 장면을 감·수·성으로 다시 보기", title),
               Paragraph(SCENE_PROMPT, body)]
     for label, question in SCENE_QUESTIONS.items():
-        story.append(Paragraph(f"{label} — {question}", body))
+        factor = label[0]
+        story.append(Paragraph(f"{label} — {question}", heading))
+        story.append(Paragraph(FACTOR_META[factor]["meaning"], body))
+        if factor in selected:
+            story.append(Paragraph(f"돌아볼 문항 · {escape(selected[factor])}", body))
+        story.append(Paragraph(PRACTICE_GUIDES[factor]["steps"], body))
     story += [
         Paragraph("다음 근무에서 해볼 한 가지", heading),
         Paragraph(escape(action_plan.strip()).replace("\n", "<br/>") or "작성한 내용이 없습니다.", body),
@@ -777,6 +837,7 @@ if st.session_state.page == "result":
     render_brand_bar()
     answers = st.session_state.answers
     scores = factor_means(answers)
+    selected = {factor: item for _, factor, _, item in reflection_items(answers)}
     burnout = bat_scores(st.session_state.get("burnout_answers", {}))
 
     st.title("나의 자기점검 결과")
@@ -789,12 +850,19 @@ if st.session_state.page == "result":
         st.subheader("나의 응답 한눈에 보기")
         st.write(" · ".join(f"**{factor} {value:.2f}**" for factor, value in scores.items()))
         st.caption(PROFILE_NOTE)
+        st.write(response_summary(scores))
         st.image(radar_png(scores), width=290)
 
         st.subheader("한 장면을 감·수·성으로 다시 보기")
         st.write(SCENE_PROMPT)
         for label, question in SCENE_QUESTIONS.items():
             st.markdown(f"**{label}**  \n{question}")
+        for factor, meta in FACTOR_META.items():
+            with st.expander(f"{meta['title']} · 돌아볼 문항과 실천"):
+                st.write(meta["meaning"])
+                if factor in selected:
+                    st.write(f"**내 응답에서 돌아볼 문항** · {selected[factor]}")
+                st.write(f"**실천 제안** · {PRACTICE_GUIDES[factor]['steps']}")
         st.subheader("다음 근무에서 해볼 한 가지")
         action_plan = st.text_area(
             "해보고 싶은 행동을 한 문장으로 적어 보세요. (선택)",
@@ -802,11 +870,7 @@ if st.session_state.page == "result":
             max_chars=300,
         )
         st.caption("작성한 행동계획은 내려받는 PDF에 포함됩니다.")
-        with st.expander("내 응답에서 돌아볼 문항과 근거자료"):
-            selected = {factor: item for _, factor, _, item in reflection_items(answers)}
-            for factor in scores:
-                if factor in selected:
-                    st.write(f"{factor} · {selected[factor]}")
+        with st.expander("상세 결과와 근거자료"):
             st.markdown("**9개 내용영역과 연습 방향**")
             st.caption("문항의 내용 분류입니다. 별도 하위척도 점수로 해석하지 않습니다.")
             for name, guidance in SUBDOMAIN_FEEDBACK.items():
@@ -836,15 +900,19 @@ if st.session_state.page == "result":
             st.plotly_chart(fig, use_container_width=True)
             st.caption(BURNOUT_NOTE)
             st.write(f"**{RECOVERY_QUESTION}**")
-            with st.expander("영역 설명과 선행연구 참고값"):
+            for factor, value in burnout.items():
+                with st.expander(f"{BURNOUT_NAMES[factor]} · {value:.2f}점"):
+                    st.write(BAT_PLAIN_MEANINGS[factor])
+                    st.write(f"**회복과 지원을 위한 제안** · {BAT_PRACTICE[factor]}")
+            with st.expander("선행연구 참고값"):
                 st.caption(REFERENCE_NOTE)
                 for factor in burnout:
                     mean, sd = BAT_REFERENCE[factor]
-                    st.markdown(f"**{BURNOUT_NAMES[factor]}** · {BAT_PLAIN_MEANINGS[factor]}")
+                    st.markdown(f"**{BURNOUT_NAMES[factor]}**")
                     st.caption(f"평균 {mean:.2f} · 평균 ± 1표준편차 {mean-sd:.2f}~{mean+sd:.2f}")
 
     st.download_button(
-        "통합 PDF 내려받기", data=make_result_pdf(scores, action_plan, burnout),
+        "통합 PDF 내려받기", data=make_result_pdf(scores, action_plan, burnout, selected),
         file_name="나의_감수성_직무소진_자기점검.pdf", mime="application/pdf",
         use_container_width=True,
     )
