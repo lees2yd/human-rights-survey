@@ -266,14 +266,6 @@ def subdomain_means(answers):
     return {name: round(float(np.mean(values)), 2) for name, values in grouped.items()}
 
 
-def mental_factor_means(answers):
-    grouped = {"감": [], "수": [], "성": []}
-    for number, factor, _, _ in ITEMS:
-        if number in {7, 8, 9, 15, 16, 17, 24, 25}:
-            grouped[factor].append(answers[number])
-    return {factor: round(float(np.mean(values)), 2) for factor, values in grouped.items()}
-
-
 REFLECTION_QUESTIONS = {
     1: "소란이 있었던 장면에서 두려움이나 불안을 짐작하게 한 말이나 행동이 있었나요?",
     2: "말투나 표정에서 어떤 감정을 떠올렸고, 그렇게 생각한 단서는 무엇이었나요?",
@@ -1083,12 +1075,7 @@ if st.session_state.page == "result":
                     st.markdown(f"**{number}번 · {score}점 ({SCALE_LABELS[score]})**")
                     st.write(item)
                     st.write(f"**돌아볼 질문** · {REFLECTION_QUESTIONS[number]}")
-        with st.expander("상세 결과와 근거자료"):
-            st.markdown("**정신건강 관련 상황의 응답 경향**")
-            mental_scores = mental_factor_means(answers)
-            st.write(" · ".join(f"{factor} {value:.2f}" for factor, value in mental_scores.items()))
-            st.caption("관련 문항 평균(1~4점)입니다. 영역별 문항 수는 감 3개, 수 3개, 성 2개입니다.")
-            st.markdown("**감·수·성 모델과 결과지의 연구 근거**")
+        with st.expander("감·수·성 인권감수성 모델 근거자료"):
             for label, citation, url, role in MODEL_REFERENCES:
                 st.markdown(f"**[{label}]({url})** — 이성덕({citation})")
                 st.caption(role)
