@@ -444,9 +444,14 @@ BURNOUT_NAMES = {
     "인지적 조절 손상": "집중과 기억의 어려움",
     "정서적 조절 손상": "감정 조절의 어려움",
 }
-PROFILE_NOTE = "세 수치는 이번 자기보고 응답의 영역별 평균(1~4점)입니다. 성찰을 위한 참고자료로 활용해 주세요."
+PROFILE_NOTE = (
+    "각 점수는 이번에 해당 영역의 문항에 응답한 값의 평균(1~4점)입니다. "
+    "높을수록 문항에 제시된 알아차림·판단·성찰 행동이 자신의 경험에 해당한다고 더 많이 응답한 것입니다. "
+    "낮을수록 해당 행동이 자신의 경험에 해당한다고 응답한 정도가 낮으며, 어떤 상황에서 실천이 어려웠는지 돌아보는 단서가 됩니다. "
+    "점수는 자기보고 결과로 인권 수준이나 실제 직무역량의 등급을 뜻하지 않습니다."
+)
 BURNOUT_NOTE = "각 영역은 1~5점의 문항평균입니다. 값이 높을수록 해당 경험을 더 자주 보고한 것으로 해석합니다."
-REFERENCE_NOTE = "공기업 사무직 345명의 선행연구 결과입니다. 평균 ± 1표준편차는 해당 표본의 점수 분포를 설명하는 참고값입니다. 교정공무원 규준이나 정상·위험 판정 기준으로 사용하지 않습니다."
+REFERENCE_NOTE = "공기업 사무직 345명의 선행연구 결과입니다. 평균 ± 1표준편차는 해당 표본의 점수 분포를 설명하는 참고값입니다. 해당 평균은 공기업 사무직 표본이 보고한 경험 빈도의 평균입니다. 직무와 응답 여건의 차이를 고려해 참고용으로 읽어 주세요. 교정공무원 규준이나 정상·위험 판정 기준으로 사용하지 않습니다."
 
 
 def response_summary(scores):
@@ -457,6 +462,18 @@ def response_summary(scores):
     high = "·".join(factor for factor, value in scores.items() if value == highest)
     low = "·".join(factor for factor, value in scores.items() if value == lowest)
     return f"이번 응답에서 {high} 영역의 평균은 {highest:.2f}점, {low} 영역의 평균은 {lowest:.2f}점이었습니다. 작은 점수 차이는 실제 역량 차이로 해석하기 어렵습니다."
+
+
+def burnout_comparison(factor, score):
+    mean, sd = BAT_REFERENCE[factor]
+    difference = round(score - mean, 2)
+    relation = "같습니다" if difference == 0 else (
+        f"{abs(difference):.2f}점 높습니다" if difference > 0 else f"{abs(difference):.2f}점 낮습니다"
+    )
+    return (
+        f"나의 평균 {score:.2f}점은 선행연구 평균 {mean:.2f}점과 비교해 {relation}. "
+        f"해당 표본의 평균 ± 1표준편차 구간은 {mean-sd:.2f}~{mean+sd:.2f}점입니다."
+    )
 
 
 def make_result_pdf(scores, action_plan, burnout, selected=None):
@@ -506,7 +523,7 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     story = [
         Paragraph("나의 감·수·성 인권감수성과 직무소진", title),
         Paragraph("감·수·성 인권감수성 모델을 활용한 자기성찰 참고자료", body),
-        Paragraph("감·수·성 결과", heading),
+        Paragraph("감·수·성 인권감수성 결과", heading),
         Paragraph(score_line, body),
         Paragraph(PROFILE_NOTE, body),
         Paragraph(response_summary(scores), body),
@@ -549,8 +566,7 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     if burnout is not None:
         story.append(Paragraph(REFERENCE_NOTE, body))
         for factor in burnout:
-            mean, sd = BAT_REFERENCE[factor]
-            story.append(Paragraph(f"{BURNOUT_NAMES[factor]} · 평균 {mean:.2f} · 평균 ± 1표준편차 {mean-sd:.2f}~{mean+sd:.2f}", body))
+            story.append(Paragraph(f"{BURNOUT_NAMES[factor]} · {burnout_comparison(factor, burnout[factor])}", body))
         story.append(Paragraph('<link href="https://doi.org/10.24230/kjiop.v33i4.461-499">한국판 K-BAT 타당화 예비연구</link>', body))
     doc.build(story, onFirstPage=draw_background, onLaterPages=draw_background)
     return buffer.getvalue()
@@ -844,12 +860,12 @@ if st.session_state.page == "result":
     if st.session_state.research_saved:
         st.success("익명 연구자료가 제출되었습니다.")
     st.caption("두 결과는 자기성찰을 위한 참고자료입니다. 인사평가나 진단에 사용하지 않습니다.")
-    gam_tab, burnout_tab = st.tabs(["감·수·성 결과", "직무소진 결과"])
+    gam_tab, burnout_tab = st.tabs(["감·수·성 인권감수성 결과", "직무소진 결과"])
 
     with gam_tab:
-        st.subheader("나의 응답 한눈에 보기")
+        st.subheader("감·수·성 인권감수성 결과")
         st.write(" · ".join(f"**{factor} {value:.2f}**" for factor, value in scores.items()))
-        st.caption(PROFILE_NOTE)
+        st.write(PROFILE_NOTE)
         st.write(response_summary(scores))
         st.image(radar_png(scores), width=290)
 
@@ -899,17 +915,16 @@ if st.session_state.page == "result":
             fig.update_layout(height=265, margin=dict(l=12, r=12, t=10, b=35))
             st.plotly_chart(fig, use_container_width=True)
             st.caption(BURNOUT_NOTE)
+            st.markdown("**선행연구 평균과 나의 응답 비교**")
+            st.write(REFERENCE_NOTE)
+            for factor, value in burnout.items():
+                st.write(f"**{BURNOUT_NAMES[factor]}** · {burnout_comparison(factor, value)}")
             st.write(f"**{RECOVERY_QUESTION}**")
             for factor, value in burnout.items():
                 with st.expander(f"{BURNOUT_NAMES[factor]} · {value:.2f}점"):
                     st.write(BAT_PLAIN_MEANINGS[factor])
                     st.write(f"**회복과 지원을 위한 제안** · {BAT_PRACTICE[factor]}")
-            with st.expander("선행연구 참고값"):
-                st.caption(REFERENCE_NOTE)
-                for factor in burnout:
-                    mean, sd = BAT_REFERENCE[factor]
-                    st.markdown(f"**{BURNOUT_NAMES[factor]}**")
-                    st.caption(f"평균 {mean:.2f} · 평균 ± 1표준편차 {mean-sd:.2f}~{mean+sd:.2f}")
+            st.markdown("[비교 수치의 근거 · 한국판 직무소진평가척도 예비연구](https://doi.org/10.24230/kjiop.v33i4.461-499)")
 
     st.download_button(
         "통합 PDF 내려받기", data=make_result_pdf(scores, action_plan, burnout, selected),
