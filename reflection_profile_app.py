@@ -586,6 +586,31 @@ def result_heading(title, *, green=False):
     )
 
 
+CIRCLED_NUMBERS = "①②③④⑤"
+
+
+def burnout_detail_lines(factor, value):
+    personal, shared = BAT_PRACTICE[factor]
+    return (
+        BAT_PLAIN_MEANINGS[factor],
+        f"근무 장면 · {BURNOUT_DETAILS[factor]}",
+        burnout_comparison(factor, value),
+        f"내가 해볼 일 · {personal}",
+        f"함께 조정할 일 · {shared}",
+    )
+
+
+def web_numbered_detail(index, text, followup=""):
+    from html import escape
+
+    extra = f'<div class="result-detail-followup">{escape(followup)}</div>' if followup else ""
+    st.markdown(
+        f'<div class="result-detail"><span>{CIRCLED_NUMBERS[index]}</span>'
+        f'<div>{escape(text)}{extra}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
 def make_result_pdf(scores, action_plan, burnout, selected=None):
     selected = selected or {}
     from xml.sax.saxutils import escape
@@ -624,7 +649,12 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     green_heading = ParagraphStyle("BurnoutHeading", parent=heading, textColor=green)
     green_title = ParagraphStyle("BurnoutTitle", parent=title, textColor=green)
     caption = ParagraphStyle("ReportCaption", parent=body, fontSize=9, textColor=muted)
-    detail = ParagraphStyle("ResultDetail", parent=body, leftIndent=12)
+    detail = ParagraphStyle("ResultDetail", parent=body, leftIndent=23,
+                            bulletIndent=8, leading=12.5, spaceAfter=3)
+    followup = ParagraphStyle("ResultFollowup", parent=detail, spaceAfter=6)
+
+    def numbered_detail(index, text):
+        return Paragraph(escape(text), detail, bulletText=CIRCLED_NUMBERS[index])
     reference = ParagraphStyle("ReferenceDetail", parent=caption, leftIndent=12)
     doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=20*mm, rightMargin=20*mm,
                             topMargin=24*mm, bottomMargin=21*mm)
@@ -680,15 +710,15 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     for index, (label, question) in enumerate(SCENE_QUESTIONS.items(), 1):
         factor = label[0]
         story.append(report_paragraph(f"{index}) {label} — {question}", heading))
-        story.append(report_paragraph(FACTOR_META[factor]["meaning"], body))
-        story.append(report_paragraph(PRACTICE_GUIDES[factor]["steps"], body))
+        story.append(numbered_detail(0, FACTOR_META[factor]["meaning"]))
+        story.append(numbered_detail(1, PRACTICE_GUIDES[factor]["steps"]))
     story.extend([PageBreak(), section_title("3. 내 응답에서 돌아볼 여섯 가지")])
     for index, (factor, (note, rows)) in enumerate(selected.items(), 1):
-        story.extend([report_paragraph(f"{index}) {factor} — {dict(감='알아차림', 수='판단', 성='성찰과 조정')[factor]}", heading), report_paragraph(note, body)])
-        for score, number, item in rows:
+        story.extend([report_paragraph(f"{index}) {factor} — {dict(감='알아차림', 수='판단', 성='성찰과 조정')[factor]}", heading), report_paragraph(note, followup)])
+        for item_index, (score, number, item) in enumerate(rows):
             story.append(KeepTogether([
-                report_paragraph(f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {escape(item)}", body),
-                report_paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", detail),
+                numbered_detail(item_index, f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {item}"),
+                report_paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", followup),
             ]))
     story.append(report_paragraph("감·수·성 모델과 결과지의 연구 근거", heading))
     for label, citation, url, role in MODEL_REFERENCES:
@@ -715,14 +745,10 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         story.extend([PageBreak(), section_title("5. 직무소진 영역별 해설", True)])
         story.append(report_paragraph(REFERENCE_NOTE, body))
         for index, (factor, value) in enumerate(burnout.items(), 1):
-            personal, shared = BAT_PRACTICE[factor]
             story.append(KeepTogether([
                 report_paragraph(f"{index}) {BURNOUT_NAMES[factor]} · {value:.2f}점", green_heading),
-                report_paragraph(BAT_PLAIN_MEANINGS[factor], body),
-                report_paragraph(f"근무 장면 · {BURNOUT_DETAILS[factor]}", detail),
-                report_paragraph(burnout_comparison(factor, value), body),
-                report_paragraph(f"내가 해볼 일 · {personal}", detail),
-                report_paragraph(f"함께 조정할 일 · {shared}", detail),
+                *(numbered_detail(item_index, line)
+                  for item_index, line in enumerate(burnout_detail_lines(factor, value))),
             ]))
 
     if burnout is not None:
@@ -1075,6 +1101,16 @@ if st.session_state.page == "result":
         [data-testid="stExpanderDetails"] [data-testid="stMarkdownContainer"] {
             padding-bottom: 0.25rem;
         }
+        .result-detail {
+            display: grid;
+            grid-template-columns: 1.35em minmax(0, 1fr);
+            gap: 0.3em;
+            margin: 0.15rem 0 0.3rem 0.45rem;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+        .result-detail > span { color: #24627F; font-weight: 650; }
+        .result-detail-followup { margin-top: 0.25rem; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1097,19 +1133,19 @@ if st.session_state.page == "result":
             st.markdown(f"**{index}) {label}**  \n{question}")
         for factor, meta in FACTOR_META.items():
             with st.expander(f"{meta['title']} · 돌아볼 문항과 실천"):
-                st.write(meta["meaning"])
-                st.write(f"**실천 제안** · {PRACTICE_GUIDES[factor]['steps']}")
+                web_numbered_detail(0, meta["meaning"])
+                web_numbered_detail(1, f"실천 제안 · {PRACTICE_GUIDES[factor]['steps']}")
         result_heading("3. 내 응답에서 돌아볼 여섯 가지")
         st.write("각 영역에서 낮은 응답 순으로 두 문항씩 골랐습니다. 경험과 가까운 문항 하나부터 살펴보세요.")
         for index, (factor, (note, rows)) in enumerate(selected.items(), 1):
             with st.expander(f"{index}) {FACTOR_META[factor]['title']} · 돌아볼 두 문항", expanded=True):
                 st.caption(note)
                 for item_index, (score, number, item) in enumerate(rows):
-                    if item_index:
-                        st.divider()
-                    st.markdown(f"**{number}번 · {score}점 ({SCALE_LABELS[score]})**")
-                    st.write(item)
-                    st.write(f"**돌아볼 질문** · {REFLECTION_QUESTIONS[number]}")
+                    web_numbered_detail(
+                        item_index,
+                        f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {item}",
+                        f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}",
+                    )
     with burnout_tab:
         result_heading("4. 직무소진 결과", green=True)
         if burnout is None:
@@ -1137,12 +1173,8 @@ if st.session_state.page == "result":
             for number, (factor, value) in enumerate(burnout.items(), 1):
                 expanded = maximum != minimum and round(value, 2) == maximum
                 with st.expander(f"{number}) {BURNOUT_NAMES[factor]} · {value:.2f}점", expanded=expanded):
-                    personal, shared = BAT_PRACTICE[factor]
-                    st.write(BAT_PLAIN_MEANINGS[factor])
-                    st.write(f"**근무 장면** · {BURNOUT_DETAILS[factor]}")
-                    st.write(burnout_comparison(factor, value))
-                    st.write(f"**내가 해볼 일** · {personal}")
-                    st.write(f"**함께 조정할 일** · {shared}")
+                    for item_index, line in enumerate(burnout_detail_lines(factor, value)):
+                        web_numbered_detail(item_index, line)
     result_heading("연구 근거")
     with st.expander("감·수·성 인권감수성 모델 근거자료"):
         for index, (label, citation, url, role) in enumerate(MODEL_REFERENCES):
