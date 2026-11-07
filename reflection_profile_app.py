@@ -259,25 +259,56 @@ def mental_factor_means(answers):
     return {factor: round(float(np.mean(values)), 2) for factor, values in grouped.items()}
 
 
-def reflection_items(answers, limit=3):
-    """낮은 응답 중 감·수·성이 가능한 한 고르게 포함되도록 문항을 고릅니다."""
-    values = list(answers.values())
-    if len(set(values)) == 1:
-        return []
-    ordered = sorted(ITEMS, key=lambda item: (answers[item[0]], item[0]))
-    selected, used_factors = [], set()
-    for item in ordered:
-        if item[1] not in used_factors:
-            selected.append(item)
-            used_factors.add(item[1])
-        if len(selected) == limit:
-            return selected
-    for item in ordered:
-        if item not in selected:
-            selected.append(item)
-        if len(selected) == limit:
-            break
-    return selected
+REFLECTION_QUESTIONS = {
+    1: "소란이 있었던 장면에서 두려움이나 불안을 짐작하게 한 말이나 행동이 있었나요?",
+    2: "말투나 표정에서 어떤 감정을 떠올렸고, 그렇게 생각한 단서는 무엇이었나요?",
+    3: "짐작한 감정을 확인하려면 무엇을 묻거나 더 관찰할 수 있었나요?",
+    4: "수용자를 마주했을 때 어떤 감정이 들었고, 말투나 몸의 긴장에 어떻게 드러났나요?",
+    5: "불안하거나 화가 났을 때 안전, 존중, 상황을 파악할 시간 중 무엇이 필요했나요?",
+    6: "한 번 더 듣거나 관찰한 뒤 상대의 반응을 다르게 이해한 적이 있었나요?",
+    7: "반응이 강했던 상황에서 환청이나 불안 등 다른 어려움의 가능성을 살피기 위해 무엇을 확인할 수 있었나요?",
+    8: "흥분한 수용자에게 그 순간 꼭 필요한 말을 한 문장으로 어떻게 전달할 수 있을까요?",
+    9: "불빛·소리·접촉 중 어떤 자극이 부담이 되었을 수 있고, 무엇을 조정할 수 있었나요?",
+    10: "업무상 꼭 필요했던 조치는 무엇이었고, 그때 내 감정은 대응 강도에 어떤 영향을 주었나요?",
+    11: "그때 느낀 감정은 무엇을 확인하라는 신호였고, 확인한 사실을 바탕으로 어떤 대응을 선택했나요?",
+    12: "내 조치의 목적은 무엇이었고, 그 목적을 이루는 데 어느 정도의 조치가 필요했나요?",
+    13: "서두를 때 놓치기 쉬운 절차는 무엇이며, 다음에는 어느 시점에 확인할 수 있을까요?",
+    14: "권리를 제한한 조치의 근거는 무엇이었고, 같은 목적을 이루면서 권리를 덜 제한할 방법이 있었나요?",
+    15: "자해 위험이 의심되는 장면이 있었다면, 어떤 신호를 확인하고 정해진 절차에 따라 누구에게 무엇을 알렸나요?",
+    16: "내 판단으로 파악하기 어려웠던 점은 무엇이며, 전문가에게 어떤 관찰 내용을 전달할 수 있었나요?",
+    17: "수용자의 당시 상태를 고려해 설명 방식, 대응 속도, 지원 요청 중 무엇을 조정할 수 있었나요?",
+    18: "비슷한 행동에 다르게 대응한 적이 있다면, 관찰한 사실과 기존 인상이 각각 어떤 영향을 주었나요?",
+    19: "그 사람의 현재 상황과 개별적인 필요를 파악하기 위해 무엇을 더 확인할 수 있었나요?",
+    20: "동료의 기대가 내 선택에 영향을 주었나요? 내 판단 근거를 어떤 말로 설명할 수 있었나요?",
+    21: "상급자나 선임과 의견이 달랐을 때, 판단 근거를 함께 확인하기 위해 어떤 질문을 할 수 있었나요?",
+    22: "예전과 지금의 대응 방식에서 무엇이 달라졌고, 어떤 경험이 그 변화에 영향을 주었나요?",
+    23: "실제 상황이 주는 부담과 그날 쌓인 피로나 스트레스를 어떻게 구분해 볼 수 있을까요?",
+    24: "동료의 강한 말투가 내 대응에도 영향을 주었나요? 다음에는 무엇을 조정할 수 있을까요?",
+    25: "‘문제 수용자’라는 인상에 어떤 관찰과 해석이 섞여 있었나요? 확인한 행동과 지원 필요를 중심으로 다시 설명해 보세요.",
+}
+
+
+def reflection_items(answers):
+    groups = {}
+    for factor in ("감", "수", "성"):
+        rows = [(answers.get(number), number, item) for number, area, _, item in ITEMS
+                if area == factor and answers.get(number) in SCALE_LABELS]
+        rows.sort()
+        picked = rows[:2]
+        if len(rows) < 2:
+            note = "유효한 응답 문항만 표시합니다."
+        elif rows[0][0] == rows[-1][0]:
+            note = "이 영역의 응답 점수가 모두 같아 설문 순서대로 두 문항을 골랐습니다."
+        elif picked[0][0] >= 3:
+            note = "두 문항 모두 ‘그런 편이다’ 이상입니다. 이 영역 안에서 상대적으로 낮은 응답입니다."
+        elif picked[1][0] >= 3:
+            note = "첫 문항에는 ‘그렇지 않다’ 쪽으로 응답했고, 두 번째는 함께 돌아볼 문항입니다."
+        else:
+            note = "두 문항 모두 ‘그렇지 않다’ 쪽으로 응답했습니다. 당시 상황과 근무 여건을 떠올려 보세요."
+        if len(rows) > 2 and rows[1][0] == rows[2][0] and rows[0][0] != rows[-1][0]:
+            note += " 선정 경계에서 동점인 문항은 설문 순서로 골랐습니다."
+        groups[factor] = (note, picked)
+    return groups
 
 
 def google_sheet():
@@ -455,13 +486,21 @@ REFERENCE_NOTE = "공기업 사무직 345명의 선행연구 결과입니다. �
 
 
 def response_summary(scores):
-    highest = max(scores.values())
-    lowest = min(scores.values())
-    if highest == lowest:
-        return "이번 응답에서 세 영역의 문항평균이 같았습니다."
-    high = "·".join(factor for factor, value in scores.items() if value == highest)
-    low = "·".join(factor for factor, value in scores.items() if value == lowest)
-    return f"이번 응답에서 {high} 영역의 평균은 {highest:.2f}점, {low} 영역의 평균은 {lowest:.2f}점이었습니다. 작은 점수 차이는 실제 역량 차이로 해석하기 어렵습니다."
+    high, low = max(scores.values()), min(scores.values())
+    if high == low:
+        return ["이번 응답에서 세 영역의 문항평균이 같았습니다."]
+    meanings = {
+        "감": "나와 상대의 감정, 고통과 도움이 필요한 신호를 알아차리는 내용",
+        "수": "조치의 목적과 필요성, 절차와 전문적 기준을 검토하는 내용",
+        "성": "감정·편견·주변 분위기가 판단에 미친 영향을 돌아보고 대응을 조정하는 내용",
+    }
+    result = []
+    for label, value, degree in (("가장 높은 평균", high, "더"), ("가장 낮은 평균", low, "덜")):
+        factors = [factor for factor, score in scores.items() if score == value]
+        topics = " / ".join(meanings[factor] for factor in factors)
+        result.append(f"{label} · {'·'.join(factors)} {value:.2f}점. {topics}에 세 영역 중 상대적으로 {degree} 동의했습니다.")
+    result.append("이번 응답 안에서의 비교입니다. 작은 점수 차이만으로 실제 직무역량 차이를 판단하기는 어렵습니다.")
+    return result
 
 
 def burnout_comparison(factor, score):
@@ -526,8 +565,9 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         Paragraph("감·수·성 인권감수성 결과", heading),
         Paragraph(score_line, body),
         Paragraph(PROFILE_NOTE, body),
-        Paragraph(response_summary(scores), body),
         RLImage(radar_png(scores), width=45*mm, height=45*mm, kind="proportional"),
+        Paragraph("내 점수는 무엇을 보여주나요?", heading),
+        *(Paragraph(line, body) for line in response_summary(scores)),
         Paragraph("직무소진 결과", heading),
     ]
     if LOGO_PATH.is_file():
@@ -552,12 +592,14 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         factor = label[0]
         story.append(Paragraph(f"{label} — {question}", heading))
         story.append(Paragraph(FACTOR_META[factor]["meaning"], body))
-        if factor in selected:
-            story.append(Paragraph(f"돌아볼 문항 · {escape(selected[factor])}", body))
         story.append(Paragraph(PRACTICE_GUIDES[factor]["steps"], body))
+    story.append(Paragraph("내 응답에서 돌아볼 여섯 가지", heading))
+    for factor, (note, rows) in selected.items():
+        story.extend([Paragraph(factor, heading), Paragraph(note, body)])
+        for score, number, item in rows:
+            story.append(Paragraph(f"{number}번 · {score}점 ({SCALE_LABELS[score]}) · {escape(item)}", body))
+            story.append(Paragraph(f"돌아볼 질문 · {REFLECTION_QUESTIONS[number]}", body))
     story += [
-        Paragraph("다음 근무에서 해볼 한 가지", heading),
-        Paragraph(escape(action_plan.strip()).replace("\n", "<br/>") or "작성한 내용이 없습니다.", body),
         Paragraph("회복과 지원 돌아보기", heading),
         Paragraph(RECOVERY_QUESTION, body),
         Paragraph("참고자료", heading),
@@ -568,6 +610,8 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         for factor in burnout:
             story.append(Paragraph(f"{BURNOUT_NAMES[factor]} · {burnout_comparison(factor, burnout[factor])}", body))
         story.append(Paragraph('<link href="https://doi.org/10.24230/kjiop.v33i4.461-499">한국판 K-BAT 타당화 예비연구</link>', body))
+    story.extend([Paragraph("다음 근무에서 해볼 한 가지", heading),
+                  Paragraph(escape(action_plan.strip()).replace("\n", "<br/>") or "작성한 내용이 없습니다.", body)])
     doc.build(story, onFirstPage=draw_background, onLaterPages=draw_background)
     return buffer.getvalue()
 
@@ -853,7 +897,7 @@ if st.session_state.page == "result":
     render_brand_bar()
     answers = st.session_state.answers
     scores = factor_means(answers)
-    selected = {factor: item for _, factor, _, item in reflection_items(answers)}
+    selected = reflection_items(answers)
     burnout = bat_scores(st.session_state.get("burnout_answers", {}))
 
     st.title("나의 자기점검 결과")
@@ -865,9 +909,11 @@ if st.session_state.page == "result":
     with gam_tab:
         st.subheader("감·수·성 인권감수성 결과")
         st.write(" · ".join(f"**{factor} {value:.2f}**" for factor, value in scores.items()))
-        st.write(PROFILE_NOTE)
-        st.write(response_summary(scores))
         st.image(radar_png(scores), width=290)
+        st.subheader("내 점수는 무엇을 보여주나요?")
+        st.write(PROFILE_NOTE)
+        for line in response_summary(scores):
+            st.write(line)
 
         st.subheader("한 장면을 감·수·성으로 다시 보기")
         st.write(SCENE_PROMPT)
@@ -876,21 +922,17 @@ if st.session_state.page == "result":
         for factor, meta in FACTOR_META.items():
             with st.expander(f"{meta['title']} · 돌아볼 문항과 실천"):
                 st.write(meta["meaning"])
-                if factor in selected:
-                    st.write(f"**내 응답에서 돌아볼 문항** · {selected[factor]}")
                 st.write(f"**실천 제안** · {PRACTICE_GUIDES[factor]['steps']}")
-        st.subheader("다음 근무에서 해볼 한 가지")
-        action_plan = st.text_area(
-            "해보고 싶은 행동을 한 문장으로 적어 보세요. (선택)",
-            placeholder="예: 안전이 확보되면 무엇이 불편한지 짧게 확인해 보겠습니다.",
-            max_chars=300,
-        )
-        st.caption("작성한 행동계획은 내려받는 PDF에 포함됩니다.")
+        st.subheader("내 응답에서 돌아볼 여섯 가지")
+        st.write("각 영역에서 낮은 응답 순으로 두 문항씩 골랐습니다. 경험과 가까운 문항 하나부터 살펴보세요.")
+        for factor, (note, rows) in selected.items():
+            with st.expander(f"{FACTOR_META[factor]['title']} · 돌아볼 두 문항", expanded=True):
+                st.caption(note)
+                for score, number, item in rows:
+                    st.markdown(f"**{number}번 · {score}점 ({SCALE_LABELS[score]})**")
+                    st.write(item)
+                    st.write(f"**돌아볼 질문** · {REFLECTION_QUESTIONS[number]}")
         with st.expander("상세 결과와 근거자료"):
-            st.markdown("**9개 내용영역과 연습 방향**")
-            st.caption("문항의 내용 분류입니다. 별도 하위척도 점수로 해석하지 않습니다.")
-            for name, guidance in SUBDOMAIN_FEEDBACK.items():
-                st.write(f"**{name}** · {guidance}")
             st.markdown("**정신건강 관련 상황의 응답 경향**")
             mental_scores = mental_factor_means(answers)
             st.write(" · ".join(f"{factor} {value:.2f}" for factor, value in mental_scores.items()))
@@ -926,6 +968,12 @@ if st.session_state.page == "result":
                     st.write(f"**회복과 지원을 위한 제안** · {BAT_PRACTICE[factor]}")
             st.markdown("[비교 수치의 근거 · 한국판 직무소진평가척도 예비연구](https://doi.org/10.24230/kjiop.v33i4.461-499)")
 
+    st.subheader("다음 근무에서 해볼 한 가지")
+    action_plan = st.text_area(
+        "오늘 돌아본 내용에서 하나를 골라, 다음 근무의 어떤 상황에서 무엇을 해볼지 적어보세요. (선택)",
+        placeholder="예: 안전을 확보한 뒤 무엇이 가장 불편한지 짧게 확인하겠습니다.",
+        max_chars=300,
+    )
     st.download_button(
         "통합 PDF 내려받기", data=make_result_pdf(scores, action_plan, burnout, selected),
         file_name="나의_감수성_직무소진_자기점검.pdf", mime="application/pdf",
