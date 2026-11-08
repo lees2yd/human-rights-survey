@@ -1025,19 +1025,76 @@ def render_share_averages(records):
                 share_chart(share_summary(records,True),column,True)
                 st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답이 있는 집단만 표시합니다. 미응답은 0점으로 처리하지 않습니다.')
     st.caption('최소 인원 제한 없이 집단 평균을 표시합니다. 한 명인 범주의 평균은 그 사람의 점수와 같으며, 인구정보 조합으로 개인을 짐작할 수 있습니다. 이름·응답시각은 표시하지 않습니다.')
-    if records:
-        st.subheader('오늘 함께 다룰 주제 후보')
-        priorities = priority_topics(records)
-        for col,row in zip(st.columns(3), priorities):
-            with col:
-                st.markdown(f"**{row['영역']} · {SUBDOMAIN_GUIDES[row['하위영역']]}**")
-                st.write(row['문항'])
-                st.caption('선택 기간 전체 응답에서 영역별로 상대적으로 낮은 문항입니다. 확정된 교육 필요나 결함을 뜻하지 않습니다.')
+    render_share_topics(records)
     st.subheader('함께 이야기할 질문')
     for col, title, detail in zip(st.columns(3), ['어떤 경험이 비슷한가요?', '어떤 업무 여건을 살펴볼까요?', '오늘 무엇을 함께 연습할까요?'], ['공통으로 경험하는 상황을 찾아봅니다.', '차이의 배경을 단정하지 않고 함께 생각합니다.', '실천할 행동과 필요한 지원을 나눕니다.']):
         with col:
             st.markdown(f'<div class="share-question"><b>{title}</b><br><br>{detail}</div>',unsafe_allow_html=True)
     st.caption('두 척도는 점수 범위와 의미가 다릅니다. 합산하거나 소진이 인권감수성의 원인이라고 해석하지 않습니다.')
+
+
+def render_share_topics(records):
+    st.subheader("오늘 함께 다룰 주제 후보")
+    st.markdown('<div class="share-blue">감·수·성 · 오늘 연습할 직무판단</div>', unsafe_allow_html=True)
+    st.caption("선택 기간 전체 응답에서 감·수·성 각 영역의 평균이 가장 낮은 문항을 하나씩 골랐습니다.")
+    if records:
+        priorities = {row["영역"]: row for row in priority_topics(records)}
+        for column, factor in zip(st.columns(3), ("감", "수", "성")):
+            row = priorities[factor]
+            with column:
+                st.markdown(
+                    f'<div class="share-question" style="background:#edf5ff">'
+                    f'<strong>{factor} · {SUBDOMAIN_GUIDES[row["하위영역"]]}</strong>'
+                    f'<p>{row["문항"]}</p></div>',
+                    unsafe_allow_html=True,
+                )
+    else:
+        st.info("선택 기간에 감·수·성 응답이 없습니다.")
+
+    st.markdown('<div class="share-green">직무소진 · 함께 살펴볼 업무 여건</div>', unsafe_allow_html=True)
+    scored = share_summary(records, True)
+    if len(scored) < 5:
+        st.info(f"직무소진 유효 응답 {len(scored)}건 · 주제 후보는 5건부터 표시합니다.")
+        return
+
+    topics = (
+        ("탈진", "어떤 근무 상황에서 몸과 마음을 회복할 틈이 가장 줄어드나요?",
+         "휴게가 자주 밀리는 시간대를 찾고 서로 지원할 방법을 정해 봅니다.",
+         "업무가 몰리는 시간대의 교대 지원과 업무 재배분을 검토합니다."),
+        ("심적거리", "어떤 상황이 반복될 때 일에 마음을 쓰기 어려워지나요?",
+         "반복되는 업무 마찰과 역할이 모호한 상황을 함께 짚어 봅니다.",
+         "업무의 역할과 책임 범위를 명확히 하고 현장 의견을 듣는 방법을 검토합니다."),
+        ("인지적 어려움", "업무가 겹칠 때 어떤 정보나 절차를 놓치기 쉬운가요?",
+         "인수인계에서 빠뜨리기 쉬운 핵심 항목을 짧게 정리합니다.",
+         "여러 지시가 겹칠 때 누가 업무 우선순위를 정할지 명확히 합니다."),
+        ("정서적 어려움", "긴장이 큰 상황에서 감정이 격해지기 전에 어떤 지원이 필요하나요?",
+         "안전과 절차가 허용하는 상황에서 동료에게 지원을 요청하는 신호를 정합니다.",
+         "긴장이 큰 사건 뒤 필요한 지원을 확인하고 후속 업무 조정이 가능한지 검토합니다."),
+    )
+    averages = {factor: round(float(np.mean([scores[factor] for _, scores in scored])), 2)
+                for factor in BAT_FACTORS}
+    highest = max(averages.values())
+    candidates = [(factor, topic) for factor, topic in zip(BAT_FACTORS, topics)
+                  if averages[factor] == highest]
+    st.caption(f"선택 기간 K-BAT 유효 응답 {len(scored)}건 · 네 영역 중 표시 평균이 가장 높은 경험을 토의 후보로 제시합니다. 점수는 위험 판정 기준이 아닙니다.")
+    if len(candidates) > 1:
+        st.caption("표시 평균이 같아 공동 후보로 제시합니다.")
+    for factor, (label, question, team, management) in candidates:
+        st.markdown(
+            f'<div class="share-question" style="background:#eef8f1;border-color:#c7e5d4;color:#174f3e">'
+            f'<strong>{label} · {highest:.2f} / 5점</strong>'
+            f'<p>{BAT_PLAIN_MEANINGS[factor]}</p>'
+            f'<p><strong>함께 나눌 질문</strong><br>{question}</p>'
+            f'<p><strong>팀에서 해볼 일</strong><br>{team}</p>'
+            f'<p><strong>관리자와 검토할 일</strong><br>{management}</p></div>',
+            unsafe_allow_html=True,
+        )
+    with st.expander("주제 선정 및 대안의 근거"):
+        st.markdown(
+            "영역 구분은 [조수현(2020)의 K-BAT 예비 타당화 연구](https://doi.org/10.24230/kjiop.v33i4.461-499)를 따릅니다. "
+            "토의 대안은 [WHO 직장 정신건강 지침](https://www.who.int/publications/i/item/9789240053052)과 "
+            "[교도관의 조직 스트레스와 소진에 관한 문헌고찰](https://doi.org/10.1186/1471-2458-13-82)의 관점을 교정 현장에 맞춰 구성했습니다."
+        )
 
 
 def start():
