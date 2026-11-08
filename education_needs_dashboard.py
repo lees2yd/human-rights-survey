@@ -908,15 +908,26 @@ def render_share_correlation(records):
         "성": "성 · 돌아보기",
         "전체": "감·수·성 전체",
     }
+    gam_meanings = {
+        "감": "나와 상대가 어떤 감정을 느끼는지, 말투나 행동 뒤에 어떤 어려움이 있는지 살펴보는 정도입니다.",
+        "수": "현장에서 조치할 때 꼭 필요한지, 정해진 절차에 맞는지 살펴보고 필요하면 전문가와 상의하는 정도입니다.",
+        "성": "피로, 선입견, 동료 분위기나 관행이 내 판단에 영향을 주었는지 돌아보고 대응을 조정하는 정도입니다.",
+        "전체": "알아차리기, 판단하기, 돌아보기를 얼마나 실천한다고 응답했는지 25문항을 종합해 보여줍니다.",
+    }
     bat_labels = dict(zip(BAT_FACTORS, ("탈진", "심적거리", "인지적 어려움", "정서적 어려움")))
     bat_labels["전체"] = "직무소진 전체"
     left, right = st.columns(2)
     with left:
         gam = st.selectbox("감·수·성 영역", list(gam_labels), index=1,
                            format_func=gam_labels.__getitem__, key="share_corr_gam")
+        st.write(gam_meanings[gam])
     with right:
         bat = st.selectbox("직무소진 영역", list(bat_labels),
                            format_func=bat_labels.__getitem__, key="share_corr_bat")
+        if bat == "전체":
+            st.write("몸과 마음의 지침, 일에 대한 거리감, 집중·생각 정리와 감정 조절의 어려움을 얼마나 자주 겪는지 22문항을 종합해 보여줍니다.")
+        else:
+            st.write(BAT_PLAIN_MEANINGS[bat])
     gam_items = [item for items in FACTOR_ITEMS.values() for item in items] if gam == "전체" else FACTOR_ITEMS[gam]
     pairs = []
     for row in records:
