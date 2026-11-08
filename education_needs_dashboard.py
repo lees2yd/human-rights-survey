@@ -4,7 +4,7 @@
 개별 응답자 평가가 아니라, 강의 집단의 교육 우선순위와 교육안을 제시하기 위한 파일이다.
 """
 
-from burnout_support import render_bat_dashboard, bat_scores, BAT_FACTORS, BAT_PLAIN_MEANINGS, BAT_REFERENCE, BAT_ITEMS, BAT_LABELS
+from burnout_support import render_bat_dashboard, bat_scores, BAT_FACTORS, BAT_PLAIN_MEANINGS, BAT_REFERENCE, BAT_ITEMS, BAT_LABELS, BAT_COLUMNS
 from comparison_support import render_comparison_dashboard
 import io
 from collections import Counter, defaultdict
@@ -901,6 +901,61 @@ def share_chart(scored, column, burnout):
     st.caption(f'유효 응답 {len(scored)}건 · 소진 미응답은 평균에서 제외합니다.' if burnout else f'유효 응답 {len(scored)}건')
 
 
+def render_share_correlation(records):
+    gam_labels = {
+        "감": "감 · 알아차리기",
+        "수": "수 · 판단하기",
+        "성": "성 · 돌아보기",
+        "전체": "감·수·성 전체",
+    }
+    bat_labels = dict(zip(BAT_FACTORS, ("탈진", "심적거리", "인지적 어려움", "정서적 어려움")))
+    bat_labels["전체"] = "직무소진 전체"
+    left, right = st.columns(2)
+    with left:
+        gam = st.selectbox("감·수·성 영역", list(gam_labels), index=1,
+                           format_func=gam_labels.__getitem__, key="share_corr_gam")
+    with right:
+        bat = st.selectbox("직무소진 영역", list(bat_labels),
+                           format_func=bat_labels.__getitem__, key="share_corr_bat")
+    gam_items = [item for items in FACTOR_ITEMS.values() for item in items] if gam == "전체" else FACTOR_ITEMS[gam]
+    pairs = []
+    for row in records:
+        burnout = bat_scores(row)
+        if burnout is None:
+            continue
+        x_score = np.mean([row[item] for item in gam_items])
+        y_score = np.mean([float(row[item]) for item in BAT_COLUMNS]) if bat == "전체" else burnout[bat]
+        pairs.append((x_score, y_score))
+
+    st.caption("선택 기간 전체 · 두 설문을 모두 완료한 응답 기준")
+    if len(pairs) < 5:
+        st.info(f"두 설문의 유효 응답은 {len(pairs)}건입니다. 공유 화면에는 5건부터 표시합니다.")
+        return
+    x, y = np.asarray(pairs, dtype=float).T
+    if np.ptp(x) == 0 or np.ptp(y) == 0:
+        st.info(f"유효 응답 {len(pairs)}건 · 선택한 점수 중 하나가 모두 같아 상관계수를 산출할 수 없습니다.")
+        return
+
+    r = float(np.corrcoef(x, y)[0, 1])
+    slope, intercept = np.polyfit(x, y, 1)
+    endpoints = np.array([x.min(), x.max()])
+    st.markdown(f"**피어슨 상관계수 {r:+.2f}**　·　**유효 응답 {len(pairs)}건**")
+    fig = go.Figure(go.Scatter(
+        x=endpoints.tolist(), y=(slope * endpoints + intercept).tolist(),
+        mode="lines", line=dict(color="#23866b", width=4), hoverinfo="skip",
+    ))
+    fig.update_xaxes(title=f"{gam_labels[gam]} 점수", range=[1, 4], dtick=1)
+    fig.update_yaxes(title=f"{bat_labels[bat]} 점수", range=[1, 5], dtick=1)
+    fig.update_layout(height=340, margin=dict(l=20, r=24, t=20, b=25), showlegend=False)
+    st.plotly_chart(fig, use_container_width=True, key="share_corr_line")
+    if abs(r) < .10:
+        st.write("이 집단의 두 점수는 직선적인 관련성이 매우 약했습니다.")
+    else:
+        direction = "높은" if r > 0 else "낮은"
+        st.write(f"이 집단에서는 {gam_labels[gam]} 점수가 높을수록 {bat_labels[bat]} 점수가 {direction} 경향을 보였습니다.")
+    st.caption("선은 관측된 가로축 점수 범위에서 그린 회귀 추세선입니다. 관련성의 크기는 상관계수로 읽으며, 원인과 결과는 이 분석으로 판단할 수 없습니다.")
+
+
 def render_classroom_share(records):
     st.markdown("""<style>
     .stApp{background:#f8fbff}.block-container{max-width:1560px;padding-top:5.5rem}
@@ -927,6 +982,14 @@ def render_classroom_share(records):
     st.markdown('<div class="share-head">우리의 감·수·성, 함께 살펴보기</div>',unsafe_allow_html=True)
     st.write('인권적 직무 경험과 소진 경험을 함께 이해하고 오늘의 교육 주제를 정합니다.')
     st.markdown('<div class="share-strip">분석 대상: 선택 기간의 전체 교육 응답 · 교육자 화면의 인구학적 필터는 공유 화면에 적용하지 않습니다.</div>',unsafe_allow_html=True)
+    averages, correlation = st.tabs(["영역별 평균", "상관관계 살펴보기"])
+    with averages:
+        render_share_averages(records)
+    with correlation:
+        render_share_correlation(records)
+
+
+def render_share_averages(records):
     settings, charts = st.columns([1, 5], gap="medium")
     with settings:
         st.markdown('<div id="share-controls-anchor"></div>', unsafe_allow_html=True)
