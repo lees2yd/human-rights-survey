@@ -17,13 +17,15 @@
     main {
       width: min(100%, 640px);
       margin: 0 auto;
-      padding: clamp(40px, 8vh, 88px) 24px 40px;
+      padding: clamp(28px, 5vh, 56px) 24px 36px;
       text-align: center;
     }
     h1 { margin: 0; line-height: 1.5; font-size: clamp(25px, 5.3vw, 34px); font-weight: 700; word-break: keep-all; }
+    .brand-logo { display: block; width: 58px; height: auto; margin: 0 auto 18px; }
+    .save-note { max-width: 340px; margin: 0 auto 22px; color: #526d80; font-size: 14px; line-height: 1.7; word-break: keep-all; }
     .model { display: block; color: #166d9b; margin-bottom: 6px; }
     .hanja { font-size: .65em; font-weight: 500; }
-    .qr { display: block; width: 240px; max-width: 78vw; height: auto; margin: 28px auto 30px; }
+    .qr { display: block; width: 240px; max-width: 78vw; height: auto; margin: 24px auto 14px; }
     .download {
       display: flex; justify-content: center; align-items: center;
       width: min(100%, 340px); min-height: 58px; margin: 0 auto;
@@ -38,8 +40,10 @@
 </head>
 <body>
   <main>
+    <img class="brand-logo" src="./gam_su_seong_logo.png" width="58" height="58" alt="감·수·성 상표">
     <h1><span class="model">감<span class="hanja">(感)</span>·수<span class="hanja">(受)</span>·성<span class="hanja">(性)</span></span>인권적 직무판단 매뉴얼</h1>
     <img class="qr" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAzQAAAM0AQAAAABFCVraAAAEYklEQVR4nO3dyY3rOBAA0OKg73IGk39YPwMpAs1BormI7v6YXgCxHw+GrO0BvJguFotpj59o2z8/wkRwOBwOh8PhcDgcDofD4XA4HA6Hw+FwOBwOh8P5eeetHKb+2rIe57oUhfTqltELcput3zgcDofD+TXOsletnE7p0R4t+37evEbs+/rRC3rnGxuHw+FwOJzPt7fu+xkDyP/8zx/5rQ4N7MfHlqKJEIxfkNts/cbhcDgczsxOPz7oWjpmEJY2GLA9Yq/OLX+xRnK2fuNwOBwO5xc7+/4nHRGByyTDlo7WXf1/zpc1DofD4XA4n299/OASClj2SMdcwpZij+3R35zauYQXsYTZ+o3D4XA4nF/j5JDAJS6QExJT+rc+ukQNri8YOt/YOBwOh8PhfL5V8YPxP/8t5YTEeGYlNudK9uJ7aQiz9RuHw+FwOL/ESekRcf7zz4GAc6HiltJ59VE/XN8SdWJCeWLgfGvjcDgcDofzBa2uWLDW1QzOo6UuZHCpa5CLIJT76q+lHMI6W79xOBwOhzOzU40P6rP55/28Za1v7o7qV63tkfEBh8PhcDj3d0o0IM6ljecwoBsu5DmHOuywXwYTr51vbBwOh8PhcD7fmvzEoyTic0Fj1IsXux0WSuwgHU90t/Q1k2brNw6Hw+FwZnZe1E/8sG7yaKRwjgq2x2Bbp9n6jcPhcDicmZ1m/8bj5z1VgYD9qKVcPiIinkWSRtGFeuFj1WbrNw6Hw+FwZnaa9Qt7t+ggoss6qHMNmv0b30lNlJ/I4XA4HM7dnCZ+EBF1GeWSV7A9qp2a0mCSocw+tGUTn222fuNwOBwOZ2anr594/vjnmYY4zz2/dqUTI4YDguvGDLP1G4fD4XA4MztN/YNlXAShmSi4VFT6aEbC/AKHw+FwOHdzrvkHowtrm1ewjssqdYkJ6iNxOBwOh3NTp48fXMYCJS4wenYdpyuqr8zhcDgczp2dpv5BqY8UZ7mkMzqQ6xrsz6WNEVESEx5VbaUXbbZ+43A4HA5nZueanxgRZSFCVxexrokQESWFsbygK8CY22z9xuFwOBzOzE4bP3jkqEEJHeTWFU++HOUXlJubNlu/cTgcDoczs/Pe+oVokwu6NIPyxHJZ9tA9Jv+Aw+FwOJxbOf38QjdA6Cog1WkGeZIhn1vzfdcSCTFfv3E4HA6HM7MzXKh4tuWyWrEODpRbmptHSyDFDzgcDofDuZXT5B80uzbW5Zbz0XlhWd/LTyyrINRP5HA4HA7nls6L/INrIKB74jxaB29cnlfFDzgcDofDuaXz9v7ly+YKeeFj3mFhr75GtfDx2MxpfT43W79xOBwOhzOz88H44LIlY9ndMdpNmq5bN8pP5HA4HA7npk4/PhhVPRgNA+qowbJWBZFKdoL4AYfD4XA4N3X+bv3C3q5kKI+t9SYM3cIG+QccDofD4dzUSS93TPjSts3WbxwOh8PhcDgcDofD4XA4HA6Hw+FwOBwOh8PhcEr7D77QT4wVkMI2AAAAAElFTkSuQmCC" width="240" height="240" alt="이 다운로드 페이지로 연결되는 QR코드">
+    <p class="save-note">교정 현장에서 참고할 수 있도록 저장해 두세요.</p>
     <a class="download" href="./gamsuseong_manual_color.jpg" download="감수성_인권적_직무판단_매뉴얼.jpg">매뉴얼 다운로드</a>
     <footer>감·수·성 인권감수성 모델 연구·개발<br>홍성교도소 이성덕</footer>
   </main>
