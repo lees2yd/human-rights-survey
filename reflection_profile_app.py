@@ -232,13 +232,13 @@ SUBDOMAIN_FEEDBACK = {
 }
 
 DEMOGRAPHIC_OPTIONS = {
-    "gender": ["남성", "여성", "응답하지 않음"],
-    "age": ["20대", "30대", "40대", "50대 이상", "응답하지 않음"],
-    "rank": ["9급", "8급", "7급", "6급", "5급 이상", "응답하지 않음"],
-    "facility": ["교도소", "구치소", "소년교도소·소년시설", "기타 교정기관", "응답하지 않음"],
-    "career": ["5년 미만", "5~10년 미만", "10~20년 미만", "20년 이상", "응답하지 않음"],
-    "hr_education": ["없음", "1회", "2~3회", "4회 이상", "응답하지 않음"],
-    "mental_education": ["없음", "1회", "2회 이상", "응답하지 않음"],
+    "gender": ["남성", "여성"],
+    "age": ["20대", "30대", "40대", "50대 이상"],
+    "rank": ["9급", "8급", "7급", "6급", "5급 이상"],
+    "facility": ["교도소", "구치소", "소년교도소·소년시설", "기타 교정기관"],
+    "career": ["5년 미만", "5~10년 미만", "10~20년 미만", "20년 이상"],
+    "hr_education": ["없음", "1회", "2~3회", "4회 이상"],
+    "mental_education": ["없음", "1회", "2회 이상"],
 }
 
 DEMOGRAPHIC_LABELS = {
@@ -1043,7 +1043,7 @@ div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#3
 if st.session_state.page == "demographics":
     render_brand_bar()
     st.title("기본정보")
-    st.markdown('<div class="notice">정확한 기관명은 수집하지 않습니다. 모든 항목은 범주형이며 각 문항에서 ‘응답하지 않음’을 선택할 수 있습니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="notice">정확한 기관명은 수집하지 않습니다. 모든 항목은 범주형이며, 각 항목을 선택하시면 제출할 수 있습니다.</div>', unsafe_allow_html=True)
     st.write("")
     selections = {}
     for key in ["gender", "age", "rank", "facility", "career", "hr_education", "mental_education"]:
@@ -1211,4 +1211,3 @@ if st.session_state.page == "result":
         '감·수·성 로고 상표출원(심사 중)</div>',
         unsafe_allow_html=True,
     )
-
