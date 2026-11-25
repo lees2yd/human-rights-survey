@@ -360,6 +360,8 @@ def research_row(answers, demographics):
 
 
 def save_research_response(answers, demographics):
+    if not st.session_state.get("research_data_consent", False):
+        raise PermissionError("연구자료 제공에 동의하지 않아 저장할 수 없습니다.")
     sheet = google_sheet()
     headers, values = research_row(answers, demographics)
     existing_headers = sheet.row_values(1)
@@ -931,14 +933,17 @@ if st.session_state.page == "consent":
 - 제출 전에는 언제든 중단할 수 있습니다. 익명으로 제출된 뒤에는 연구자가 특정 응답을 찾아 삭제하기 어려울 수 있습니다.
 - 자료는 통계적으로 분석하며 개인별 결과나 작은 집단을 식별할 수 있는 결과는 공개하지 않습니다.
 - 자료 보유기간: **{DATA_RETENTION}**
-- 응답은 연구 목적과 인권교육 개선을 위해서만 사용합니다.
+- 연구자료 제공에 동의한 응답만 연구 목적과 인권교육 개선을 위해 저장·활용합니다.
+- 비동의 시에도 자기점검과 개인 결과·PDF 확인이 가능하며, 연구용 기본정보 입력은 생략합니다.
 
 ### 예상되는 불편과 이익
 
 일부 문항에서 자신의 편견·감정·조직관행을 돌아보며 일시적인 불편을 느낄 수 있습니다. 직접적인 보상은 없지만 자신의 판단 경향과 근무 경험을 돌아볼 참고자료를 즉시 확인하고 PDF로 저장할 수 있습니다.
 """
     )
-    st.markdown("**위 설명을 읽고 이해했으며, 후속연구를 위한 익명 자료 제공에 자발적으로 동의하십니까?**")
+    st.markdown("**나의 응답이 더 나은 인권교육을 만드는 데 도움이 됩니다.**")
+    st.write("연구자료 제공에 동의하시면, 응답은 감·수·성 척도를 검토하고 교정현장의 경험을 반영한 인권교육을 개선하는 데 활용됩니다. 동의 여부와 관계없이 자기점검과 개인 결과·PDF 확인은 가능합니다.")
+    st.markdown("**연구자료 제공 여부를 선택해 주세요.**")
     st.markdown(
         """<style>
         .st-key-research_consent_choice [data-testid="stRadio"] label {
@@ -957,14 +962,19 @@ if st.session_state.page == "consent":
     )
     consent_choice = st.radio(
         "연구 참여 동의 여부",
-        options=["동의합니다", "동의하지 않습니다"],
+        options=["연구자료 제공에 동의합니다", "연구자료 제공에 동의하지 않습니다"],
+        captions=[
+            "나의 응답을 인권감수성 연구와 교육 개선에 활용하도록 제공합니다.",
+            "응답을 연구자료로 저장하지 않고, 자기점검 결과와 PDF를 확인합니다.",
+        ],
         index=None,
         horizontal=False,
         key="research_consent_choice",
     )
-    consent = consent_choice == "동의합니다"
-    st.caption("동의하지 않으면 연구 설문을 진행하거나 자료를 제출할 수 없습니다.")
-    if st.button("동의하고 설문 시작", type="primary", use_container_width=True, disabled=not consent):
+    st.caption("응답은 결과 계산을 위해 현재 접속 세션에서 일시적으로 처리됩니다. 비동의 응답은 연구자료로 저장하거나 교육자용 집계에 포함하지 않습니다.")
+    if st.button("나의 자기점검 시작", type="primary", use_container_width=True, disabled=consent_choice is None):
+        st.session_state.research_data_consent = consent_choice == "연구자료 제공에 동의합니다"
+        st.session_state.research_saved = False
         st.session_state.page = "survey"
         st.rerun()
     st.stop()
@@ -1065,6 +1075,11 @@ div[data-testid="stButton"] > button:hover {background:linear-gradient(135deg,#3
 
 
 if st.session_state.page == "demographics":
+    if not st.session_state.get("research_data_consent", False):
+        st.session_state.demographics = {}
+        st.session_state.research_saved = False
+        st.session_state.page = "result"
+        st.rerun()
     render_brand_bar()
     st.title("기본정보")
     st.markdown('<div class="notice">정확한 기관명은 수집하지 않습니다. 모든 항목은 범주형이며, 각 항목을 선택하시면 제출할 수 있습니다.</div>', unsafe_allow_html=True)
@@ -1101,7 +1116,9 @@ if st.session_state.page == "result":
 
     st.title("나의 자기점검 결과")
     if st.session_state.research_saved:
-        st.success("익명 연구자료가 제출되었습니다.")
+        st.success("익명 연구자료가 제출되었습니다. 인권감수성 연구와 교육 개선에 기여해 주셔서 감사합니다.")
+    elif not st.session_state.get("research_data_consent", False):
+        st.info("응답을 연구자료로 저장하지 않았습니다. 개인 결과와 PDF를 확인하실 수 있습니다.")
     st.caption("두 결과는 자기성찰을 위한 참고자료입니다. 인사평가나 진단에 사용하지 않습니다.")
     st.markdown(
         """
