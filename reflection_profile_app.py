@@ -938,7 +938,31 @@ if st.session_state.page == "consent":
 일부 문항에서 자신의 편견·감정·조직관행을 돌아보며 일시적인 불편을 느낄 수 있습니다. 직접적인 보상은 없지만 자신의 판단 경향과 근무 경험을 돌아볼 참고자료를 즉시 확인하고 PDF로 저장할 수 있습니다.
 """
     )
-    consent = st.checkbox("위 설명을 읽고 이해했으며, 후속연구를 위한 익명 자료 제공에 자발적으로 동의합니다.", key="research_consent")
+    st.markdown("**위 설명을 읽고 이해했으며, 후속연구를 위한 익명 자료 제공에 자발적으로 동의하십니까?**")
+    st.markdown(
+        """<style>
+        .st-key-research_consent_choice [data-testid="stRadio"] label {
+            min-height: 48px;
+            padding: 10px 14px;
+            border: 1px solid #cfe0ec;
+            border-radius: 12px;
+            background: #ffffff;
+            cursor: pointer;
+        }
+        .st-key-research_consent_choice [data-testid="stRadio"] label p {
+            font-size: 1.1rem;
+        }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    consent_choice = st.radio(
+        "연구 참여 동의 여부",
+        options=["동의합니다", "동의하지 않습니다"],
+        index=None,
+        horizontal=False,
+        key="research_consent_choice",
+    )
+    consent = consent_choice == "동의합니다"
     st.caption("동의하지 않으면 연구 설문을 진행하거나 자료를 제출할 수 없습니다.")
     if st.button("동의하고 설문 시작", type="primary", use_container_width=True, disabled=not consent):
         st.session_state.page = "survey"
