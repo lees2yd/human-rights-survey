@@ -1108,11 +1108,13 @@ def render_classroom_share(records, all_records=None):
     st.markdown('<div class="share-head">우리의 감·수·성, 함께 살펴보기</div>',unsafe_allow_html=True)
     st.write('인권적 직무 경험과 소진 경험을 함께 이해하고 오늘의 교육 주제를 정합니다.')
     st.markdown('<div class="share-strip">분석 대상: 선택 기간의 전체 교육 응답 · 교육자 화면의 인구학적 필터는 공유 화면에 적용하지 않습니다.</div>',unsafe_allow_html=True)
-    averages, comparison = st.tabs(["영역별 평균", "소진 · 세 집단 비교"])
+    averages, comparison, correlation = st.tabs(["영역별 평균", "소진 · 세 집단 비교", "상관관계 살펴보기"])
     with averages:
         render_share_averages(records)
     with comparison:
         render_burnout_group_comparison(all_records if all_records is not None else records)
+    with correlation:
+        render_share_correlation(records)
 
 
 def render_share_averages(records):
