@@ -854,6 +854,9 @@ def share_groups(scored, column):
 
 
 def share_chart(scored, column, burnout):
+    if len(scored) < 5:
+        st.info("집단 평균은 유효 응답 5건부터 표시합니다.")
+        return
     groups, message = share_groups(scored, column)
     if message:
         st.info(message)
@@ -967,7 +970,75 @@ def render_share_correlation(records):
     st.caption("선은 관측된 가로축 점수 범위에서 그린 회귀 추세선입니다. 관련성의 크기는 상관계수로 읽으며, 원인과 결과는 이 분석으로 판단할 수 없습니다.")
 
 
-def render_classroom_share(records):
+
+def burnout_group_means(records):
+    """22문항 완전응답의 영역별 평균과 문항 가중 전체 평균입니다."""
+    valid = [r for r in records if bat_scores(r) is not None]
+    if not valid:
+        return 0, None
+    values = []
+    for row in valid:
+        scores = bat_scores(row)
+        values.append([scores[f] for f in BAT_FACTORS] + [float(np.mean([float(row[c]) for c in BAT_COLUMNS]))])
+    return len(valid), np.mean(values, axis=0).tolist()
+
+
+def render_burnout_group_comparison(all_records):
+    st.markdown('<div class="share-green">직무소진 · 집단 평균과 나의 경험 살펴보기</div>', unsafe_allow_html=True)
+    st.write("개인 점수는 화면에 표시하지 않습니다. 각자 받은 결과지의 점수를 아래 평균과 비교해 보세요.")
+    dates = sorted({r['_submitted_at'].date() for r in all_records})
+    if not dates:
+        st.info("비교할 응답이 없습니다.")
+        return
+    current_default = (dates[-1], dates[-1])
+    earlier = dates[:-1]
+    previous_default = (earlier[-1], earlier[-1]) if earlier else current_default
+    left, right = st.columns(2)
+    with left:
+        previous_range = st.date_input("비교 교육집단 · 날짜 또는 기간", value=previous_default,
+                                      min_value=dates[0], max_value=dates[-1], key="bat_previous_period")
+    with right:
+        current_range = st.date_input("이번 교육집단 · 날짜 또는 기간", value=current_default,
+                                     min_value=dates[0], max_value=dates[-1], key="bat_current_period")
+    if not all(isinstance(r, (tuple, list)) and len(r) == 2 for r in (previous_range, current_range)):
+        st.info("두 집단의 시작일과 종료일을 모두 선택해 주세요.")
+        return
+    if previous_range[0] <= current_range[1] and current_range[0] <= previous_range[1]:
+        st.warning("두 기간이 겹칩니다. 같은 응답이 양쪽 평균에 포함될 수 있습니다.")
+    labels = ['탈진', '심적거리', '인지적 어려움', '정서적 어려움', '전체 평균']
+    series = [('선행연구 참고평균', [BAT_REFERENCE[f][0] for f in BAT_FACTORS] + [None], '#718096', 'diamond')]
+    table = {'영역': labels, '선행연구 참고평균': [f'{BAT_REFERENCE[f][0]:.2f}' for f in BAT_FACTORS] + ['미제공']}
+    for name, period, color, symbol in [
+        ('비교 교육집단', previous_range, '#8ebba9', 'square'),
+        ('이번 교육집단', current_range, '#12664f', 'circle'),
+    ]:
+        selected = [r for r in all_records if period[0] <= r['_submitted_at'].date() <= period[1]]
+        count, means = burnout_group_means(selected)
+        st.caption(f'{name}: {period[0]:%Y-%m-%d} ~ {period[1]:%Y-%m-%d} · 유효 응답 {count}건 / 선택 응답 {len(selected)}건')
+        # 한 사람의 평균이 개인 점수로 노출되는 것을 방지합니다.
+        if count < 5:
+            st.info(f'{name}은 유효 응답 5건부터 집단 평균을 표시합니다.')
+            means = [None] * 5
+        series.append((name, means, color, symbol))
+        table[name + ' 평균'] = [f'{v:.2f}' if v is not None else '표시 안 함' for v in means]
+    fig = go.Figure()
+    for name, means, color, symbol in series:
+        fig.add_trace(go.Scatter(x=means, y=labels, name=name, mode='markers+text',
+            marker=dict(color=color, symbol=symbol, size=15, line=dict(color='white', width=1)),
+            text=[f'{v:.2f}' if v is not None else '' for v in means], textposition='top center',
+            hovertemplate='%{y}: %{x:.2f}<extra>%{fullData.name}</extra>'))
+    fig.update_layout(height=510, xaxis=dict(range=[0.9, 5.1], tickvals=[1,2,3,4,5], title='응답 평균 · 1~5점'),
+        yaxis=dict(autorange='reversed', automargin=True), font=dict(size=18),
+        legend=dict(orientation='h', y=-.2), margin=dict(l=20,r=30,t=40,b=100),
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='white')
+    st.plotly_chart(fig, use_container_width=True, key='bat_three_group_comparison')
+    st.dataframe(table, use_container_width=True, hide_index=True)
+    st.caption("전체 평균은 네 영역 평균의 단순평균이 아니라, 개인별 22문항 평균을 집단에서 평균한 값입니다. 결측·범위 밖 응답은 제외합니다.")
+    st.caption("선행연구 값은 기존 코드에 등록된 참고평균입니다. 전체 평균은 제공되지 않아 표시하지 않습니다. 표본과 문항·응답 기준의 차이를 고려해야 하며 진단 기준이나 정상·위험 경계가 아닙니다.")
+    st.caption("응답 건수는 고유 인원수가 아닙니다. 같은 사람의 반복 응답이나 사전·사후 응답이 같은 기간에 있으면 함께 포함됩니다. 비교하려는 실시 회차에 맞게 기간을 선택해 주세요.")
+    st.info("나의 결과지와 비교해 보세요. 어떤 영역에서 차이가 보이나요? 그 차이와 관련된 업무 경험, 회복에 도움이 되는 자원은 무엇인가요?")
+
+def render_classroom_share(records, all_records=None):
     st.markdown("""<style>
     .stApp{background:#f8fbff}.block-container{max-width:1560px;padding-top:5.5rem}
     [data-testid="stButton"] button{min-height:44px;height:auto;padding:10px 18px}
@@ -993,11 +1064,11 @@ def render_classroom_share(records):
     st.markdown('<div class="share-head">우리의 감·수·성, 함께 살펴보기</div>',unsafe_allow_html=True)
     st.write('인권적 직무 경험과 소진 경험을 함께 이해하고 오늘의 교육 주제를 정합니다.')
     st.markdown('<div class="share-strip">분석 대상: 선택 기간의 전체 교육 응답 · 교육자 화면의 인구학적 필터는 공유 화면에 적용하지 않습니다.</div>',unsafe_allow_html=True)
-    averages, correlation = st.tabs(["영역별 평균", "상관관계 살펴보기"])
+    averages, comparison = st.tabs(["영역별 평균", "소진 · 세 집단 비교"])
     with averages:
         render_share_averages(records)
-    with correlation:
-        render_share_correlation(records)
+    with comparison:
+        render_burnout_group_comparison(all_records if all_records is not None else records)
 
 
 def render_share_averages(records):
@@ -1005,7 +1076,7 @@ def render_share_averages(records):
     with settings:
         st.markdown('<div id="share-controls-anchor"></div>', unsafe_allow_html=True)
         st.markdown('**보기 설정**')
-        choice = st.selectbox('함께 볼 결과', ['전체 평균']+list(SHARE_DEMOGRAPHICS), key='share_compact_result')
+        choice = st.selectbox('함께 볼 결과', ['전체 평균'], key='share_compact_result')
         st.selectbox('그래프 보기', ['확대 보기','전체 범위 보기'], key='share_bar_view_v2')
         focus = st.selectbox('화면 크기', ['나란히 보기','감·수·성 크게 보기','K-BAT 크게 보기'], key='share_bar_focus_v2')
         st.caption('설정을 바꾸면 오른쪽 그래프에 바로 반영됩니다.')
@@ -1024,7 +1095,7 @@ def render_share_averages(records):
                 st.write('탈진 / 심적거리 / 집중과 생각 정리 / 감정 조절')
                 share_chart(share_summary(records,True),column,True)
                 st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 22문항 유효 응답이 있는 집단만 표시합니다. 미응답은 0점으로 처리하지 않습니다.')
-    st.caption('최소 인원 제한 없이 집단 평균을 표시합니다. 한 명인 범주의 평균은 그 사람의 점수와 같으며, 인구정보 조합으로 개인을 짐작할 수 있습니다. 이름·응답시각은 표시하지 않습니다.')
+    st.caption('공유 화면에는 인구학적 소집단이나 개인별 점수를 표시하지 않습니다. 이름·응답시각도 표시하지 않습니다.')
     render_share_topics(records)
     st.subheader('함께 이야기할 질문')
     for col, title, detail in zip(st.columns(3), ['어떤 경험이 비슷한가요?', '어떤 업무 여건을 살펴볼까요?', '오늘 무엇을 함께 연습할까요?'], ['공통으로 경험하는 상황을 찾아봅니다.', '차이의 배경을 단정하지 않고 함께 생각합니다.', '실천할 행동과 필요한 지원을 나눕니다.']):
@@ -1142,7 +1213,7 @@ def start():
     if st.session_state.classroom_share:
         st.markdown("<style>[data-testid='stSidebar']{display:none}</style>", unsafe_allow_html=True)
         st.caption(f"선택 기간: {start_date:%Y-%m-%d} ~ {end_date:%Y-%m-%d} · 교육자가 선택한 집단")
-        render_classroom_share(filtered_records(records, {}, start_date, end_date))
+        render_classroom_share(filtered_records(records, {}, start_date, end_date), records)
         return
     st.subheader("분석 대상")
     c1, c2, c3 = st.columns(3)
