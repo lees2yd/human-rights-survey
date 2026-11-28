@@ -613,6 +613,248 @@ def web_numbered_detail(index, text, followup=""):
     )
 
 
+# 개인 결과 화면과 PDF에서 같은 해석 자료를 사용합니다.
+EASY_GAM = {
+    '감': ('감정과 상황 알아차리기', '나와 상대의 감정, 고통과 도움이 필요한 신호를 살펴보는 영역입니다.'),
+    '수': ('사실과 기준에 따라 판단하기', '조치의 필요성, 권리를 덜 제한하는 대안, 절차와 전문가의 도움을 확인하는 영역입니다.'),
+    '성': ('내 판단을 돌아보고 조정하기', '내 감정이나 선입견, 익숙한 관행이 판단에 미친 영향을 돌아보고 대응을 조정하는 영역입니다.'),
+}
+EASY_BAT = {
+    '탈진': ('몸과 마음이 지치는 경험', '일하면서 몸과 마음이 지치고, 일을 마친 뒤에도 기운을 회복하기 어려운 경험입니다.'),
+    '심적거리': ('일에서 마음이 멀어지는 경험', '일에 대한 관심이나 의미가 줄어드는 경험입니다. 동료와의 인간관계가 멀다는 뜻은 아닙니다.'),
+    '인지적 조절 손상': ('집중과 생각 정리가 어려운 경험', '집중이 잘되지 않거나 깜빡하고, 생각을 또렷하게 정리하기 어려운 경험입니다. 지능이나 업무능력을 평가한 결과가 아닙니다.'),
+    '정서적 조절 손상': ('감정을 다스리기 어려운 경험', '일하면서 짜증이나 슬픔이 생기거나, 감정적인 반응을 조절하기 어려운 경험입니다.'),
+}
+# 각 조합의 의미와 업무 질문은 교육용 탐색 제안이며, 검증된 심리유형이나 인과적 해석이 아닙니다.
+COMBINED_THEMES = {
+ ('감', '탈진'): {
+  'title':'지친 날, 나와 상대의 신호 알아차리기',
+  'meaning':'피로가 쌓인 상황에서 내 몸과 마음, 상대의 어려움을 알아차리는 데 무엇이 도움이 되는지 살펴보자는 제안입니다.',
+  'question':'지친 날, 상대의 표정이나 호소를 지나치거나 내 피로 신호를 뒤늦게 알아차린 적이 있나요?',
+  'practice':'근무 중 가능한 짧은 점검 시간에 내 몸의 신호 하나와 상대에게서 관찰한 신호 하나를 찾아보세요.',
+  'resources':'쉴 수 있는 시간, 업무 분담, 동료와의 인계가 충분한지 함께 살펴보세요.'},
+ ('감', '심적거리'): {
+  'title':'익숙한 요구 속, 한 사람 다시 보기',
+  'meaning':'반복되는 업무에서도 눈앞의 사람과 상황의 차이를 살펴볼 여지가 있는지 돌아보자는 제안입니다.',
+  'question':'수용자의 요구를 듣기 전에 ‘또 같은 민원’이라고 생각한 적이 있나요? 이번 상황에서 달라진 점은 없었나요?',
+  'practice':'익숙한 요구 한 가지에서 이전과 달라진 사실이나 도움이 필요한 신호를 하나 확인해 보세요.',
+  'resources':'반복 민원에 대한 팀의 대응 기준, 역할 분담, 경험을 나눌 동료가 도움이 될 수 있습니다.'},
+ ('감', '인지적 조절 손상'): {
+  'title':'놓치기 쉬운 신호, 메모로 붙잡기',
+  'meaning':'업무가 겹치거나 생각을 정리하기 어려울 때 상황의 신호를 놓치지 않을 방법을 찾아보자는 제안입니다.',
+  'question':'여러 요구를 동시에 받으면서 상대의 호소나 상태 변화를 놓칠 뻔한 장면이 있었나요?',
+  'practice':'인계할 내용을 ‘관찰한 사실, 상대의 호소, 확인할 사항’으로 나누어 짧게 적어보세요.',
+  'resources':'인계 양식, 업무 중단을 줄이는 환경, 동료의 재확인이 도움이 되는지 살펴보세요.'},
+ ('감', '정서적 조절 손상'): {
+  'title':'내 감정과 상대의 상황, 나누어 보기',
+  'meaning':'감정이 올라오는 상황에서 내 반응과 상대의 상태를 구분해 알아차릴 방법을 살펴보자는 제안입니다.',
+  'question':'상대의 말에 화가 났을 때, 내 감정과 상대가 처한 어려움을 구분해서 살펴볼 수 있었나요?',
+  'practice':'안전이 확보되면 내 감정에 이름을 붙이고, 상대의 상태는 추측으로 단정하지 말고 질문과 관찰로 확인해 보세요.',
+  'resources':'긴장을 낮출 시간과 공간, 동료의 교대나 협력, 경험을 나눌 자원을 살펴보세요.'},
+ ('수', '탈진'): {
+  'title':'지친 날, 판단의 기준 확인하기',
+  'meaning':'피로한 상황에서도 사실과 기준을 확인하는 데 무엇이 도움이 되는지 살펴보자는 제안입니다.',
+  'question':'반복되는 요구를 받았을 때, 지쳐서 익숙한 방식으로 빨리 처리하고 싶었던 적이 있나요? 추가로 확인할 사실이나 다른 대응 방법은 없었나요?',
+  'practice':'안전이 확보된 상황에서 주요 조치 전 ‘목적, 덜 제한적인 대안, 필요한 절차’를 한 번씩 확인해 보세요.',
+  'resources':'충분한 휴식, 명확한 인계, 동료와의 판단 확인, 업무량과 역할 조정을 함께 살펴보세요.'},
+ ('수', '심적거리'): {
+  'title':'익숙한 절차의 이유 다시 찾기',
+  'meaning':'의미 없이 느껴지는 절차에서도 무엇을 보호하려는 것인지 확인해 보자는 제안입니다.',
+  'question':'설명이나 절차를 ‘해도 달라지지 않는 형식’으로 느낀 적이 있나요? 그 절차가 지키는 권리는 무엇인가요?',
+  'practice':'자주 하는 조치 하나를 골라 ‘이 절차는 누구의 어떤 권리를 보호하는가?’를 동료와 이야기해 보세요.',
+  'resources':'현장 사례를 다루는 교육, 판단 기준을 확인할 자료, 절차를 지킬 수 있는 업무 여건을 살펴보세요.'},
+ ('수', '인지적 조절 손상'): {
+  'title':'복잡한 상황, 한 단계씩 확인하기',
+  'meaning':'정보가 많거나 집중하기 어려운 상황에서 사실과 기준을 차례로 정리하는 방법을 찾아보자는 제안입니다.',
+  'question':'관찰한 사실, 다른 사람의 이야기, 나의 추정이 섞여 판단하기 어려웠던 장면이 있었나요?',
+  'practice':'‘확인된 사실, 적용할 기준, 가능한 대응’ 순서로 적고 중요한 판단은 동료와 교차 확인해 보세요.',
+  'resources':'확인 목록과 인계 기록, 판단을 함께 검토할 동료, 동시 업무 부담을 줄일 여건을 살펴보세요.'},
+ ('수', '정서적 조절 손상'): {
+  'title':'감정이 올라올 때, 기준으로 돌아오기',
+  'meaning':'감정이 강하게 느껴지는 상황에서도 대응의 기준을 확인할 방법을 살펴보자는 제안입니다.',
+  'question':'화나거나 억울한 상황에서 조치의 강도나 설명 방식이 달라졌던 적이 있나요?',
+  'practice':'안전이 확보되면 ‘같은 사실이라면 다른 사람에게도 같은 조치를 할까?’를 확인해 보세요.',
+  'resources':'동료와의 협력, 대응 후 검토 시간, 명확한 조치 기준이 도움이 되는지 살펴보세요.'},
+ ('성', '탈진'): {
+  'title':'지친 하루, 한 장면만 돌아보기',
+  'meaning':'많이 지친 날에도 부담을 늘리지 않으면서 대응을 짧게 돌아볼 방법을 찾아보자는 제안입니다.',
+  'question':'근무를 마치면 지쳐서 잘한 점과 바꿀 점을 돌아볼 여유가 없었던 적이 있나요?',
+  'practice':'하루 한 장면만 골라 ‘잘한 점 하나, 다음에 바꿀 점 하나’를 한 줄씩 적어보세요.',
+  'resources':'실제로 쉴 수 있는 시간, 짧은 인계와 되돌아보기 시간, 동료의 피드백을 살펴보세요.'},
+ ('성', '심적거리'): {
+  'title':'작은 변화로 일의 의미 다시 잇기',
+  'meaning':'달라질 것이 없다고 느끼는 상황에서도 조정할 수 있는 행동과 업무 여건을 나누어 살펴보자는 제안입니다.',
+  'question':'‘어차피 달라지지 않는다’는 생각으로 다른 대응을 시도할 가능성을 닫았던 적이 있나요?',
+  'practice':'내가 바꿀 수 있는 작은 행동 하나와 팀이나 기관이 함께 바꿔야 할 문제 하나를 나누어 적어보세요.',
+  'resources':'의견을 나눌 동료, 업무 개선 제안 경로, 작은 변화를 확인할 피드백을 살펴보세요.'},
+ ('성', '인지적 조절 손상'): {
+  'title':'흐릿한 기억, 기록으로 돌아보기',
+  'meaning':'기억에만 기대지 않고 상황과 대응을 되짚어 볼 방법을 찾아보자는 제안입니다.',
+  'question':'업무를 마친 뒤 상황의 순서나 내가 대응한 이유가 잘 떠오르지 않은 적이 있나요?',
+  'practice':'‘사건, 내 대응, 상대 반응, 다음 대안’ 네 칸으로 짧게 정리해 보세요. 기록에는 필요한 사실만 남기세요.',
+  'resources':'안전하게 관리되는 기록 양식, 되돌아볼 시간, 동료와의 사실 확인이 도움이 되는지 살펴보세요.'},
+ ('성', '정서적 조절 손상'): {
+  'title':'감정이 가라앉은 뒤, 다음 대응 고르기',
+  'meaning':'감정적인 장면을 정당화하거나 자책하는 데 머무르지 않고 다음 대응으로 연결할 방법을 살펴보자는 제안입니다.',
+  'question':'감정적으로 반응한 뒤 내 대응을 정당화하거나 자책하는 데 머문 적이 있나요?',
+  'practice':'진정된 뒤 ‘내 감정, 실제 행동, 상대에게 미친 영향’을 구분하고 다음에 쓸 표현이나 협력 요청을 하나 정해보세요.',
+  'resources':'비난 없이 검토할 동료, 대응 후 회복 시간, 필요하면 상담 자원을 함께 살펴보세요.'},
+}
+COMBINATION_NOTE = ('이 주제는 두 결과를 연결한 교육용 제안입니다. 고정된 성격유형이나 진단명이 아니며, '
+                    '두 영역 사이의 원인과 결과를 확인한 것이 아닙니다. 경험에 맞지 않으면 자신을 설명에 맞출 필요가 없습니다.')
+
+
+def burnout_total_mean(burnout):
+    if not burnout or any(f not in burnout for f in EASY_BAT):
+        return None
+    counts = {f: sum(1 for _, domain, _ in BAT_ITEMS if domain == f) for f in EASY_BAT}
+    return sum(float(burnout[f]) * counts[f] for f in counts) / sum(counts.values())
+
+
+def combined_profile(scores, burnout):
+    """반올림 전 문항평균으로 비교하고 동점은 모두 보존합니다. 임의의 차이 기준을 사용하지 않습니다."""
+    result = {'low': [], 'high': [], 'pairs': [], 'note': ''}
+    if not burnout or any(f not in scores for f in EASY_GAM) or any(f not in burnout for f in EASY_BAT):
+        result['note'] = '두 설문의 유효한 점수가 있어야 함께 돌아볼 주제를 제안할 수 있습니다.'
+        return result
+    low = min(float(scores[f]) for f in EASY_GAM)
+    high = max(float(burnout[f]) for f in EASY_BAT)
+    result['low'] = [f for f in EASY_GAM if np.isclose(scores[f], low, rtol=0, atol=1e-9)]
+    result['high'] = [f for f in EASY_BAT if np.isclose(burnout[f], high, rtol=0, atol=1e-9)]
+    if len(result['low']) == 3 or len(result['high']) == 4:
+        result['note'] = '한 설문의 모든 영역 점수가 같아 특정 조합을 우선 제안하지 않습니다. 아래의 관심 주제를 스스로 골라 살펴보셔도 됩니다.'
+    else:
+        result['pairs'] = [(g, b) for g in result['low'] for b in result['high']]
+        result['note'] = ('동점인 영역이 있어 관련 주제를 함께 제안합니다. ' if len(result['pairs']) > 1 else '')
+        result['note'] += '영역 간 차이가 작으면 다른 주제도 비슷하게 해당할 수 있습니다. 이 조합은 순위나 부족함을 판정한 결과가 아닙니다.'
+    return result
+
+
+def profile_reason(profile):
+    if not profile['pairs']:
+        return profile['note']
+    g = ', '.join(f'{x} · {EASY_GAM[x][0]}' for x in profile['low'])
+    b = ', '.join(BURNOUT_NAMES[x] for x in profile['high'])
+    return f'내 응답에서 인권감수성은 {g}의 평균이 상대적으로 낮고, 소진 경험은 {b}의 평균이 상대적으로 높았습니다.'
+
+
+def render_easy_results(scores, burnout):
+    from html import escape as html_escape
+    st.markdown('''<style>
+    .easy-report{background:linear-gradient(135deg,#f6fbff,white 75%);padding:1.2rem;border:1px solid #d8e7f0;border-radius:18px;margin:.5rem 0 1.2rem}
+    .easy-domain{border-bottom:1px solid #dce6ed;padding:.85rem 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem}
+    .easy-domain h4{font-size:1.12rem;margin:0 0 .25rem;color:#163752}
+    .easy-domain p{font-size:1rem;margin:0;color:#40586a;line-height:1.6}
+    .easy-score{font-size:1.2rem;font-weight:700;white-space:nowrap;color:#216f9e}
+    .easy-green .easy-score{color:#24644f}.easy-green{background:linear-gradient(135deg,#f0f8f1,white 75%)}
+    @media(max-width:520px){.easy-report{padding:1rem}.easy-domain{gap:.5rem}.easy-score{font-size:1.05rem}}
+    </style>''', unsafe_allow_html=True)
+    st.subheader('나의 응답을 이해하기')
+    st.write('능력 평가나 진단이 아닌, 나의 판단과 근무 경험을 돌아보는 자료입니다.')
+    st.markdown('### 1. 나의 인권감수성')
+    rows = []
+    for f, (label, meaning) in EASY_GAM.items():
+        rows.append(f'<div class="easy-domain"><div><h4>{f} · {label}</h4><p>{html_escape(meaning)}</p></div><div class="easy-score">{scores[f]:.2f} / 4점</div></div>')
+    st.markdown('<div class="easy-report">'+''.join(rows)+'</div>',unsafe_allow_html=True)
+    st.caption('높을수록 해당 내용을 자신에게 더 해당한다고 응답했습니다. 타인의 평가나 실제 업무 수행을 직접 측정한 결과는 아닙니다.')
+    st.markdown('### 2. 나의 직무소진 경험')
+    if burnout is None:
+        st.info('직무소진 유효 응답을 확인할 수 없습니다.')
+    else:
+        rows = []
+        for f, (label, meaning) in EASY_BAT.items():
+            rows.append(f'<div class="easy-domain"><div><h4>{label} · {BURNOUT_NAMES[f]}</h4><p>{html_escape(meaning)}</p></div><div class="easy-score">{burnout[f]:.2f} / 5점</div></div>')
+        rows.append(f'<div class="easy-domain"><div><h4>직무소진 전체 평균</h4><p>22문항을 모두 평균한 점수입니다.</p></div><div class="easy-score">{burnout_total_mean(burnout):.2f} / 5점</div></div>')
+        st.markdown('<div class="easy-report easy-green">'+''.join(rows)+'</div>',unsafe_allow_html=True)
+        st.caption('높을수록 해당 경험을 더 자주 보고했습니다. 소진을 진단하는 기준이나 인사평가 점수가 아닙니다.')
+    st.info('인권감수성은 1~4점, 소진은 1~5점입니다. 두 점수를 합치거나 크기를 직접 비교하지 않습니다. 낮거나 높은 영역은 내 응답 안에서의 비교입니다.')
+
+
+def render_combined_results(scores, burnout):
+    profile = combined_profile(scores, burnout)
+    st.subheader('나에게 제안하는 성찰 주제')
+    st.write(profile_reason(profile))
+    if profile['pairs']:
+        st.caption(profile['note'])
+    for g, b in profile['pairs']:
+        theme = COMBINED_THEMES[(g, b)]
+        with st.container(border=True):
+            st.caption(f'{g} · {EASY_GAM[g][0]} × {BURNOUT_NAMES[b]}')
+            st.markdown('### '+theme['title'])
+            for title_text, field in [('어떤 의미로 살펴볼까요?', 'meaning'), ('업무에서 떠올려 볼 장면', 'question'), ('이번 주, 한 가지만 시도해 보세요', 'practice'), ('나의 노력과 함께 필요한 자원', 'resources')]:
+                st.markdown('**'+title_text+'**')
+                st.write(theme[field])
+    st.caption(COMBINATION_NOTE)
+    with st.expander('다른 성찰 주제도 살펴보기 · 12개 조합'):
+        choice = st.selectbox('관심 있는 주제', list(COMBINED_THEMES),
+            format_func=lambda p: f'{p[0]} × {BURNOUT_NAMES[p[1]]} · {COMBINED_THEMES[p]["title"]}',
+            index=None, key='explore_combined_theme')
+        if choice is not None:
+            t = COMBINED_THEMES[choice]
+            st.caption('직접 선택해 살펴보는 주제입니다. 자동으로 매칭된 결과를 변경하지 않습니다.')
+            st.markdown('**'+t['title']+'**')
+            for k in ['meaning', 'question', 'practice', 'resources']:
+                st.write(t[k])
+    st.markdown('**내가 해볼 일 한 가지**')
+    st.text_area('다음 근무에서 시도할 작은 실천', key='personal_action_plan', max_chars=1200,
+                 placeholder='어떤 상황에서 무엇을 해볼지 적어보세요. 이름이나 사건 식별정보는 적지 마세요.')
+    st.caption('이 메모는 연구 응답 시트에 추가 저장하지 않습니다. 입력 후 PDF를 내려받으면 결과지에 포함됩니다.')
+
+
+def easy_pdf_pages(scores, burnout, report_paragraph, body, heading, caption, title, green_heading, doc):
+    """설명 요약 한 쪽과 조합별 성찰 쪽. 기존 상세 해설은 뒤에 그대로 유지합니다."""
+    from reportlab.platypus import Table, TableStyle
+    from xml.sax.saxutils import escape
+    compact = ParagraphStyle('EasyCompact', parent=body, fontSize=9.2, leading=13, spaceAfter=4)
+    name_style = ParagraphStyle('EasyName', parent=compact, fontSize=10.2, leading=14, textColor=HexColor('#163752'))
+    small_heading = ParagraphStyle('EasySection', parent=heading, fontSize=13, leading=18, spaceBefore=9, spaceAfter=6)
+    green_section = ParagraphStyle('EasyGreenSection', parent=small_heading, textColor=HexColor('#24644f'))
+    out = [report_paragraph('나의 응답을 이해하기', title),
+           report_paragraph('능력 평가나 진단이 아닌, 나의 판단과 근무 경험을 돌아보는 자료입니다.', compact),
+           report_paragraph('01  나의 인권감수성', small_heading)]
+    def score_table(entries, maximum, bg):
+        rows=[]
+        for label, meaning, value in entries:
+            rows.append([[report_paragraph(escape(label), name_style),report_paragraph(escape(meaning), compact)],
+                         report_paragraph(f'{value:.2f} / {maximum}점', name_style)])
+        table=Table(rows, colWidths=[doc.width-94,94], hAlign='LEFT')
+        table.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),HexColor(bg)),
+            ('LINEBELOW',(0,0),(-1,-1),.4,HexColor('#dce7eb')),('VALIGN',(0,0),(-1,-1),'TOP'),
+            ('LEFTPADDING',(0,0),(-1,-1),9),('RIGHTPADDING',(0,0),(-1,-1),9),
+            ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),5)]))
+        return table
+    out.append(score_table([(f'{g} · {v[0]}',v[1],scores[g]) for g,v in EASY_GAM.items()],4,'#eff6fc'))
+    out.append(report_paragraph('높을수록 해당 내용을 자신에게 더 해당한다고 응답했습니다.',compact))
+    out.append(report_paragraph('02  나의 직무소진 경험',green_section))
+    if burnout:
+        out.append(score_table([(f'{v[0]} ({dict(zip(EASY_BAT, ["탈진", "심적거리", "인지적 어려움", "정서적 어려움"]))[f]})',v[1],burnout[f]) for f,v in EASY_BAT.items()],5,'#eff6f0'))
+        out.append(report_paragraph(f'직무소진 전체 평균: {burnout_total_mean(burnout):.2f} / 5점 · 22문항 평균',name_style))
+        out.append(report_paragraph('높을수록 해당 경험을 더 자주 보고했습니다. 진단이나 정상·위험 판정이 아닙니다.',compact))
+    else:
+        out.append(report_paragraph('직무소진 결과를 산출할 수 없습니다.',compact))
+    out.append(report_paragraph('인권감수성은 1~4점, 소진은 1~5점입니다. 두 점수를 합치거나 크기를 직접 비교하지 않습니다. 낮거나 높은 영역은 내 응답 안에서의 비교이며 타인과의 순위가 아닙니다.',caption))
+    profile=combined_profile(scores,burnout)
+    pairs=profile['pairs']
+    if not pairs:
+        out.extend([PageBreak(),report_paragraph('두 결과를 함께 돌아보기',title),report_paragraph(profile['note'],body),
+                    report_paragraph('나에게 필요한 작은 실천',heading),report_paragraph('최근 근무 중 돌아보고 싶은 장면 하나를 고르고, 내가 해볼 행동과 함께 필요한 자원을 나누어 적어보세요.',body),
+                    report_paragraph(COMBINATION_NOTE,caption)])
+    for g,b in pairs:
+        theme=COMBINED_THEMES[(g,b)]
+        out.extend([PageBreak(),report_paragraph('나에게 제안하는 성찰 주제',title),
+            report_paragraph(f'{g} · {EASY_GAM[g][0]} × {BURNOUT_NAMES[b]}',caption),
+            Table([[report_paragraph(escape(theme['title']), green_section)]], colWidths=[doc.width], style=TableStyle([('BACKGROUND',(0,0),(-1,-1),HexColor('#edf6ef')),('LEFTPADDING',(0,0),(-1,-1),12),('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10)])),
+            report_paragraph('이 주제가 나온 이유',heading),report_paragraph(profile_reason(profile),body),
+            report_paragraph(profile['note'],caption)])
+        for title_text,field in [('어떤 의미로 살펴볼까요?','meaning'),('업무에서 떠올려 볼 장면','question'),('이번 주, 한 가지만 시도해 보세요','practice'),('나의 노력과 함께 필요한 자원','resources')]:
+            out.extend([report_paragraph(title_text,small_heading),report_paragraph(escape(theme[field]),body)])
+        out.append(report_paragraph(COMBINATION_NOTE,caption))
+    out.extend([PageBreak(),report_paragraph('자세히 살펴보기 · 영역별 해설과 연구 근거',title),
+                report_paragraph('앞의 요약을 더 살펴보고 싶을 때 참고하세요. 기존 도표, 문항별 질문과 연구 근거를 이어서 제공합니다.',body)])
+    return out
+
+
+
 def make_result_pdf(scores, action_plan, burnout, selected=None):
     selected = selected or {}
     from xml.sax.saxutils import escape
@@ -632,7 +874,18 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
             except (TTFError, OSError, ValueError):
                 continue
 
+    hanja_path = Path(__file__).with_name("fonts") / "ReportHanja.ttf"
+    hanja_chars = set()
+    if hanja_path.is_file():
+        try:
+            pdfmetrics.registerFont(TTFont("ReportHanja", str(hanja_path)))
+            hanja_chars = set(pdfmetrics.getFont("ReportHanja").face.charToGlyph)
+        except (TTFError, OSError, ValueError):
+            pass
+
     def report_paragraph(text, style):
+        if hanja_chars:
+            text = ''.join(f'<font name="ReportHanja">{ch}</font>' if 0x4e00 <= ord(ch) <= 0x9fff and ord(ch) in hanja_chars else ch for ch in text)
         if font == "HYGothic-Medium":
             text = text.replace("·", " / ")
         return Paragraph(text, style)
@@ -656,7 +909,7 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     followup = ParagraphStyle("ResultFollowup", parent=detail, spaceAfter=6)
 
     def numbered_detail(index, text):
-        return Paragraph(escape(text), detail, bulletText=CIRCLED_NUMBERS[index])
+        return report_paragraph(f"{index + 1}. {escape(text)}", detail)
     reference = ParagraphStyle("ReferenceDetail", parent=caption, leftIndent=12)
     doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=20*mm, rightMargin=20*mm,
                             topMargin=24*mm, bottomMargin=21*mm)
@@ -664,6 +917,11 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
     def draw_background(canvas, page):
         width, height = A4
         canvas.saveState()
+        # 옅은 곡선은 여백에만 배치하여 본문 가독성을 유지합니다.
+        canvas.setFillColor(HexColor('#edf6fc'))
+        canvas.ellipse(width-76*mm, height-18*mm, width+24*mm, height+28*mm, stroke=0, fill=1)
+        canvas.setFillColor(HexColor('#f0f7f1'))
+        canvas.ellipse(-35*mm, -24*mm, 92*mm, 7*mm, stroke=0, fill=1)
         canvas.setStrokeColor(rule)
         canvas.line(20*mm, height - 19*mm, width - 20*mm, height - 19*mm)
         canvas.line(20*mm, 16*mm, width - 20*mm, 16*mm)
@@ -671,7 +929,7 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
         canvas.setFont(font, 8)
         canvas.drawString(20*mm, height - 15*mm, "교정공무원 감.수.성 인권감수성 판단구조 / K-BAT 직무소진 결과")
         canvas.drawString(20*mm, 11*mm, f"{page.page:02d}")
-        canvas.drawRightString(width - 20*mm, 11*mm, "개인 자기점검 참고자료")
+        canvas.drawRightString(width - 20*mm, 11*mm, "감·수·성 모델·척도 연구·개발 | 홍성교도소 이성덕")
         canvas.restoreState()
 
     def section_title(text, is_green=False):
@@ -795,6 +1053,7 @@ def make_result_pdf(scores, action_plan, burnout, selected=None):
             lines.add(Rect(0, index * 9*mm, doc.width - 12, 0.35,
                            fillColor=rule, strokeColor=None))
         story.append(lines)
+    story = easy_pdf_pages(scores, burnout, report_paragraph, body, heading, caption, title, green_heading, doc) + story
     doc.build(story, onFirstPage=draw_background, onLaterPages=draw_background)
     return buffer.getvalue()
 
@@ -1165,7 +1424,12 @@ if st.session_state.page == "result":
         """,
         unsafe_allow_html=True,
     )
-    gam_tab, burnout_tab = st.tabs(["감·수·성 인권감수성 결과", "직무소진 결과"])
+    easy_tab, combined_tab, gam_tab, burnout_tab = st.tabs([
+        "내 결과 한눈에", "나의 성찰 주제", "인권감수성 자세히", "직무소진 자세히"])
+    with easy_tab:
+        render_easy_results(scores, burnout)
+    with combined_tab:
+        render_combined_results(scores, burnout)
 
     with gam_tab:
         result_heading("1. 감·수·성 인권감수성 결과")
@@ -1241,7 +1505,7 @@ if st.session_state.page == "result":
             st.write(role)
 
     st.download_button(
-        "통합 PDF 내려받기", data=make_result_pdf(scores, "", burnout, selected),
+        "통합 PDF 내려받기", data=make_result_pdf(scores, st.session_state.get("personal_action_plan", ""), burnout, selected),
         file_name="나의_감수성_직무소진_자기점검.pdf", mime="application/pdf",
         use_container_width=True,
     )
