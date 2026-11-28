@@ -1016,23 +1016,67 @@ def render_burnout_group_comparison(all_records):
         count, means = burnout_group_means(selected)
         st.caption(f'{name}: {period[0]:%Y-%m-%d} ~ {period[1]:%Y-%m-%d} · 유효 응답 {count}건 / 선택 응답 {len(selected)}건')
         # 한 사람의 평균이 개인 점수로 노출되는 것을 방지합니다.
-        if count < 5:
-            st.info(f'{name}은 유효 응답 5건부터 집단 평균을 표시합니다.')
+        if count < 2:
+            st.info(f'{name}: 유효 응답 {count}건 — 2건부터 집단 평균을 표시합니다.')
             means = [None] * 5
         series.append((name, means, color, symbol))
         table[name + ' 평균'] = [f'{v:.2f}' if v is not None else '표시 안 함' for v in means]
+    view = st.radio("점수 범위", ["차이 확대 보기", "전체 범위 보기"], horizontal=True, key="bat_comparison_scale")
+    visible = [entry for entry in series if any(v is not None for v in entry[1])]
+    all_values = [v for _, values, _, _ in visible for v in values if v is not None]
+    if view == "차이 확대 보기" and all_values:
+        low = max(1.0, float(np.floor((min(all_values) - .25) * 4) / 4))
+        high = min(5.0, float(np.ceil((max(all_values) + .30) * 4) / 4))
+        if high - low < 1.0:
+            center = (high + low) / 2
+            low = max(1.0, min(center - .5, 4.0))
+            high = min(5.0, low + 1.0)
+        st.caption(f"가로축 확대: {low:.2f}~{high:.2f}점 · 원래 척도는 1~5점입니다. 작은 차이를 과도하게 해석하지 마세요.")
+    else:
+        low, high = 1.0, 5.0
     fig = go.Figure()
-    for name, means, color, symbol in series:
-        fig.add_trace(go.Scatter(x=means, y=labels, name=name, mode='markers+text',
-            marker=dict(color=color, symbol=symbol, size=15, line=dict(color='white', width=1)),
-            text=[f'{v:.2f}' if v is not None else '' for v in means], textposition='top center',
-            hovertemplate='%{y}: %{x:.2f}<extra>%{fullData.name}</extra>'))
-    fig.update_layout(height=510, xaxis=dict(range=[0.9, 5.1], tickvals=[1,2,3,4,5], title='응답 평균 · 1~5점'),
-        yaxis=dict(autorange='reversed', automargin=True), font=dict(size=18),
-        legend=dict(orientation='h', y=-.2), margin=dict(l=20,r=30,t=40,b=100),
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='white')
-    st.plotly_chart(fig, use_container_width=True, key='bat_three_group_comparison')
-    st.dataframe(table, use_container_width=True, hide_index=True)
+    positions = [i * 2.0 for i in range(5)]
+    offsets = {'선행연구 참고평균': -.42, '비교 교육집단': 0, '이번 교육집단': .42}
+    for i, center in enumerate(positions):
+        if i % 2 == 0:
+            fig.add_hrect(y0=center-.83, y1=center+.83, fillcolor='#eef5f1', line_width=0, layer='below')
+    for name, means, color, symbol in visible:
+        emphasis = name == '이번 교육집단'
+        fig.add_trace(go.Scatter(x=means, y=[y+offsets[name] for y in positions], name=name, mode='markers+text',
+            marker=dict(color=color, symbol=symbol, size=18 if emphasis else 13, line=dict(color='white', width=1)),
+            text=[(('<b>'+f'{v:.2f}'+'</b>') if emphasis else f'{v:.2f}') if v is not None else '' for v in means],
+            textfont=dict(color=color, size=20 if emphasis else 17), textposition='middle right',
+            cliponaxis=False, customdata=labels,
+            hovertemplate='%{customdata}: %{x:.2f}<extra>%{fullData.name}</extra>'))
+    fig.add_hline(y=positions[-1]-1.0, line_color='#a4bdb0', line_width=1)
+    fig.update_layout(height=750, xaxis=dict(range=[low,high], dtick=.25 if high-low<=2 else 1,
+            title='응답 평균 · 1~5점', gridcolor='#dfe9e3', tickfont=dict(size=16)),
+        yaxis=dict(range=[positions[-1]+.9,-.9], tickvals=positions, ticktext=labels,
+                   tickfont=dict(size=20, color='#183e30'), showgrid=False, automargin=True, zeroline=False),
+        font=dict(size=18), legend=dict(orientation='h', y=1.09, x=0, font=dict(size=15)),
+        margin=dict(l=20,r=70,t=85,b=65), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='white')
+    graph_area, table_area = st.columns([2.2, 1.2], gap="large")
+    with graph_area:
+        st.plotly_chart(fig, use_container_width=True, key='bat_three_group_comparison', config={'displayModeBar': False})
+    with table_area:
+        st.markdown("### 평균 점수표")
+        # 정적 표는 강의 화면에서 스크롤 없이 다섯 영역을 모두 보여줍니다.
+        import html
+        headers = ['영역', '선행연구', '비교집단', '이번집단']
+        keys = list(table)
+        table_html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:17px;text-align:center">'
+        table_html += '<thead><tr>' + ''.join('<th style="padding:16px 8px;background:#e3eee7;border-bottom:1px solid #cbded2">'+h+'</th>' for h in headers) + '</tr></thead><tbody>'
+        for row_index in range(5):
+            table_html += '<tr>'
+            for col_index, key in enumerate(keys):
+                style = 'padding:22px 8px;border-bottom:1px solid #dce7e0;'
+                if col_index == 3:
+                    style += 'background:#edf6ef;color:#095b40;font-weight:700;'
+                table_html += '<td style="'+style+'">'+html.escape(str(table[key][row_index]))+'</td>'
+            table_html += '</tr>'
+        st.markdown(table_html+'</tbody></table></div>', unsafe_allow_html=True)
+        st.caption("선행연구 전체 평균은 미제공입니다.")
+    st.caption("유효 응답 2건부터 표시합니다. 소수 응답의 평균은 개별 응답에 따라 크게 달라질 수 있습니다.")
     st.caption("전체 평균은 네 영역 평균의 단순평균이 아니라, 개인별 22문항 평균을 집단에서 평균한 값입니다. 결측·범위 밖 응답은 제외합니다.")
     st.caption("선행연구 값은 기존 코드에 등록된 참고평균입니다. 전체 평균은 제공되지 않아 표시하지 않습니다. 표본과 문항·응답 기준의 차이를 고려해야 하며 진단 기준이나 정상·위험 경계가 아닙니다.")
     st.caption("응답 건수는 고유 인원수가 아닙니다. 같은 사람의 반복 응답이나 사전·사후 응답이 같은 기간에 있으면 함께 포함됩니다. 비교하려는 실시 회차에 맞게 기간을 선택해 주세요.")
