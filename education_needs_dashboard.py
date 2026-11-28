@@ -1035,6 +1035,11 @@ def render_burnout_group_comparison(all_records):
     else:
         low, high = 1.0, 5.0
     fig = go.Figure()
+    import textwrap
+    descriptions = [BAT_PLAIN_MEANINGS[f] for f in BAT_FACTORS] + [
+        "탈진·심적거리·인지적 어려움·정서적 어려움의 22문항을 모두 평균한 값입니다. 소진 경험을 전반적으로 살펴보는 참고값이며 진단 기준은 아닙니다."
+    ]
+    hover_descriptions = ['<br>'.join(textwrap.wrap(text, width=32)) for text in descriptions]
     positions = [i * 2.0 for i in range(5)]
     offsets = {'선행연구 참고평균': -.42, '비교 교육집단': 0, '이번 교육집단': .42}
     for i, center in enumerate(positions):
@@ -1046,8 +1051,8 @@ def render_burnout_group_comparison(all_records):
             marker=dict(color=color, symbol=symbol, size=18 if emphasis else 13, line=dict(color='white', width=1)),
             text=[(('<b>'+f'{v:.2f}'+'</b>') if emphasis else f'{v:.2f}') if v is not None else '' for v in means],
             textfont=dict(color=color, size=20 if emphasis else 17), textposition='middle right',
-            cliponaxis=False, customdata=labels,
-            hovertemplate='%{customdata}: %{x:.2f}<extra>%{fullData.name}</extra>'))
+            cliponaxis=False, customdata=list(zip(labels, hover_descriptions)),
+            hovertemplate='<b>%{customdata[0]}</b> · %{x:.2f}점<br>%{customdata[1]}<extra>%{fullData.name}</extra>'))
     fig.add_hline(y=positions[-1]-1.0, line_color='#a4bdb0', line_width=1)
     fig.update_layout(height=750, xaxis=dict(range=[low,high], dtick=.25 if high-low<=2 else 1,
             title='응답 평균 · 1~5점', gridcolor='#dfe9e3', tickfont=dict(size=16)),
@@ -1055,6 +1060,16 @@ def render_burnout_group_comparison(all_records):
                    tickfont=dict(size=20, color='#183e30'), showgrid=False, automargin=True, zeroline=False),
         font=dict(size=18), legend=dict(orientation='h', y=1.09, x=0, font=dict(size=15)),
         margin=dict(l=20,r=70,t=85,b=65), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='white')
+    # 축 눈금 대신 hovertext를 지원하는 영역명 주석을 사용합니다.
+    fig.update_yaxes(showticklabels=False)
+    fig.update_layout(margin=dict(l=165,r=70,t=85,b=65),
+                      hoverlabel=dict(bgcolor='white', font_size=16, align='left'))
+    for label, y, explanation in zip(labels, positions, hover_descriptions):
+        fig.add_annotation(x=0, xref='paper', y=y, yref='y', text=label + ' ⓘ',
+            showarrow=False, xanchor='right', xshift=-12,
+            font=dict(size=19, color='#183e30'), captureevents=True,
+            hovertext=explanation, hoverlabel=dict(bgcolor='white', font_size=16))
+    st.caption("영역명 ⓘ 또는 그래프의 점 위에 마우스를 올리면 영역 설명을 볼 수 있습니다.")
     graph_area, table_area = st.columns([2.2, 1.2], gap="large")
     with graph_area:
         st.plotly_chart(fig, use_container_width=True, key='bat_three_group_comparison', config={'displayModeBar': False})
@@ -1072,7 +1087,8 @@ def render_burnout_group_comparison(all_records):
                 style = 'padding:22px 8px;border-bottom:1px solid #dce7e0;'
                 if col_index == 3:
                     style += 'background:#edf6ef;color:#095b40;font-weight:700;'
-                table_html += '<td style="'+style+'">'+html.escape(str(table[key][row_index]))+'</td>'
+                tooltip = (' title="'+html.escape(descriptions[row_index], quote=True)+'" style="'+style+'cursor:help;"') if col_index == 0 else (' style="'+style+'"')
+                table_html += '<td'+tooltip+'>'+html.escape(str(table[key][row_index]))+(' ⓘ' if col_index == 0 else '')+'</td>' 
             table_html += '</tr>'
         st.markdown(table_html+'</tbody></table></div>', unsafe_allow_html=True)
         st.caption("선행연구 전체 평균은 미제공입니다.")
@@ -1081,6 +1097,25 @@ def render_burnout_group_comparison(all_records):
     st.caption("선행연구 값은 기존 코드에 등록된 참고평균입니다. 전체 평균은 제공되지 않아 표시하지 않습니다. 표본과 문항·응답 기준의 차이를 고려해야 하며 진단 기준이나 정상·위험 경계가 아닙니다.")
     st.caption("응답 건수는 고유 인원수가 아닙니다. 같은 사람의 반복 응답이나 사전·사후 응답이 같은 기간에 있으면 함께 포함됩니다. 비교하려는 실시 회차에 맞게 기간을 선택해 주세요.")
     st.info("나의 결과지와 비교해 보세요. 어떤 영역에서 차이가 보이나요? 그 차이와 관련된 업무 경험, 회복에 도움이 되는 자원은 무엇인가요?")
+
+def select_share_period(all_records, initial_records, key):
+    dates = sorted({r['_submitted_at'].date() for r in all_records})
+    if not dates:
+        st.info("표시할 응답이 없습니다.")
+        return None
+    initial_dates = [r['_submitted_at'].date() for r in initial_records]
+    default = (min(initial_dates), max(initial_dates)) if initial_dates else (dates[-1], dates[-1])
+    selected = st.date_input("현재 교육집단 · 날짜 또는 기간", value=default,
+        min_value=dates[0], max_value=dates[-1], key=key,
+        help="하루 집단은 시작일과 종료일을 같은 날짜로 선택하세요. 응답 제출일 기준입니다.")
+    if not isinstance(selected, (tuple, list)) or len(selected) != 2:
+        st.info("시작일과 종료일을 모두 선택해 주세요.")
+        return None
+    group = [r for r in all_records if selected[0] <= r['_submitted_at'].date() <= selected[1]]
+    st.markdown(f"**현재 집단: {selected[0]:%Y-%m-%d} ~ {selected[1]:%Y-%m-%d} · 응답 {len(group)}건**")
+    st.caption("응답 제출일 기준 · 같은 사람의 반복 응답은 별도 응답으로 포함됩니다.")
+    return group
+
 
 def render_classroom_share(records, all_records=None):
     st.markdown("""<style>
@@ -1107,14 +1142,20 @@ def render_classroom_share(records, all_records=None):
     </style>""",unsafe_allow_html=True)
     st.markdown('<div class="share-head">우리의 감·수·성, 함께 살펴보기</div>',unsafe_allow_html=True)
     st.write('인권적 직무 경험과 소진 경험을 함께 이해하고 오늘의 교육 주제를 정합니다.')
-    st.markdown('<div class="share-strip">분석 대상: 선택 기간의 전체 교육 응답 · 교육자 화면의 인구학적 필터는 공유 화면에 적용하지 않습니다.</div>',unsafe_allow_html=True)
+    st.markdown('<div class="share-strip">각 탭에서 날짜·기간을 선택할 수 있습니다. 집단은 응답 제출일로 구분하며, 교육자 화면의 인구학적 필터는 적용하지 않습니다.</div>',unsafe_allow_html=True)
     averages, comparison, correlation = st.tabs(["영역별 평균", "소진 · 세 집단 비교", "상관관계 살펴보기"])
+    source = all_records if all_records is not None else records
     with averages:
-        render_share_averages(records)
+        average_records = select_share_period(source, records, "share_average_period")
+        if average_records is not None:
+            render_share_averages(average_records)
     with comparison:
-        render_burnout_group_comparison(all_records if all_records is not None else records)
+        st.caption("이 탭은 아래의 비교 교육집단·이번 교육집단 기간을 각각 적용합니다.")
+        render_burnout_group_comparison(source)
     with correlation:
-        render_share_correlation(records)
+        correlation_records = select_share_period(source, records, "share_correlation_period")
+        if correlation_records is not None:
+            render_share_correlation(correlation_records)
 
 
 def render_share_averages(records):
